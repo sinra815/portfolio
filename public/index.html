@@ -1,0 +1,721 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>투자 포트폴리오 리밸런싱 계산기</title>
+<style>
+:root{
+  --navy:#10243f; --navy2:#17385f; --line:#d7dee8; --bg:#f4f7fb; --panel:#fff;
+  --text:#172033; --muted:#657083; --input:#fff9df; --danger:#ffe5e8; --success:#e7f6ed;
+  --warning:#fff59d; --unused:#eef1f5;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:"Noto Sans KR","Malgun Gothic",Arial,sans-serif}
+button,input,select{font:inherit}
+button{cursor:pointer}
+.app{max-width:1700px;margin:auto;padding:18px}
+header{background:linear-gradient(135deg,var(--navy),#214b78);color:#fff;border-radius:16px;padding:20px 22px;margin-bottom:14px;box-shadow:0 8px 24px #10243f20}
+h1{font-size:25px;margin:0 0 7px}
+header p{margin:0;color:#dce8f6;font-size:14px}
+.sticky{position:sticky;top:8px;z-index:20;background:#ffffffee;backdrop-filter:blur(12px);border:1px solid var(--line);border-radius:14px;padding:12px;margin-bottom:14px;box-shadow:0 8px 22px #18283d12}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.btn{border:1px solid #c8d1dd;background:#fff;color:#23344d;border-radius:9px;padding:8px 12px;font-weight:600}
+.btn.primary{background:var(--navy2);color:#fff;border-color:var(--navy2)}
+.btn.danger{background:#fff1f2;color:#a52b36}
+.btn.small{padding:5px 8px;font-size:12px}
+.totalbox{display:flex;align-items:center;gap:9px;margin-right:auto}
+.total-label{font-size:12px;color:var(--muted)}
+.total{font-size:23px;font-weight:800;letter-spacing:.2px}
+.eye{border:0;background:transparent;font-size:18px}
+.folder-status{font-size:12px;color:var(--muted);min-width:180px}
+.legend{display:flex;gap:12px;flex-wrap:wrap;margin-top:9px;font-size:12px;color:#566173}
+.legend span{display:inline-flex;align-items:center;gap:5px}
+.dot{width:13px;height:13px;border-radius:3px;border:1px solid #cbd3df;display:inline-block}
+.dot.input{background:var(--input)} .dot.up{background:var(--success)} .dot.down{background:var(--danger)}
+.dot.max{background:var(--warning)} .dot.unused{background:repeating-linear-gradient(135deg,#e9edf2 0,#e9edf2 5px,#fff 5px,#fff 9px)}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;margin-bottom:14px;overflow:hidden}
+.panel-title{padding:12px 15px;background:#f8fafc;border-bottom:1px solid var(--line);font-weight:800;color:var(--navy)}
+.panel-body{padding:14px}
+.dashboard{display:grid;grid-template-columns:1fr 330px;gap:14px}
+.summary-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.kpi{border:1px solid var(--line);border-radius:10px;padding:11px;background:#fff}
+.kpi .k{font-size:12px;color:var(--muted)} .kpi .v{font-size:18px;font-weight:800;margin-top:4px}
+.piewrap{display:flex;align-items:center;gap:15px}
+.pie{width:170px;height:170px;border-radius:50%;background:conic-gradient(#6d8db5 0deg 0deg,#c5d1df 0deg 360deg);box-shadow:inset 0 0 0 1px #fff,0 4px 16px #17203318}
+.pielegend{font-size:12px;max-height:180px;overflow:auto}
+.pielegend div{display:flex;justify-content:space-between;gap:10px;padding:3px 0}
+.table-scroll{overflow:auto}
+table{border-collapse:separate;border-spacing:0;width:100%;min-width:1220px;font-size:13px}
+th,td{border-right:1px solid var(--line);border-bottom:1px solid var(--line);padding:7px 6px;vertical-align:middle;background:#fff}
+th{position:sticky;top:0;background:var(--navy);color:#fff;z-index:5;white-space:nowrap}
+th:first-child,td:first-child{border-left:1px solid var(--line)}
+thead th{border-top:1px solid var(--navy)}
+td.num{text-align:right;white-space:nowrap}
+td.center{text-align:center}
+.edit{background:var(--input)!important;cursor:pointer;min-width:82px}
+.edit:focus{outline:2px solid #7e9cc4}
+.groupcell{background:#f8fafc;font-weight:700}
+.accountcell{background:#fbfcfe;font-weight:700}
+.cashcell{background:#f5f7fa}
+.unused{background:repeating-linear-gradient(135deg,#edf0f4 0,#edf0f4 6px,#fff 6px,#fff 11px)!important;color:#7a8493;text-align:center}
+.maxdev{background:var(--warning)!important;font-weight:800}
+.over{background:#fff0c8}
+.under{background:#e9f7ee}
+.subtotal td{background:#eef4fa;font-weight:800}
+tfoot td{background:#e3ebf5;font-weight:900}
+.actionset{display:flex;gap:3px;justify-content:center;flex-wrap:wrap}
+.iconbtn{border:1px solid #ccd5e0;background:#fff;border-radius:6px;padding:3px 6px;font-size:12px}
+.section-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}
+.note{font-size:12px;line-height:1.7;color:#5c6677;background:#fafbfd;border:1px solid var(--line);padding:10px;border-radius:8px;margin-top:10px}
+.two{display:grid;grid-template-columns:1.25fr .9fr;gap:14px}
+input.inline,select.inline{border:1px solid #cbd5e1;border-radius:7px;padding:7px 8px;background:var(--input);min-width:0}
+input.inline:focus,select.inline:focus{outline:2px solid #9ab2cf}
+.master-new{display:grid;grid-template-columns:1.2fr 1fr .7fr .9fr auto;gap:7px;align-items:center}
+.master-new input{width:100%}
+.modal-back{display:none;position:fixed;inset:0;background:#0b1728aa;z-index:100;align-items:center;justify-content:center;padding:16px}
+.modal-back.show{display:flex}
+.modal{width:min(390px,100%);background:#fff;border-radius:18px;padding:15px;box-shadow:0 25px 80px #0005}
+.modal h3{margin:0 0 8px}.modal textarea{font-family:monospace}.modal input{width:100%;font-size:27px;text-align:right;padding:9px;border:1px solid #cbd5e1;border-radius:9px;background:#f8fafc}
+.keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:10px}
+.keypad button{height:48px;border:1px solid #d4dce6;border-radius:9px;background:#f7f9fc;font-size:18px;font-weight:700}
+.modal-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:9px}
+.filelist{max-height:280px;overflow:auto;border:1px solid var(--line);border-radius:9px;margin-top:9px}
+.filelist button{width:100%;padding:10px;border:0;border-bottom:1px solid var(--line);background:#fff;text-align:left}
+.filelist button:hover{background:#f1f5f9}
+.toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:#172033;color:#fff;padding:10px 15px;border-radius:10px;z-index:150;display:none;box-shadow:0 8px 25px #0004}
+.toast.show{display:block}
+@media(max-width:1000px){.dashboard,.two{grid-template-columns:1fr}.summary-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:600px){.app{padding:9px}header{padding:15px}h1{font-size:21px}.summary-grid{grid-template-columns:1fr 1fr}.total{font-size:18px}.sticky{top:4px}.master-new{grid-template-columns:1fr 1fr}.master-new .wide{grid-column:1/-1}}
+</style>
+</head>
+<body>
+<div class="app">
+<header>
+  <h1>투자 포트폴리오 리밸런싱 계산기</h1>
+  <p>증권사·계좌별 현재 평가금액과 목표 비중을 비교해, 단계별로 어떤 종목을 더 사거나 줄여야 하는지 계산합니다.</p>
+</header>
+
+<section class="sticky">
+  <div class="toolbar">
+    <div class="totalbox">
+      <div><div class="total-label">전체 평가금액</div><div class="total" id="grandTotal">••••••</div></div>
+      <button class="eye" id="eyeBtn" title="금액 보기/가리기">👁</button>
+    </div>
+    <button class="btn primary" id="saveBtn">저장</button>
+    <button class="btn" id="loadBtn">저장 데이터 불러오기</button>
+    <button class="btn" id="exportBtn">파일로 내보내기</button>
+    <button class="btn" id="importBtn">파일에서 가져오기</button>
+    <button class="btn" id="folderBtn">📁 작업 폴더 지정</button>
+    <button class="btn primary" id="serverSaveBtn">☁ 서버 저장</button>
+    <button class="btn" id="serverLoadBtn">☁ 서버 불러오기</button>
+    <button class="btn" id="serverShareBtn">🔗 서버 공유</button>
+    <button class="btn" id="shareBtn">🔗 로컬 공유 링크</button>
+    <button class="btn" id="shareCodeBtn">📋 공유 코드</button>
+    <button class="btn danger" id="resetBtn">초기화</button>
+  </div>
+  <div class="folder-status" id="folderStatus">작업 폴더: 미지정 · ☁ 서버 저장으로 여러 기기에서 동일 데이터 사용 가능</div>
+  <div class="legend">
+    <span><i class="dot input"></i>사용자 입력</span><span><i class="dot up"></i>확대</span>
+    <span><i class="dot down"></i>축소</span><span><i class="dot max"></i>최대 괴리 금액</span>
+    <span><i class="dot unused"></i>미사용</span>
+  </div>
+</section>
+
+<div class="dashboard">
+  <section class="panel">
+    <div class="panel-title">📊 종목별 평가금액 요약</div>
+    <div class="panel-body">
+      <div class="summary-grid" id="kpis"></div>
+    </div>
+  </section>
+  <section class="panel">
+    <div class="panel-title">자산 구성</div>
+    <div class="panel-body piewrap">
+      <div class="pie" id="pie"></div><div class="pielegend" id="pieLegend"></div>
+    </div>
+  </section>
+</div>
+
+<section class="panel">
+  <div class="panel-title">📋 계좌별 리밸런싱 현황</div>
+  <div class="panel-body table-scroll">
+    <table id="rebalanceTable">
+      <thead><tr>
+        <th>증권사</th><th>계좌</th><th>종목</th><th>비중(%)</th><th>보유수량</th>
+        <th>평가금액(만원)</th><th>목표금액(만원)<br><input class="inline" id="stageInput" style="width:78px;text-align:center" value="100"></th>
+        <th>차액</th><th>비고</th><th>현금성자산</th><th>과비중<br><input class="inline" id="thresholdInput" style="width:70px;text-align:center" value="10" title="과비중 임계값(%)"></th><th>조작</th>
+      </tr></thead>
+      <tbody id="rebalanceBody"></tbody>
+      <tfoot id="rebalanceFoot"></tfoot>
+    </table>
+    <div class="section-actions">
+      <button class="btn primary" id="addGroupBtn">＋ 증권사/계좌 추가</button>
+    </div>
+    <div class="note">
+      <b>계산 로직</b> · 평가금액(M): 현금 행은 입력한 현금 금액(만원), 주식은 마스터 현재가(원) × 보유수량 ÷ 10,000.
+      계좌 총평가금액(D)은 해당 계좌의 M 합계입니다. 비중이 지정된 행은 입력 비중을 사용하고, 비중이 비어 있는 행(보통 현금)은
+      <b>100 - 지정 비중 합</b>으로 자동 배분합니다. 목표금액(G)=D×목표비중/100.
+      주식 목표금액은 선택한 단계(stage)를 곱하고, 현금성 자산은 항상 100% 목표로 계산합니다.
+      차액(N)=목표금액-현재 평가금액이며 음수는 축소, 양수는 확대입니다.
+      과비중은 <b>100×(현재비중-목표비중)/목표비중</b>을 사용하며, 헤더의 임계값 이상이면 O 표시됩니다.
+      현금성 종목의 차액은 계좌별로 합산하여 표시합니다.
+    </div>
+  </div>
+</section>
+
+<div class="two">
+<section class="panel">
+  <div class="panel-title">📌 종목별 현재가 (마스터)</div>
+  <div class="panel-body">
+    <div class="table-scroll">
+      <table style="min-width:760px">
+        <thead><tr><th>티커</th><th>종목명</th><th>유형</th><th>보유계좌수</th><th>현재가(원)</th><th>조작</th></tr></thead>
+        <tbody id="masterBody"></tbody>
+      </table>
+    </div>
+    <div class="master-new">
+      <input id="newTicker" class="inline wide" placeholder="티커 (예: 000660)">
+      <input id="newName" class="inline wide" placeholder="종목명 (예: SK하이닉스)">
+      <select id="newType" class="inline"><option value="stock">주식</option><option value="cash">현금</option></select>
+      <input id="newPrice" class="inline" placeholder="현재가(원)" inputmode="decimal">
+      <button class="btn primary" id="addMasterBtn">＋ 주가</button>
+    </div>
+    <div class="note">티커와 종목명을 별도로 입력합니다. 매입금액은 저장하거나 계산에 사용하지 않습니다. 이름을 바꾸면 계좌별 현황에도 즉시 반영됩니다.</div>
+  </div>
+</section>
+
+<section class="panel">
+  <div class="panel-title">🎯 단계별 미달성 금액 요약</div>
+  <div class="panel-body table-scroll">
+    <table style="min-width:520px">
+      <thead><tr id="stageHead"></tr></thead>
+      <tbody><tr id="stageRow"></tr></tbody>
+    </table>
+    <div class="note">각 단계에서 현금성 자산을 제외하고 <b>stage 목표금액 - 현재 평가금액</b>이 양수인 종목만 합산합니다.</div>
+  </div>
+</section>
+</div>
+</div>
+
+<div class="modal-back" id="numModal">
+  <div class="modal">
+    <h3>숫자 입력</h3>
+    <input id="numInput" inputmode="decimal" autocomplete="off">
+    <div class="keypad">
+      <button data-k="1">1</button><button data-k="2">2</button><button data-k="3">3</button>
+      <button data-k="4">4</button><button data-k="5">5</button><button data-k="6">6</button>
+      <button data-k="7">7</button><button data-k="8">8</button><button data-k="9">9</button>
+      <button data-k="0">0</button><button data-k=".">.</button><button data-k="-">−</button>
+      <button data-k="clear">전체지우기</button><button data-k="back">지우기</button><button data-k="cancel">취소</button>
+    </div>
+    <div class="modal-actions"><button class="btn" id="numCancel">취소</button><button class="btn primary" id="numOk">확인</button></div>
+  </div>
+</div>
+
+
+
+<div class="modal-back" id="serverModal">
+  <div class="modal">
+    <h3>☁ 서버 저장 / 공유</h3>
+    <p style="font-size:13px;line-height:1.6;color:#596579">
+      서버에 저장할 포트폴리오 ID를 입력합니다. 같은 ID와 비밀번호를 다른 기기에서 입력하면
+      동일한 데이터를 불러올 수 있습니다.
+    </p>
+    <input id="serverId" placeholder="포트폴리오 ID (예: myportfolio)" style="width:100%;padding:10px;border:1px solid #cbd5e1;border-radius:9px;margin-bottom:7px">
+    <input id="serverPassword" type="password" placeholder="공유 비밀번호" style="width:100%;padding:10px;border:1px solid #cbd5e1;border-radius:9px">
+    <div class="modal-actions">
+      <button class="btn" id="serverClose">취소</button>
+      <button class="btn primary" id="serverSaveConfirm">서버 저장</button>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" id="serverLoadConfirm">서버 불러오기</button>
+      <button class="btn" id="serverCopyLink">공유 링크 복사</button>
+    </div>
+    <div class="note">서버 저장은 현재 실행 중인 웹앱의 서버 API를 사용합니다. ID/비밀번호를 아는 사람은 해당 포트폴리오를 열 수 있으므로 비밀번호를 타인에게 공개하지 마세요.</div>
+  </div>
+</div>
+
+<div class="modal-back" id="shareModal">
+  <div class="modal">
+    <h3>🔗 다른 기기와 데이터 공유</h3>
+    <p style="font-size:13px;line-height:1.6;color:#596579">
+      아래 링크 또는 공유 코드를 다른 휴대폰/PC에서 열면 현재 포트폴리오 데이터가 그대로 불러와집니다.
+      별도의 서버 계정은 필요 없습니다.
+    </p>
+    <textarea id="shareText" style="width:100%;height:125px;border:1px solid #cbd5e1;border-radius:9px;padding:9px;font:12px/1.5 monospace;resize:vertical"></textarea>
+    <div class="modal-actions">
+      <button class="btn" id="shareNative">📤 다른 앱으로 공유</button>
+      <button class="btn" id="shareLoad">불러오기</button><button class="btn primary" id="shareCopy">복사</button>
+    </div>
+    <button class="btn" id="shareClose" style="width:100%;margin-top:8px">닫기</button>
+    <div class="note">주의: 공유 링크에는 포트폴리오 데이터가 포함됩니다. 종목·수량·평가금액 등이 들어 있으므로 공개 게시판 등에 올리지 말고 신뢰할 수 있는 기기/사람에게만 전달하세요.</div>
+  </div>
+</div>
+<input type="file" id="fileInput" accept=".json,application/json" hidden>
+<div class="toast" id="toast"></div>
+
+<script>
+const STORAGE_KEY = 'portfolioRebalancer_v3';
+const FOLDER_KEY = 'portfolioFolderName_v1';
+let data = { master:[], groups:[], stage:100, threshold:10 };
+let showTotal = false, folderHandle = null, numTarget = null;
+
+const $ = s => document.querySelector(s);
+const esc = s => String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const num = v => Number(v)||0;
+const fmt = (v,d=0) => Number(v||0).toLocaleString('ko-KR',{maximumFractionDigits:d});
+const uid = p => p + Math.random().toString(36).slice(2,9);
+const toast = m => { const t=$('#toast'); t.textContent=m; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),1800); };
+const masterById = id => data.master.find(x=>x.id===id);
+
+function saveAuto(){
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
+function loadLocal(){
+  const s=localStorage.getItem(STORAGE_KEY);
+  if(s){ try{ data=normalize(JSON.parse(s)); }catch(e){} }
+}
+function normalize(x){
+  x=x||{};
+  x.master=Array.isArray(x.master)?x.master.map(m=>({id:m.id||uid('m'),ticker:m.ticker||'',name:m.name||'',type:m.type==='cash'?'cash':'stock',price:num(m.price)})):[];
+  x.groups=Array.isArray(x.groups)?x.groups.map(g=>({id:g.id||uid('g'),broker:g.broker||'증권사',accounts:Array.isArray(g.accounts)?g.accounts.map(a=>({id:a.id||uid('a'),name:a.name||'계좌',rows:Array.isArray(a.rows)?a.rows.map(r=>({id:r.id||uid('r'),masterId:r.masterId||'',weight:r.weight===null||r.weight===undefined||r.weight===''?null:num(r.weight),qty:num(r.qty),cash:r.cash===true})):[]})):[]})):[];
+  x.stage=num(x.stage)||100; x.threshold=num(x.threshold)||10; return x;
+}
+function addGroup(){
+  data.groups.push({id:uid('g'),broker:'새 증권사',accounts:[{id:uid('a'),name:'새 계좌',rows:[]}]});
+  saveAuto(); render();
+}
+function addAccount(gid){
+  const g=data.groups.find(x=>x.id===gid); if(!g)return;
+  g.accounts.push({id:uid('a'),name:'새 계좌',rows:[]}); saveAuto(); render();
+}
+function addRow(gid,aid){
+  const g=data.groups.find(x=>x.id===gid), a=g?.accounts.find(x=>x.id===aid);
+  if(!a)return;
+  const m=data.master[0];
+  a.rows.push({id:uid('r'),masterId:m?.id||'',weight:null,qty:0,cash:m?.type==='cash'});
+  saveAuto(); render();
+}
+function move(arr,index,delta){const j=index+delta;if(j<0||j>=arr.length)return;[arr[index],arr[j]]=[arr[j],arr[index]];}
+function deleteRow(gid,aid,rid){
+  const a=data.groups.find(g=>g.id===gid)?.accounts.find(a=>a.id===aid); if(!a)return;
+  a.rows=a.rows.filter(r=>r.id!==rid); saveAuto(); render();
+}
+function deleteAccount(gid,aid){
+  const g=data.groups.find(g=>g.id===gid); if(!g)return;
+  g.accounts=g.accounts.filter(a=>a.id!==aid); if(!g.accounts.length) g.accounts.push({id:uid('a'),name:'새 계좌',rows:[]});
+  saveAuto(); render();
+}
+function renamePrompt(type,id,parent){
+  const current=type==='broker'?data.groups.find(g=>g.id===id)?.broker:data.groups.find(g=>g.id===parent)?.accounts.find(a=>a.id===id)?.name;
+  const v=prompt(type==='broker'?'증권사명 변경':'계좌명 변경',current||''); if(v===null)return;
+  if(type==='broker') data.groups.find(g=>g.id===id).broker=v;
+  else data.groups.find(g=>g.id===parent).accounts.find(a=>a.id===id).name=v;
+  saveAuto(); render();
+}
+function editText(obj,key){
+  const v=prompt('이름 변경',obj[key]||''); if(v!==null){obj[key]=v;saveAuto();render();}
+}
+
+function accountCalc(a){
+  const rows=a.rows||[];
+  const M=rows.map(r=> {
+    const m=masterById(r.masterId);
+    const isCash=r.cash||m?.type==='cash';
+    return isCash?num(r.qty):num(m?.price)*num(r.qty)/10000;
+  });
+  const D=M.reduce((s,v)=>s+v,0);
+  const specified=rows.reduce((s,r)=>s+(r.weight==null?0:num(r.weight)),0);
+  const autoIndexes=rows.map((r,i)=>r.weight==null?i:-1).filter(i=>i>=0);
+  const autoW=autoIndexes.length?Math.max(0,100-specified)/autoIndexes.length:0;
+  return {rows,M,D,weights:rows.map(r=>r.weight==null?autoW:num(r.weight))};
+}
+function calcAll(){
+  const all=[];
+  data.groups.forEach(g=>g.accounts.forEach(a=>{
+    const c=accountCalc(a);
+    c.rows.forEach((r,i)=>{
+      const m=masterById(r.masterId), cash=r.cash||m?.type==='cash';
+      const M=c.M[i], w=c.weights[i], G=c.D*w/100, target=cash?G:G*(data.stage/100);
+      const diff=target-M;
+      const over=w>0?((M/c.D*100-w)/w*100):0;
+      all.push({g,a,r,m,cash,M,w,G,target,diff,over});
+    });
+  }));
+  return all;
+}
+
+function renderMaster(){
+  const body=$('#masterBody');
+  body.innerHTML=data.master.map((m,i)=>{
+    const accounts=new Set();
+    data.groups.forEach(g=>g.accounts.forEach(a=>a.rows.forEach(r=>{if(r.masterId===m.id)accounts.add(a.id)})));
+    return `<tr>
+      <td><input class="inline" value="${esc(m.ticker)}" data-mi="${m.id}" data-key="ticker"></td>
+      <td><input class="inline" value="${esc(m.name)}" data-mi="${m.id}" data-key="name"></td>
+      <td><select class="inline" data-mi="${m.id}" data-key="type"><option value="stock" ${m.type==='stock'?'selected':''}>주식</option><option value="cash" ${m.type==='cash'?'selected':''}>현금</option></select></td>
+      <td class="center">${accounts.size}</td>
+      <td class="num"><input class="inline" style="width:120px;text-align:right" value="${m.price||0}" data-num-master="${m.id}"></td>
+      <td class="center"><button class="btn small danger" data-del-master="${m.id}">삭제</button></td>
+    </tr>`;
+  }).join('') || `<tr><td colspan="6" class="center" style="padding:22px;color:#7a8493">등록된 종목이 없습니다. 아래에서 티커·종목명·현재가를 추가하세요.</td></tr>`;
+}
+function renderPie(all){
+  const sums={}; all.forEach(x=>{const key=x.m?.name||'미지정';sums[key]=(sums[key]||0)+x.M});
+  const total=Object.values(sums).reduce((a,b)=>a+b,0)||1;
+  let deg=0, parts=[];
+  Object.entries(sums).forEach(([k,v],i)=>{const end=deg+v/total*360;parts.push(`#${['6d8db5','88a9c7','a8bfd3','c4d4e2','8097b0','9db5c9'][i%6]} ${deg}deg ${end}deg`);deg=end});
+  $('#pie').style.background=parts.length?`conic-gradient(${parts.join(',')})`:'conic-gradient(#c5d1df 0 360deg)';
+  $('#pieLegend').innerHTML=Object.entries(sums).map(([k,v])=>`<div><span>${esc(k)}</span><b>${fmt(v,1)}만원</b></div>`).join('')||'<div>데이터 없음</div>';
+}
+function renderKpis(all){
+  const total=all.reduce((s,x)=>s+x.M,0), stocks=all.filter(x=>!x.cash).reduce((s,x)=>s+x.M,0), cash=total-stocks;
+  $('#kpis').innerHTML=[
+    ['전체 평가금액',fmt(total,1)+' 만원'],['주식 평가금액',fmt(stocks,1)+' 만원'],
+    ['현금성 자산',fmt(cash,1)+' 만원'],['현재 단계',fmt(data.stage,0)+'%']
+  ].map(x=>`<div class="kpi"><div class="k">${x[0]}</div><div class="v">${x[1]}</div></div>`).join('');
+  $('#grandTotal').textContent=showTotal?fmt(total,1)+' 만원':'••••••';
+  $('#eyeBtn').textContent=showTotal?'🙈':'👁';
+}
+function renderStages(){
+  const stages=[50,70,80,90,100];
+  $('#stageHead').innerHTML='<th>구분</th>'+stages.map(s=>`<th class="${s==data.stage?'over':''}">${s}%</th>`).join('');
+  const all=calcAll();
+  $('#stageRow').innerHTML='<td><b>미달성 금액</b></td>'+stages.map(s=>{
+    const v=all.filter(x=>!x.cash).reduce((sum,x)=>sum+Math.max(0,x.G*(s/100)-x.M),0);
+    return `<td class="num ${s==data.stage?'maxdev':''}">${fmt(v,1)} 만원</td>`;
+  }).join('');
+}
+function renderTable(){
+  const body=$('#rebalanceBody'), foot=$('#rebalanceFoot'), all=calcAll();
+  const stocks=all.filter(x=>!x.cash);
+  const max=stocks.reduce((best,x)=>!best||x.diff>best.diff?x:best,null);
+  let html='';
+  data.groups.forEach((g,gi)=>{
+    const gRows=g.accounts.flatMap(a=>a.rows.map(r=>({a,r})));
+    let brokerPlaced=false;
+    g.accounts.forEach((a,ai)=>{
+      const c=accountCalc(a), accountRows=a.rows.length||1;
+      const accountAll=all.filter(x=>x.a.id===a.id);
+      const cashRows=accountAll.filter(x=>x.cash);
+      const cashDiff=cashRows.reduce((sum,x)=>sum+x.diff,0);
+      const hasOver=accountAll.some(x=>!x.cash && x.over>=data.threshold);
+      let accountPlaced=false, cashPlaced=false, overPlaced=false;
+
+      a.rows.forEach((r,ri)=>{
+        const x=all.find(z=>z.r.id===r.id && z.a.id===a.id); if(!x)return;
+        const maxClass=max?.r.id===r.id && max?.a.id===a.id?'maxdev':'';
+        const cashCell = !cashPlaced && x.cash
+          ? `<td class="num cashcell" rowspan="${cashRows.length}">${fmt(cashDiff,1)}</td>`
+          : (!x.cash ? `<td class="unused">미사용</td>` : '');
+        if(x.cash) cashPlaced=true;
+        const overCell = !overPlaced
+          ? `<td class="center ${hasOver?'over':''}" rowspan="${accountRows}">${hasOver?'O':''}</td>`
+          : '';
+        if(!overPlaced) overPlaced=true;
+
+        const action=`<div class="actionset">
+          <button class="iconbtn" data-move-row="${r.id}|${g.id}|${a.id}|-1">▲</button>
+          <button class="iconbtn" data-move-row="${r.id}|${g.id}|${a.id}|1">▼</button>
+          <button class="iconbtn" data-del-row="${r.id}|${g.id}|${a.id}">×</button>
+        </div>`;
+
+        html+=`<tr>
+          ${!brokerPlaced?`<td class="groupcell" rowspan="${gRows.length||1}"><span style="cursor:pointer" data-rename-broker="${g.id}">${esc(g.broker)}</span>
+          <div class="actionset" style="margin-top:6px"><button class="iconbtn" data-move-group="${gi}|-1">◀</button><button class="iconbtn" data-move-group="${gi}|1">▶</button></div></td>`:''}
+          ${!accountPlaced?`<td class="accountcell" rowspan="${accountRows}"><span style="cursor:pointer" data-rename-account="${a.id}|${g.id}">${esc(a.name)}</span>
+          <div class="actionset" style="margin-top:6px"><button class="iconbtn" data-move-account="${g.id}|${ai}|-1">▲</button><button class="iconbtn" data-move-account="${g.id}|${ai}|1">▼</button><button class="iconbtn" data-del-account="${g.id}|${a.id}">×</button></div></td>`:''}
+          <td>
+            <select class="inline" data-row-master="${r.id}|${a.id}|${g.id}" style="min-width:155px">
+              <option value="">종목 선택</option>${data.master.map(m=>`<option value="${m.id}" ${m.id===r.masterId?'selected':''}>${esc(m.ticker?m.ticker+' · '+m.name:m.name)}</option>`).join('')}
+            </select>
+          </td>
+          <td class="num"><input class="inline" style="width:78px;text-align:right" value="${r.weight==null?'':r.weight}" placeholder="자동" data-num-row="${r.id}|weight|${a.id}|${g.id}"></td>
+          <td class="num"><input class="inline" style="width:105px;text-align:right" value="${r.qty}" data-num-row="${r.id}|qty|${a.id}|${g.id}"></td>
+          <td class="num">${fmt(x.M,1)}</td>
+          <td class="num">${fmt(x.G,1)}</td>
+          <td class="num ${maxClass} ${x.diff>0?'under':x.diff<0?'over':''}">${fmt(x.diff,1)}</td>
+          <td class="center">${x.diff<0?'축소':x.diff>0?'확대':''}</td>
+          ${cashCell}
+          ${overCell}
+          <td>${action}</td>
+        </tr>`;
+        accountPlaced=true;
+      });
+
+      if(!a.rows.length){
+        html+=`<tr>
+          ${!brokerPlaced?`<td class="groupcell" rowspan="${gRows.length||1}"><span style="cursor:pointer" data-rename-broker="${g.id}">${esc(g.broker)}</span></td>`:''}
+          <td class="accountcell"><span style="cursor:pointer" data-rename-account="${a.id}|${g.id}">${esc(a.name)}</span></td>
+          <td colspan="10" class="center">행이 없습니다.</td></tr>`;
+        brokerPlaced=true;
+      } else {
+        brokerPlaced=true;
+      }
+
+      const sub=c.D;
+      html+=`<tr class="subtotal"><td colspan="2">소계 · ${esc(a.name)}</td><td colspan="3" class="num">${fmt(sub,1)} 만원</td><td colspan="6">
+        <button class="btn small" data-add-row="${g.id}|${a.id}">＋ 종목 추가</button></td></tr>`;
+    });
+    html+=`<tr><td colspan="12" style="background:#fff"></td></tr>`;
+  });
+  body.innerHTML=html || `<tr><td colspan="12" class="center" style="padding:28px">증권사/계좌를 추가해 시작하세요.</td></tr>`;
+  const total=all.reduce((s,x)=>s+x.M,0);
+  const totalTarget=all.reduce((s,x)=>s+x.target,0), diff=totalTarget-total;
+  foot.innerHTML=`<tr><td colspan="5">전체 합계</td><td class="num">${fmt(total,1)}</td><td class="num">${fmt(totalTarget,1)}</td><td class="num ${diff>0?'under':diff<0?'over':''}">${fmt(diff,1)}</td><td colspan="4"></td></tr>`;
+}
+function render(){
+  renderMaster(); const all=calcAll(); renderKpis(all); renderPie(all); renderTable(); renderStages();
+  $('#stageInput').value=data.stage; $('#thresholdInput').value=data.threshold;
+}
+function bind(){
+  document.addEventListener('click',e=>{
+    const t=e.target;
+    if(t.matches('[data-num-row]')) openNum(t, t.value);
+    if(t.matches('[data-num-master]')) openNum(t,t.value);
+    if(t.id==='eyeBtn'){showTotal=!showTotal;renderKpis(calcAll())}
+    if(t.id==='addGroupBtn')addGroup();
+    if(t.matches('[data-add-row]')){const [g,a]=t.dataset.addRow.split('|');addRow(g,a)}
+    if(t.matches('[data-del-row]')){const [r,a,g]=t.dataset.delRow.split('|');deleteRow(g,a,r)}
+    if(t.matches('[data-rename-broker]'))renamePrompt('broker',t.dataset.renameBroker);
+    if(t.matches('[data-rename-account]')){const [a,g]=t.dataset.renameAccount.split('|');renamePrompt('account',a,g)}
+    if(t.matches('[data-del-account]')){const [g,a]=t.dataset.delAccount.split('|');deleteAccount(g,a)}
+    if(t.matches('[data-move-group]')){const [i,d]=t.dataset.moveGroup.split('|');move(data.groups,+i,+d);saveAuto();render()}
+    if(t.matches('[data-move-account]')){const [g,i,d]=t.dataset.moveAccount.split('|');const gg=data.groups.find(x=>x.id===g);move(gg.accounts,+i,+d);saveAuto();render()}
+    if(t.matches('[data-move-row]')){const [r,g,a,d]=t.dataset.moveRow.split('|');const aa=data.groups.find(x=>x.id===g)?.accounts.find(x=>x.id===a);const i=aa.rows.findIndex(x=>x.id===r);move(aa.rows,i,+d);saveAuto();render()}
+    if(t.matches('[data-del-master]')){const id=t.dataset.delMaster;if(confirm('이 종목을 삭제할까요? 계좌의 연결 행은 유지되며 미지정으로 바뀝니다.')){data.master=data.master.filter(m=>m.id!==id);data.groups.forEach(g=>g.accounts.forEach(a=>a.rows.forEach(r=>{if(r.masterId===id)r.masterId=''})));saveAuto();render()}}
+    if(t.id==='addMasterBtn')addMaster();
+    if(t.id==='saveBtn'){saveAuto();toast('저장했습니다.')}
+    if(t.id==='loadBtn'){loadLocal();render();toast('저장 데이터를 불러왔습니다.')}
+    if(t.id==='exportBtn')exportJson();
+    if(t.id==='importBtn')$('#fileInput').click();
+    if(t.id==='folderBtn')chooseFolder();
+    if(t.id==='serverSaveBtn')openServerModal();
+    if(t.id==='serverLoadBtn')openServerModal();
+    if(t.id==='serverShareBtn')openServerModal();
+    if(t.id==='serverClose')closeServerModal();
+    if(t.id==='serverSaveConfirm')saveToServer();
+    if(t.id==='serverLoadConfirm')loadFromServer();
+    if(t.id==='serverCopyLink')copyServerLink();
+    if(t.id==='shareBtn')createShareLink();
+    if(t.id==='shareCodeBtn'){
+      const code=encodeShareData();
+      openShareModal(code);
+      $('#shareText').dataset.mode='code';
+    }
+    if(t.id==='shareClose')$('#shareModal').classList.remove('show');
+    if(t.id==='shareCopy')copyShare();
+    if(t.id==='shareLoad')loadShareCode($('#shareText').value);
+    if(t.id==='shareNative')nativeShare();
+
+    if(t.id==='resetBtn'){if(confirm('모든 포트폴리오 데이터를 초기화할까요?')){data={master:[],groups:[],stage:100,threshold:10};saveAuto();render();toast('초기화했습니다.')}}
+    if(t.id==='numCancel'||t.dataset.k==='cancel')closeNum(false);
+    if(t.id==='numOk')closeNum(true);
+    if(t.dataset.k && !['cancel','clear','back'].includes(t.dataset.k)){$('#numInput').value+=t.dataset.k;$('#numInput').focus()}
+    if(t.dataset.k==='clear')$('#numInput').value='';
+    if(t.dataset.k==='back')$('#numInput').value=$('#numInput').value.slice(0,-1);
+  });
+  document.addEventListener('change',e=>{
+    const t=e.target;
+    if(t.matches('[data-mi]')){const m=masterById(t.dataset.mi);m[t.dataset.key]=t.value;saveAuto();render()}
+    if(t.matches('[data-row-master]')){const [r,a,g]=t.dataset.rowMaster.split('|');const row=data.groups.find(x=>x.id===g)?.accounts.find(x=>x.id===a)?.rows.find(x=>x.id===r);if(row){row.masterId=t.value;row.cash=masterById(t.value)?.type==='cash';saveAuto();render()}}
+    if(t.id==='stageInput'){data.stage=Math.min(100,Math.max(0,num(t.value)));saveAuto();render()}
+    if(t.id==='thresholdInput'){data.threshold=Math.max(0,num(t.value));saveAuto();render()}
+    if(t.id==='fileInput')importFile(t.files[0]);
+  });
+  $('#newPrice').addEventListener('click',e=>openNum(e.target,e.target.value,true));
+  $('#newPrice').addEventListener('focus',e=>{e.target.blur();openNum(e.target,e.target.value,true)});
+}
+function addMaster(){
+  const ticker=$('#newTicker').value.trim(), name=$('#newName').value.trim(), type=$('#newType').value, price=num($('#newPrice').value);
+  if(!name){toast('종목명을 입력하세요.');return}
+  data.master.push({id:uid('m'),ticker,name,type,price});
+  $('#newTicker').value='';$('#newName').value='';$('#newPrice').value='';
+  saveAuto();render();toast('종목을 추가했습니다.');
+}
+function openNum(target,value,isNew=false){
+  numTarget={target,value,isNew};
+  $('#numInput').value=value??'';$('#numModal').classList.add('show');setTimeout(()=>$('#numInput').focus(),50);
+}
+function closeNum(ok){
+  if(ok&&numTarget){
+    const v=$('#numInput').value;
+    if(numTarget.isNew){numTarget.target.value=v;numTarget.target.dispatchEvent(new Event('input'))}
+    else{
+      const t=numTarget.target;
+      if(t.dataset.numMaster){
+        const m=masterById(t.dataset.numMaster);m.price=num(v);saveAuto();render();
+      }else if(t.dataset.numRow){
+        const [rid,key,aid,gid]=t.dataset.numRow.split('|');
+        const r=data.groups.find(g=>g.id===gid)?.accounts.find(a=>a.id===aid)?.rows.find(r=>r.id===rid);
+        if(r){r[key]=v===''?0:num(v);if(key==='weight'&&v==='')r.weight=null;saveAuto();render();}
+      }
+    }
+  }
+  $('#numModal').classList.remove('show');numTarget=null;
+}
+
+
+let serverCredential = JSON.parse(localStorage.getItem('portfolioServerCredential') || 'null');
+
+function openServerModal(){
+  if(serverCredential){
+    $('#serverId').value=serverCredential.id||'';
+    $('#serverPassword').value=serverCredential.password||'';
+  }
+  $('#serverModal').classList.add('show');
+}
+function closeServerModal(){ $('#serverModal').classList.remove('show'); }
+function serverCred(){
+  const id=$('#serverId').value.trim().toLowerCase();
+  const password=$('#serverPassword').value;
+  if(!/^[a-z0-9_-]{3,40}$/.test(id)){alert('포트폴리오 ID는 영문 소문자·숫자·_·- 3~40자로 입력하세요.');return null}
+  if(password.length<6){alert('비밀번호는 6자 이상 입력하세요.');return null}
+  serverCredential={id,password};
+  localStorage.setItem('portfolioServerCredential',JSON.stringify(serverCredential));
+  return serverCredential;
+}
+async function serverRequest(method,id,password,body){
+  const opt={method,headers:{'Content-Type':'application/json'}};
+  if(body!==undefined) opt.body=JSON.stringify(body);
+  const res=await fetch('/api/portfolio/'+encodeURIComponent(id),{
+    ...opt,headers:{...opt.headers,'X-Portfolio-Password':password}
+  });
+  let j={}; try{j=await res.json()}catch(e){}
+  if(!res.ok) throw new Error(j.error||('서버 오류 '+res.status));
+  return j;
+}
+async function saveToServer(){
+  const c=serverCred(); if(!c)return;
+  try{
+    await serverRequest('PUT',c.id,c.password,{data});
+    toast('서버에 저장했습니다.');
+    closeServerModal();
+  }catch(e){alert('서버 저장 실패: '+e.message)}
+}
+async function loadFromServer(){
+  const c=serverCred(); if(!c)return;
+  try{
+    const j=await serverRequest('GET',c.id,c.password);
+    data=normalize(j.data); saveAuto(); render(); toast('서버 데이터를 불러왔습니다.'); closeServerModal();
+  }catch(e){alert('서버 불러오기 실패: '+e.message)}
+}
+async function copyServerLink(){
+  const c=serverCred(); if(!c)return;
+  const url=location.origin+location.pathname+'?portfolio='+encodeURIComponent(c.id);
+  try{await navigator.clipboard.writeText(url);toast('공유 링크를 복사했습니다.')}
+  catch(e){prompt('공유 링크를 복사하세요.',url)}
+}
+async function autoLoadServerFromUrl(){
+  const id=new URLSearchParams(location.search).get('portfolio');
+  if(!id)return false;
+  // Password is intentionally not put in the URL. The recipient enters it.
+  $('#serverId').value=id;
+  $('#serverModal').classList.add('show');
+  return true;
+}
+
+function encodeShareData(){
+  const json=JSON.stringify(data);
+  const bytes=new TextEncoder().encode(json);
+  let bin='';
+  const chunk=0x8000;
+  for(let i=0;i<bytes.length;i+=chunk) bin+=String.fromCharCode(...bytes.subarray(i,i+chunk));
+  return btoa(bin).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+}
+function decodeShareData(code){
+  code=code.replace(/-/g,'+').replace(/_/g,'/');
+  while(code.length%4) code+='=';
+  const bin=atob(code), bytes=new Uint8Array(bin.length);
+  for(let i=0;i<bin.length;i++) bytes[i]=bin.charCodeAt(i);
+  return normalize(JSON.parse(new TextDecoder().decode(bytes)));
+}
+function makeShareUrl(){
+  const base=location.href.split('#')[0];
+  return base+'#data='+encodeShareData();
+}
+function openShareModal(text){
+  $('#shareText').value=text;
+  $('#shareModal').classList.add('show');
+  setTimeout(()=>{$('#shareText').focus();$('#shareText').select()},50);
+}
+function createShareLink(){
+  const url=makeShareUrl();
+  if(url.length>12000){
+    toast('데이터가 커서 링크가 너무 깁니다. JSON 파일 공유를 권장합니다.');
+  }
+  openShareModal(url);
+}
+async function nativeShare(){
+  const text=$('#shareText').value;
+  if(navigator.share){
+    try{await navigator.share({title:'투자 포트폴리오 리밸런싱',text:'투자 포트폴리오 데이터 공유',url:text});}catch(e){}
+  }else{
+    await navigator.clipboard?.writeText(text);
+    toast('공유 링크를 복사했습니다.');
+  }
+}
+async function copyShare(){
+  const text=$('#shareText').value;
+  try{await navigator.clipboard.writeText(text);toast('공유 링크/코드를 복사했습니다.')}
+  catch(e){$('#shareText').select();document.execCommand('copy');toast('복사했습니다.')}
+}
+function createShareCode(){
+  openShareModal(encodeShareData());
+}
+function loadShareFromUrl(){
+  const m=location.hash.match(/^#data=(.+)$/);
+  if(!m)return false;
+  try{
+    data=decodeShareData(m[1]);
+    saveAuto();
+    history.replaceState(null,'',location.pathname+location.search);
+    return true;
+  }catch(e){
+    toast('공유 데이터가 올바르지 않습니다.');
+    return false;
+  }
+}
+function loadShareCode(code){
+  try{
+    data=decodeShareData(code.trim());
+    saveAuto(); render();
+    $('#shareModal').classList.remove('show');
+    toast('공유 데이터를 불러왔습니다.');
+  }catch(e){alert('공유 코드가 올바르지 않습니다.')}
+}
+async function chooseFolder(){
+  if(!window.showDirectoryPicker){toast('이 브라우저에서는 작업 폴더 지정 기능을 지원하지 않습니다.');return}
+  try{
+    folderHandle=await showDirectoryPicker({mode:'readwrite'});
+    localStorage.setItem(FOLDER_KEY,folderHandle.name);
+    $('#folderStatus').textContent='작업 폴더: '+folderHandle.name;
+    toast('작업 폴더를 지정했습니다.');
+  }catch(e){}
+}
+async function exportJson(){
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const filename='투자_리밸런싱_데이터_'+new Date().toISOString().slice(0,10)+'.json';
+  if(folderHandle){
+    try{
+      const fh=await folderHandle.getFileHandle(filename,{create:true});
+      const w=await fh.createWritable();await w.write(blob);await w.close();toast('작업 폴더에 저장했습니다.');return;
+    }catch(e){}
+  }
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=filename;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+}
+function importFile(file){
+  if(!file)return;
+  const r=new FileReader();r.onload=()=>{try{data=normalize(JSON.parse(r.result));saveAuto();render();toast('가져왔습니다.')}catch(e){alert('JSON 파일 형식이 올바르지 않습니다.')}};r.readAsText(file);
+}
+document.addEventListener('keydown',e=>{
+  if($('#numModal').classList.contains('show')){
+    if(e.key==='Enter'){e.preventDefault();closeNum(true)}
+    if(e.key==='Escape'){e.preventDefault();closeNum(false)}
+  }
+});
+const shared=loadShareFromUrl(); if(!shared) loadLocal(); bind(); render(); autoLoadServerFromUrl();
+</script>
+</body>
+</html>
