@@ -1,0 +1,23 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "public/portfolio.html",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "api/portfolio/[id].js",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/portfolio/(.*)",
+      "dest": "/api/portfolio/[id].js"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/public/portfolio.html"
+    }
+  ]
+}
