@@ -8,7 +8,7 @@ function renderPriceTable(){
   master.forEach((m, idx) => {
     if (idx > 0 && m.type === 'cash' && master[idx - 1].type !== 'cash') {
       const divider = document.createElement('tr');
-      divider.innerHTML = `<td colspan="4" style="padding:0; height:2px; background:var(--border-strong); border:none;"></td>`;
+      divider.innerHTML = `<td colspan="5" style="padding:0; height:2px; background:var(--border-strong); border:none;"></td>`;
       tbody.appendChild(divider);
     }
     const count = groups.reduce((s,g) => s + g.rows.filter(r => r.stock === m.name && (Number(r.qty)||0) > 0).length, 0);
@@ -24,6 +24,7 @@ function renderPriceTable(){
         </span>
         <button type="button" class="remove-stock-btn" data-idx="${idx}" title="종목 삭제" style="flex:0 0 auto; width:20px; height:22px; padding:0; border:1px solid var(--border-strong); border-radius:4px; background:#fff; color:var(--down); cursor:pointer; font-size:12px; line-height:1;">×</button>
       </div></td>
+      <td style="text-align:left;"><span class="ticker-edit" data-idx="${idx}" title="클릭하여 티커 변경" style="cursor:pointer; color:var(--muted);">${m.ticker || '-'}</span></td>
       <td style="text-align:left;">
         <select class="stock-type-select" data-idx="${idx}" style="width:auto; padding:4px 20px 4px 6px; border:1px solid var(--border-strong); border-radius:4px; font-size:12.5px; font-family:inherit; background:#fff;">
           <option value="stock" ${(m.type || 'stock') === 'stock' ? 'selected' : ''}>주식</option>
@@ -31,7 +32,12 @@ function renderPriceTable(){
         </select>
       </td>
       <td class="num">${count}</td>
-      <td class="num"><input type="text" class="cell-input wide price-input numpad-trigger" data-label="${m.name} 현재가(원)" data-idx="${idx}" value="${m.price}" readonly></td>
+      <td class="num">
+        <div style="display:flex; align-items:center; justify-content:flex-end; gap:6px;">
+          <input type="text" class="cell-input wide price-input numpad-trigger" data-label="${m.name} 현재가(원)" data-idx="${idx}" value="${m.price}" readonly>
+          <button type="button" class="fetch-price-btn" data-idx="${idx}" title="티커로 현재가 불러오기" style="padding:4px 8px; border-radius:5px; border:1px solid var(--border-strong); background:#fff; cursor:pointer; font-size:11.5px; white-space:nowrap;">금액 불러오기</button>
+        </div>
+      </td>
     `;
     tbody.appendChild(tr);
   });
@@ -47,16 +53,26 @@ document.addEventListener('input', (e) => {
 
 document.getElementById('addStockBtn').addEventListener('click', () => {
   const nameInput = document.getElementById('newStockName');
+  const tickerInput = document.getElementById('newStockTicker');
   const priceInput = document.getElementById('newStockPrice');
   const typeInput = document.getElementById('newStockType');
   const name = nameInput.value.trim();
   if (!name) { nameInput.focus(); return; }
   if (master.some(m => m.name === name)) { alert('이미 등록된 종목명입니다.'); return; }
-  master.push({ name, price: parseFloat(priceInput.value) || 0, type: typeInput.value });
+  master.push({ name, ticker: tickerInput.value.trim(), price: parseFloat(priceInput.value) || 0, type: typeInput.value });
   nameInput.value = '';
+  tickerInput.value = '';
   priceInput.value = '0';
   typeInput.value = 'stock';
   renderAll();
+});
+
+document.getElementById('fetchNewStockPriceBtn').addEventListener('click', async (e) => {
+  const tickerInput = document.getElementById('newStockTicker');
+  const priceInput = document.getElementById('newStockPrice');
+  const btn = e.currentTarget;
+  const price = await withButtonLoading(btn, '조회 중...', () => fetchPriceForTicker(tickerInput.value));
+  if (price !== null) priceInput.value = price;
 });
 
 document.addEventListener('change', (e) => {
@@ -105,4 +121,26 @@ document.addEventListener('click', (e) => {
   master[idx].name = trimmed;
   groups.forEach(g => g.rows.forEach(r => { if (!r.cash && r.stock === oldName) r.stock = trimmed; }));
   renderAll();
+});
+
+document.addEventListener('click', (e) => {
+  const el = e.target.closest('.ticker-edit');
+  if (!el) return;
+  const idx = +el.dataset.idx;
+  const oldTicker = master[idx].ticker || '';
+  const newValue = prompt('새 티커를 입력하세요.', oldTicker);
+  if (newValue === null) return;
+  master[idx].ticker = newValue.trim();
+  renderAll();
+});
+
+document.addEventListener('click', async (e) => {
+  const btn = e.target.closest('.fetch-price-btn');
+  if (!btn) return;
+  const idx = +btn.dataset.idx;
+  const price = await withButtonLoading(btn, '조회 중...', () => fetchPriceForTicker(master[idx].ticker));
+  if (price !== null) {
+    master[idx].price = price;
+    renderAll();
+  }
 });
