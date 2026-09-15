@@ -98,14 +98,14 @@ document.getElementById('newStockName').addEventListener('input', (e) => {
   }, 250);
 });
 
-document.getElementById('addStockBtn').addEventListener('click', () => {
+document.getElementById('addStockBtn').addEventListener('click', (e) => {
   const nameInput = document.getElementById('newStockName');
   const tickerInput = document.getElementById('newStockTicker');
   const priceInput = document.getElementById('newStockPrice');
   const typeInput = document.getElementById('newStockType');
   const name = nameInput.value.trim();
   if (!name) { nameInput.focus(); return; }
-  if (master.some(m => m.name === name)) { alert('이미 등록된 종목명입니다.'); return; }
+  if (master.some(m => m.name === name)) { showFieldStatus(e.currentTarget, '이미 등록된 종목명입니다.', 'error'); return; }
   master.push({ name, ticker: tickerInput.value.trim(), price: parseFloat(priceInput.value) || 0, type: typeInput.value });
   nameInput.value = '';
   tickerInput.value = '';
@@ -117,7 +117,7 @@ document.getElementById('addStockBtn').addEventListener('click', () => {
 document.getElementById('fetchAllPricesBtn').addEventListener('click', async (e) => {
   const btn = e.currentTarget;
   const targets = master.filter(m => (m.ticker || '').trim());
-  if (targets.length === 0) { alert('티커가 입력된 종목이 없습니다.'); return; }
+  if (targets.length === 0) { showFieldStatus(btn, '티커가 입력된 종목이 없습니다.', 'error'); return; }
   await withButtonLoading(btn, `불러오는 중... (0/${targets.length})`, async () => {
     let ok = 0;
     for (let i = 0; i < targets.length; i++) {
@@ -126,7 +126,7 @@ document.getElementById('fetchAllPricesBtn').addEventListener('click', async (e)
       if (price !== null) { targets[i].price = price; ok++; }
     }
     renderAll();
-    alert(`${targets.length}개 중 ${ok}개 종목의 금액을 불러왔습니다.`);
+    showFieldStatus(btn, `${targets.length}개 중 ${ok}개 종목의 금액을 불러왔습니다.`);
   });
 });
 
@@ -168,9 +168,9 @@ document.addEventListener('click', (e) => {
   const newValue = prompt('새 종목명을 입력하세요.', oldName);
   if (newValue === null) return;
   const trimmed = newValue.trim();
-  if (!trimmed) { alert('종목명은 비워둘 수 없습니다.'); return; }
+  if (!trimmed) { showFieldStatus(el, '종목명은 비워둘 수 없습니다.', 'error'); return; }
   if (trimmed !== oldName && master.some((m, i) => i !== idx && m.name === trimmed)) {
-    alert('이미 등록된 종목명입니다.');
+    showFieldStatus(el, '이미 등록된 종목명입니다.', 'error');
     return;
   }
   master[idx].name = trimmed;

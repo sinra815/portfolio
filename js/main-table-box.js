@@ -253,17 +253,17 @@ document.addEventListener('click', (e) => {
   const g = +btn.dataset.g;
   const select = document.querySelector(`.add-row-select[data-g="${g}"]`);
   const stockName = select ? select.value : null;
-  if (!stockName) { alert('추가할 종목을 선택해주세요.'); return; }
+  if (!stockName) { showFieldStatus(btn, '추가할 종목을 선택해주세요.', 'error'); return; }
   const rows = groups[g].rows;
   if (stockName === '현금') {
     if (rows.some(r => r.cash)) {
-      alert('이 계좌에는 이미 "현금" 항목이 있습니다.');
+      showFieldStatus(btn, '이 계좌에는 이미 "현금" 항목이 있습니다.', 'error');
       return;
     }
     rows.push({ stock:'현금', weight:null, qty:0, cash:true });
   } else {
     if (rows.some(r => !r.cash && r.stock === stockName)) {
-      alert(`"${stockName}"은(는) 이미 이 계좌에 등록되어 있습니다.`);
+      showFieldStatus(btn, `"${stockName}"은(는) 이미 이 계좌에 등록되어 있습니다.`, 'error');
       return;
     }
     const newRow = { stock: stockName, weight: 0, qty: 0 };
@@ -286,9 +286,9 @@ document.addEventListener('click', (e) => {
   const accountInput = document.getElementById('newGroupAccount');
   const broker = brokerInput.value.trim();
   const account = accountInput.value.trim();
-  if (!broker || !account) { alert('증권사와 계좌를 모두 입력해주세요.'); return; }
+  if (!broker || !account) { showFieldStatus(btn, '증권사와 계좌를 모두 입력해주세요.', 'error'); return; }
   if (groups.some(g => g.broker === broker && g.account === account)) {
-    alert('이미 같은 증권사·계좌 조합이 있습니다.');
+    showFieldStatus(btn, '이미 같은 증권사·계좌 조합이 있습니다.', 'error');
     return;
   }
   groups.push({ broker, account, rows: [] });
@@ -305,11 +305,11 @@ document.addEventListener('click', (e) => {
   const newValue = prompt(`새 ${label}을 입력하세요.`, group[field]);
   if (newValue === null) return;
   const trimmed = newValue.trim();
-  if (!trimmed) { alert(`${label}은 비워둘 수 없습니다.`); return; }
+  if (!trimmed) { showFieldStatus(el, `${label}은 비워둘 수 없습니다.`, 'error'); return; }
   const other = field === 'broker' ? group.account : group.broker;
   const dup = groups.some((gr, i) => i !== g &&
     (field === 'broker' ? gr.broker === trimmed && gr.account === other : gr.broker === other && gr.account === trimmed));
-  if (dup) { alert('이미 같은 증권사·계좌 조합이 있습니다.'); return; }
+  if (dup) { showFieldStatus(el, '이미 같은 증권사·계좌 조합이 있습니다.', 'error'); return; }
   group[field] = trimmed;
   renderAll();
 });

@@ -156,14 +156,28 @@ function computeDividerCount(g){
   return dividerCount;
 }
 
-let toastHideTimer = null;
-function showToast(message, type){
-  const el = document.getElementById('toast');
-  if (!el) return;
-  clearTimeout(toastHideTimer);
-  el.textContent = message;
-  el.className = 'toast show' + (type ? ' ' + type : '');
-  toastHideTimer = setTimeout(() => { el.className = 'toast'; }, 2200);
+let fieldStatusEl = null;
+let fieldStatusTimer = null;
+function showFieldStatus(anchor, message, type){
+  if (!anchor) return;
+  if (!fieldStatusEl) {
+    fieldStatusEl = document.createElement('div');
+    fieldStatusEl.className = 'field-status';
+    document.body.appendChild(fieldStatusEl);
+  }
+  clearTimeout(fieldStatusTimer);
+  fieldStatusEl.textContent = message;
+  fieldStatusEl.className = 'field-status' + (type ? ' ' + type : '');
+
+  const rect = anchor.getBoundingClientRect();
+  const showBelow = rect.bottom + 60 < window.innerHeight;
+  fieldStatusEl.style.top = showBelow ? (rect.bottom + 6) + 'px' : '';
+  fieldStatusEl.style.bottom = showBelow ? '' : (window.innerHeight - rect.top + 6) + 'px';
+  const left = Math.max(8, Math.min(rect.left, window.innerWidth - 268));
+  fieldStatusEl.style.left = left + 'px';
+
+  requestAnimationFrame(() => fieldStatusEl.classList.add('show'));
+  fieldStatusTimer = setTimeout(() => { fieldStatusEl.classList.remove('show'); }, 2600);
 }
 
 async function withButtonLoading(btn, loadingText, task){
@@ -180,19 +194,20 @@ async function withButtonLoading(btn, loadingText, task){
 
 async function fetchPriceForTicker(ticker, opts){
   const silent = opts && opts.silent;
+  const anchor = opts && opts.anchor;
   const query = (ticker || '').trim();
-  if (!query) { if (!silent) alert('티커를 먼저 입력해주세요.'); return null; }
+  if (!query) { if (!silent) showFieldStatus(anchor, '티커를 먼저 입력해주세요.', 'error'); return null; }
   try {
     const res = await fetch('/api/price?query=' + encodeURIComponent(query));
     const json = await res.json();
     if (!res.ok || json.error) {
-      if (!silent) alert(json.error || '현재가를 불러오지 못했습니다.');
+      if (!silent) showFieldStatus(anchor, json.error || '현재가를 불러오지 못했습니다.', 'error');
       else console.warn(`[${query}] 현재가 조회 실패:`, json.error);
       return null;
     }
     return json.price;
   } catch (e) {
-    if (!silent) alert('현재가를 불러오는 중 오류가 발생했습니다: ' + e.message);
+    if (!silent) showFieldStatus(anchor, '현재가를 불러오는 중 오류가 발생했습니다: ' + e.message, 'error');
     else console.warn(`[${query}] 현재가 조회 오류:`, e.message);
     return null;
   }
