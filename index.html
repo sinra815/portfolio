@@ -4,1055 +4,210 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>투자 포트폴리오 리밸런싱 계산기</title>
-<style>
-  :root {
-    --bg: #f4f5f7;
-    --panel: #ffffff;
-    --navy: #1b2a4a;
-    --navy-text: #ffffff;
-    --green: #1a7f37;
-    --red: #d1242f;
-    --input-bg: #fff4e5;
-    --input-border: #f0c987;
-    --border: #e5e7eb;
-    --muted: #6b7280;
-    --maxdev: #fff59d;
-  }
-  * { box-sizing: border-box; }
-  body {
-    margin: 0;
-    font-family: '맑은 고딕', 'Malgun Gothic', 'Segoe UI', sans-serif;
-    background: var(--bg);
-    color: #1a1a1a;
-  }
-  .page { max-width: 1200px; margin: 0 auto; padding: 16px 16px 60px; }
-
-  .page-header h1 { font-size: 22px; margin: 4px 0 4px; color: var(--navy); }
-  .page-header .subtitle { font-size: 13px; color: var(--muted); margin: 0 0 16px; }
-
-  .panel {
-    background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 16px;
-    margin-bottom: 20px;
-  }
-  .panel h2 { font-size: 16px; margin: 0 0 12px; color: var(--navy); }
-
-  .settings-panel {
-    background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 14px 16px;
-    margin-bottom: 20px;
-  }
-  .settings-panel.sticky { position: sticky; top: 0; z-index: 30; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
-  .settings-top { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; }
-  .grand-total-block { display: flex; align-items: baseline; gap: 8px; }
-  .grand-total-label { font-size: 12px; color: var(--muted); }
-  .grand-total-value { font-size: 24px; font-weight: 700; color: var(--navy); letter-spacing: 0.5px; }
-  .icon-btn {
-    border: 1px solid var(--border); background: #fff; border-radius: 8px;
-    padding: 4px 8px; cursor: pointer; font-size: 14px;
-  }
-  .settings-buttons { display: flex; flex-wrap: wrap; gap: 6px; }
-  .btn {
-    border: 1px solid var(--navy); background: var(--navy); color: #fff;
-    border-radius: 8px; padding: 8px 12px; font-size: 13px; font-weight: 600; cursor: pointer;
-  }
-  .btn.small { padding: 4px 8px; font-size: 12px; }
-  .btn.danger { background: #fff; color: var(--red); border-color: var(--red); }
-  .settings-status { font-size: 12px; color: var(--muted); min-height: 16px; margin-top: 6px; }
-  .legend { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 10px; font-size: 11px; color: var(--muted); align-items: center; }
-  .legend-item { display: flex; align-items: center; gap: 4px; }
-  .legend-swatch { width: 14px; height: 14px; border-radius: 3px; display: inline-block; }
-  .input-swatch { background: var(--input-bg); border: 1px solid var(--input-border); }
-  .max-dev-swatch { width: 14px; height: 14px; background: var(--maxdev); display: inline-block; border-radius: 3px; }
-  .hatch-swatch {
-    width: 14px; height: 14px; display: inline-block; border-radius: 3px;
-    background-image: repeating-linear-gradient(45deg, #d1d5db, #d1d5db 3px, #f4f5f7 3px, #f4f5f7 6px);
-  }
-
-  .summary-flex { display: flex; gap: 24px; flex-wrap: wrap; align-items: flex-start; }
-  .pie-block { display: flex; flex-direction: column; align-items: center; gap: 10px; min-width: 200px; }
-  .pie-chart { width: 180px; height: 180px; border-radius: 50%; background: #e5e7eb; flex-shrink: 0; }
-  .pie-legend { display: flex; flex-direction: column; gap: 4px; font-size: 12px; max-width: 220px; }
-  .legend-row { display: flex; align-items: center; gap: 6px; }
-  .swatch { width: 10px; height: 10px; border-radius: 2px; display: inline-block; flex-shrink: 0; }
-  .legend-name { flex: 1; }
-  .legend-pct { color: var(--muted); }
-
-  .table-scroll { overflow-x: auto; }
-  table.data-table { border-collapse: collapse; width: 100%; font-size: 12.5px; min-width: 600px; }
-  table.data-table th, table.data-table td {
-    border: 1px solid var(--border); padding: 6px 8px; text-align: center; white-space: nowrap;
-  }
-  table.data-table thead th { background: var(--navy); color: var(--navy-text); font-weight: 600; }
-  table.main-table { min-width: 1200px; }
-  table.data-table tfoot td { background: #f0f1f3; font-weight: 700; }
-
-  .broker-cell, .account-cell { font-weight: 600; background: #f7f8fa; cursor: pointer; }
-  .broker-cell:hover, .account-cell:hover { background: #eef0f4; }
-  .subtotal-row td { background: #fafbfc; font-weight: 600; }
-  .add-row-line td { background: #fcfcfd; }
-  .empty-row { color: var(--muted); font-style: italic; }
-
-  .text-green { color: var(--green); font-weight: 600; }
-  .text-red { color: var(--red); font-weight: 600; }
-  .max-dev { background: var(--maxdev) !important; font-weight: 700; }
-  .hatch {
-    background-image: repeating-linear-gradient(45deg, #e2e4e8, #e2e4e8 4px, #f4f5f7 4px, #f4f5f7 8px);
-    color: #9ca3af; font-size: 10.5px;
-  }
-  .over-flag { color: var(--red); font-weight: 800; }
-
-  .numfield {
-    background: var(--input-bg); border: 1px solid var(--input-border); border-radius: 4px;
-    padding: 2px 7px; cursor: pointer; display: inline-block; min-width: 36px; text-align: right;
-  }
-  .numfield:focus { outline: 2px solid var(--navy); outline-offset: 1px; }
-  .numwrap { display: inline-flex; align-items: center; gap: 4px; }
-  .steppers { display: inline-flex; flex-direction: column; }
-  .stepbtn { font-size: 8px; line-height: 8px; padding: 2px 4px; border: 1px solid var(--border); background: #f9fafb; cursor: pointer; }
-  .unit { font-size: 11px; color: var(--muted); }
-  .auto-value { font-size: 11.5px; color: var(--muted); font-style: italic; }
-
-  .controls { white-space: nowrap; }
-  .ctrlbtn {
-    border: 1px solid var(--border); background: #fff; border-radius: 5px; cursor: pointer;
-    font-size: 11px; padding: 2px 5px; margin: 0 1px;
-  }
-  .ctrlbtn.danger { color: var(--red); border-color: var(--red); }
-  .ctrlbtn:disabled { opacity: 0.3; cursor: not-allowed; }
-
-  .add-group-line input[type=text] {
-    padding: 5px 7px; border: 1px solid var(--border); border-radius: 6px; font-size: 12.5px; width: 110px;
-  }
-  .autoWeightLabel { font-size: 10.5px; color: var(--muted); display: block; margin-bottom: 2px; }
-
-  .empty-msg { color: var(--muted); font-size: 13px; padding: 10px 4px; }
-  .note { font-size: 12px; color: var(--muted); line-height: 1.6; margin-top: 12px; }
-
-  .panel-flex { display: flex; gap: 16px; flex-wrap: wrap; }
-  .panel.half { flex: 1 1 380px; }
-
-  .clickable { cursor: pointer; }
-  .clickable:hover { text-decoration: underline; }
-
-  .stage-table { border-collapse: collapse; width: 100%; font-size: 12.5px; }
-  .stage-table th, .stage-table td { border: 1px solid var(--border); padding: 8px; text-align: center; }
-  .stage-table thead th { background: var(--navy); color: #fff; }
-  .stage-current { background: var(--input-bg) !important; font-weight: 700; }
-
-  /* 넘패드 모달 */
-  .modal-overlay {
-    position: fixed; inset: 0; background: rgba(0,0,0,0.45);
-    display: none; align-items: center; justify-content: center; z-index: 100;
-  }
-  .modal-overlay.open { display: flex; }
-  .numpad-modal {
-    background: #fff; border-radius: 14px; padding: 18px; width: 260px;
-  }
-  .numpad-display {
-    background: #f4f5f7; border: 1px solid var(--border); border-radius: 8px;
-    padding: 12px; text-align: right; font-size: 22px; font-weight: 700; margin-bottom: 10px;
-    color: var(--navy);
-  }
-  .numpad-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 10px; }
-  .numkey, #numpadSign {
-    padding: 12px 0; font-size: 16px; border: 1px solid var(--border); border-radius: 8px;
-    background: #fafbfc; cursor: pointer;
-  }
-  .numkey:active, #numpadSign:active { background: #eef0f4; }
-  .numpad-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
-  .numaction {
-    padding: 10px 0; font-size: 12.5px; border-radius: 8px; border: 1px solid var(--border);
-    background: #fff; cursor: pointer;
-  }
-  .numaction.confirm { background: var(--navy); color: #fff; border-color: var(--navy); grid-column: span 2; }
-  .numaction.cancel { color: var(--red); border-color: var(--red); }
-
-  @media (max-width: 640px) {
-    .grand-total-value { font-size: 20px; }
-  }
-</style>
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
-<div class="page">
 
-  <header class="page-header">
-    <h1>투자 포트폴리오 리밸런싱 계산기</h1>
-    <p class="subtitle">증권사·계좌별 목표 비중과 분할매수 단계 대비 현재 평가금액을 비교해, 어떤 종목을 더 사거나 줄여야 하는지 확인하세요.</p>
-  </header>
+<h1>투자 포트폴리오 리밸런싱 계산기</h1>
+<p class="sub">증권사/계좌별 목표 비중과 단계별(분할매수) 목표가 대비 현재 평가금액을 비교해 확대/축소 여부를 판단합니다. 주황색 배경 셀은 직접 입력하는 값입니다.</p>
 
-  <section class="settings-panel sticky">
-    <div class="settings-top">
-      <div class="grand-total-block">
-        <span class="grand-total-label">평가금액 합계</span>
-        <span class="grand-total-value" id="grandTotal">••••••만원</span>
-        <button class="icon-btn" data-action="toggleAmount" title="숫자 가리기/보이기">👁</button>
-      </div>
-      <div class="settings-buttons">
-        <button class="btn" data-action="save">저장하기</button>
-        <button class="btn" data-action="load">불러오기</button>
-        <button class="btn" data-action="exportFile">File로 내보내기</button>
-        <button class="btn" id="importBtn" type="button">File에서 가져오기</button>
-        <button class="btn danger" data-action="reset">초기화</button>
+<div class="panel" style="position:sticky; top:0; z-index:50; box-shadow:0 2px 6px rgba(0,0,0,.08);">
+  <h2>⚙️ 설정</h2>
+  <div class="controls">
+    <div class="ctrl">
+      <label>평가금액 합계</label>
+      <div style="display:flex; align-items:center; gap:8px;">
+        <div id="settingsTotalM" style="font-size:28px; font-weight:800; color:var(--text); white-space:nowrap;">0 만원</div>
+        <button type="button" id="toggleTotalMBtn" title="금액 숨기기/보이기" style="padding:5px 9px; border-radius:6px; border:1px solid var(--border-strong); background:#fff; cursor:pointer; font-size:15px; line-height:1;">🙈</button>
       </div>
     </div>
-    <div class="settings-status" id="saveStatus"></div>
-    <div class="legend">
-      <span class="legend-item"><span class="legend-swatch input-swatch"></span>사용자 입력 칸</span>
-      <span class="legend-item text-green">■ 확대</span>
-      <span class="legend-item text-red">■ 축소</span>
-      <span class="legend-item"><span class="over-flag">O</span> 과비중 플래그</span>
-      <span class="legend-item"><span class="max-dev-swatch"></span> 최대 괴리 금액</span>
-      <span class="legend-item"><span class="hatch-swatch"></span> 미사용</span>
-    </div>
-  </section>
-
-  <section class="panel">
-    <h2>📋 종목별 평가금액 요약</h2>
-    <div class="summary-flex">
-      <div class="pie-block">
-        <div id="pieChart" class="pie-chart"></div>
-        <div id="pieLegend" class="pie-legend"></div>
+    <div class="ctrl">
+      <label>&nbsp;</label>
+      <div style="display:flex; gap:8px;">
+        <div style="position:relative; display:inline-block;">
+          <button id="saveBtn" style="padding:7px 14px;border-radius:6px;border:1px solid var(--accent);background:var(--accent);color:#fff;cursor:pointer;">저장</button>
+          <span id="saveBadge" title="저장된 데이터가 있습니다" style="display:none; position:absolute; top:-4px; right:-4px; width:11px; height:11px; border-radius:50%; background:#16a34a; border:2px solid #fff;"></span>
+        </div>
+        <button id="loadBtn" style="padding:7px 14px;border-radius:6px;border:1px solid var(--border-strong);background:#fff;cursor:pointer;">저장 데이터 불러오기</button>
+        <button id="exportBtn" style="padding:7px 14px;border-radius:6px;border:1px solid var(--border-strong);background:#fff;cursor:pointer;">⬇ File로 내보내기</button>
+        <button id="importBtn" style="padding:7px 14px;border-radius:6px;border:1px solid var(--border-strong);background:#fff;cursor:pointer;">⬆ File에서 가져오기</button>
+        <input type="file" id="importFileInput" accept="application/json,.json" style="display:none;">
+        <button id="resetAllBtn" style="padding:7px 14px;border-radius:6px;border:1px solid var(--down);background:#fff;color:var(--down);cursor:pointer;">초기화</button>
       </div>
-      <div class="table-scroll" style="flex:1; min-width:280px;">
-        <table class="data-table">
-          <thead><tr><th>종목</th><th>유형</th><th>보유계좌수</th><th>합계평가금액</th><th>비중%</th></tr></thead>
-          <tbody id="stockSummaryTable"></tbody>
-        </table>
+      <div style="margin-top:6px; display:flex; align-items:center; gap:8px; font-size:11.5px; color:var(--muted);">
+        <button id="chooseWorkDirBtn" style="padding:2px 8px; border-radius:4px; border:1px solid var(--border-strong); background:#fff; cursor:pointer; font-size:11px;">폴더 지정</button>
+        <span id="workDirStatus">작업 폴더: 미설정</span>
       </div>
     </div>
-  </section>
-
-  <section class="panel">
-    <h2>📊 계좌별 리밸런싱 현황</h2>
-    <div class="table-scroll">
-      <table class="data-table main-table">
-        <thead>
-          <tr>
-            <th>증권사</th><th>계좌</th><th>종목</th><th>비중(%)</th><th>목표금액(만원)</th>
-            <th>보유수량</th><th>평가금액(만원)</th>
-            <th>목표금액(<span class="numfield" tabindex="0" data-field="stage" id="stageHeaderField">100</span>%)</th>
-            <th>차액</th><th>비고</th><th>현금성자산</th>
-            <th>과비중차액(<span class="numfield" tabindex="0" data-field="threshold" id="thresholdHeaderField">5</span>%↑)</th>
-            <th>관리</th>
-          </tr>
-        </thead>
-        <tbody id="mainTableBody"></tbody>
-        <tfoot>
-          <tr>
-            <td colspan="6">전체 합계</td>
-            <td id="grandTotalCell">0만원</td>
-            <td colspan="6"></td>
-          </tr>
-        </tfoot>
-      </table>
-    </div>
-    <div id="mainTableEmpty" class="empty-msg" style="display:none;">등록된 계좌가 없습니다. 표 아래에서 증권사/계좌를 추가하세요.</div>
-    <p class="note">
-      ※ 목표금액(G) = 계좌 총평가금액(D) × 비중(%). 목표금액(선택 %) = 현금성 종목은 G 그대로, 그 외 종목은 G × 목표금액 계산 비율. 평가금액(M) = 현금 행은 입력값 그대로(만원), 주식 행은 현재가(원) × 보유수량 ÷ 10,000. 차액(N) = 목표금액(선택 %) − 평가금액이며, 음수면 "축소" 양수면 "확대"로 표시합니다. 최대 괴리 금액은 현금성 종목을 제외한 행 중 차액의 절대값이 가장 큰 셀을 노란색으로 강조합니다. 현금성자산은 계좌 내 모든 현금 행의 차액 합계이고, 과비중 차액은 |차액| ÷ 계좌 총평가금액 비율이 지정한 임계값(%) 이상일 때 "O"로 표시합니다.
-    </p>
-  </section>
-
-  <section class="panel-flex">
-    <div class="panel half">
-      <h2>📌 종목별 현재가 (마스터 테이블)</h2>
-      <div class="table-scroll">
-        <table class="data-table">
-          <thead><tr><th>종목명</th><th>유형</th><th>보유계좌수</th><th>현재가(원)</th><th>관리</th></tr></thead>
-          <tbody id="masterTableBody"></tbody>
-        </table>
-      </div>
-      <div id="masterEmpty" class="empty-msg" style="display:none;">등록된 종목이 없습니다.</div>
-    </div>
-    <div class="panel half">
-      <h2>📈 단계별 미달성 금액 (요약)</h2>
-      <div id="stageSummaryContainer"></div>
-    </div>
-  </section>
-
+  </div>
+  <div class="legend">
+    <span><span class="swatch input"></span> 사용자 입력 (비중/수량/현재가)</span>
+    <span><span class="swatch up"></span> 확대(추가매수 필요)</span>
+    <span><span class="swatch down"></span> 축소(비중 초과)</span>
+    <span><span class="swatch flag"></span> 과비중 차액(임계값 초과) 플래그</span>
+    <span><span class="swatch maxgap"></span> 최대 괴리 금액(현재 단계 기준 차액 최대 종목)</span>
+    <span><span class="swatch unused"></span> 미사용 (주식 종목의 현금성자산 칸)</span>
+  </div>
 </div>
 
-<!-- 숫자 입력 넘패드 모달 -->
-<div class="modal-overlay" id="numpadOverlay" tabindex="-1">
-  <div class="numpad-modal">
-    <div class="numpad-display" id="numpadDisplay">0</div>
-    <div class="numpad-grid">
-      <button type="button" class="numkey" data-key="7">7</button>
-      <button type="button" class="numkey" data-key="8">8</button>
-      <button type="button" class="numkey" data-key="9">9</button>
-      <button type="button" class="numkey" data-key="4">4</button>
-      <button type="button" class="numkey" data-key="5">5</button>
-      <button type="button" class="numkey" data-key="6">6</button>
-      <button type="button" class="numkey" data-key="1">1</button>
-      <button type="button" class="numkey" data-key="2">2</button>
-      <button type="button" class="numkey" data-key="3">3</button>
-      <button type="button" class="numkey" data-key="0">0</button>
-      <button type="button" class="numkey" data-key=".">.</button>
-      <button type="button" id="numpadSign">±</button>
+<div class="panel">
+  <h2>📋 종목별 평가금액 요약</h2>
+  <p class="note" style="margin-top:0;">모든 계좌를 통틀어 같은 종목을 합산한 금액입니다. (현금 포함)</p>
+  <div style="display:flex; gap:24px; align-items:center; flex-wrap:wrap;">
+    <div style="flex:0 0 auto; display:flex; flex-direction:row; align-items:center; gap:16px;">
+      <div id="stockPieChart" style="flex:0 0 auto; width:160px; height:160px; border-radius:50%; background:#eef1f6;"></div>
+      <div id="stockPieLegend" style="display:flex; flex-direction:column; gap:4px; font-size:11.5px;"></div>
     </div>
-    <div class="numpad-actions">
-      <button type="button" class="numaction" id="numpadClearAll">전체지우기</button>
-      <button type="button" class="numaction" id="numpadBackspace">지우기</button>
-      <button type="button" class="numaction cancel" id="numpadCancel">취소</button>
-      <button type="button" class="numaction confirm" id="numpadOk">확인</button>
+    <div class="table-scroll" style="flex:1; min-width:0;">
+      <table class="price-table" id="stockSummaryTable">
+        <colgroup>
+          <col style="width:auto;">
+          <col style="width:90px;">
+          <col style="width:90px;">
+          <col style="width:140px;">
+          <col style="width:90px;">
+        </colgroup>
+        <thead><tr><th>종목</th><th>유형</th><th>보유 계좌 수</th><th>합계 평가금액(만원)</th><th>비중(%)</th></tr></thead>
+        <tbody id="stockSummaryBody"></tbody>
+      </table>
     </div>
   </div>
 </div>
 
-<input type="file" id="importFileInput" accept="application/json" style="display:none;">
+<div class="panel">
+  <h2>📊 계좌별 리밸런싱 현황</h2>
+  <div class="table-scroll">
+    <table id="mainTable">
+      <thead>
+        <tr>
+          <th>증권사</th>
+          <th>계좌</th>
+          <th>종목</th>
+          <th>비중(%)</th>
+          <th>목표금액<br>(만원)</th>
+          <th>보유수량<br>(주식수/현금)</th>
+          <th>평가금액<br>(만원)</th>
+          <th>
+            목표금액 (만원)<br>
+            <input type="text" id="stagePercentInput" class="numpad-trigger" data-label="목표금액 계산 비율(%)" value="100" readonly
+              style="margin-top:4px; width:44px; padding:2px 4px; border-radius:5px; border:1px solid var(--border-strong); font-size:11.5px; text-align:right; background:var(--input-bg);"> %
+          </th>
+          <th>차액<br>(목표금액-평가금액)</th>
+          <th>비고</th>
+          <th>현금성자산</th>
+          <th>
+            과비중 차액<br>
+            <input type="text" id="overweightThreshold" class="numpad-trigger" data-label="과비중 판정 임계값(%)" value="10" readonly
+              style="margin-top:4px; width:44px; padding:2px 4px; border-radius:5px; border:1px solid var(--border-strong); font-size:11.5px; text-align:right; background:var(--input-bg);"> %
+          </th>
+        </tr>
+      </thead>
+      <tbody id="mainBody"></tbody>
+      <tfoot id="mainFoot"></tfoot>
+    </table>
+  </div>
+  <p class="note">
+    · 목표금액 = 계좌 총평가금액 × 비중% (전체 자산 중 이 비중만큼 가져가려면 최종적으로 얼마가 되어야 하는지)<br>
+    · 목표가 = 평가금액 옆 목표금액 × 헤더에 입력한 % 값 — 한번에 매수하지 않고 단계적으로 분할매수하는 것을 가정. 현금·TIGER CD금리투자(안전자산)는 항상 100% 기준으로 계산<br>
+    · 평가금액 = 현재가(원, 아래 "종목별 현재가" 표에서 관리) × 수량 ÷ 10000 (현금 행은 수량 입력값을 만원 단위 금액으로 그대로 사용)<br>
+    · 차액 = 목표가 − 평가금액<br>
+    · 최대 괴리 금액 = 현금성 종목을 제외한 실제 매수 대상 종목 중 차액(목표금액-평가금액)이 가장 큰 종목 — 별도 요약 행 대신 해당 종목의 "차액" 셀을 노란색으로 표시<br>
+    · 현금성자산 = 같은 계좌 내 유형이 '현금'인 모든 종목(예: 현금, TIGER CD금리투자 등)의 차액 합계 — 여러 안전자산을 엄격히 구분하지 않고 하나의 병합 셀로 합쳐서 보여줌<br>
+    · 과비중 차액 = |차액| ÷ 계좌 총평가금액 을 소수 3자리에서 내림했을 때 과비중 차액 헤더에 입력한 임계값(%) 이상이면 "O" (유형이 '현금'인 종목들은 각 행의 차액을 합친 "현금성자산" 값 기준으로 판단)
+  </p>
+</div>
+<div class="panel">
+  <div class="price-cols">
+    <div style="min-width:0;">
+      <h2 style="margin:0;">📌 종목별 현재가 (마스터 테이블)</h2>
+      <div class="table-scroll">
+        <table class="price-table">
+          <colgroup>
+            <col style="width:auto;">
+            <col style="width:70px;">
+            <col style="width:60px;">
+            <col style="width:150px;">
+          </colgroup>
+          <thead><tr><th>종목</th><th>유형</th><th>보유<br>계좌 수</th><th>현재가(원)</th></tr></thead>
+          <tbody id="priceBody"></tbody>
+          <tfoot>
+            <tr>
+              <td><input type="text" id="newStockName" placeholder="새 종목명" style="width:100%; box-sizing:border-box; padding:4px 6px; border:1px solid var(--border-strong); border-radius:4px; font-size:12.5px; font-family:inherit;"></td>
+              <td style="text-align:left;">
+                <select id="newStockType" style="width:auto; padding:4px 20px 4px 6px; border:1px solid var(--border-strong); border-radius:4px; font-size:12.5px; font-family:inherit; background:#fff;">
+                  <option value="stock" selected>주식</option>
+                  <option value="cash">현금</option>
+                </select>
+              </td>
+              <td class="num">-</td>
+              <td class="num">
+                <div style="display:flex; align-items:center; justify-content:flex-end; gap:6px;">
+                  <input type="text" id="newStockPrice" class="cell-input wide numpad-trigger" data-label="새 종목 현재가(원)" value="0" readonly>
+                  <button type="button" id="addStockBtn" style="padding:5px 10px; border-radius:5px; border:1px solid var(--border-strong); background:#fff; cursor:pointer; font-size:12px; white-space:nowrap;">+ 추가</button>
+                </div>
+              </td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+    <div style="min-width:0;">
+      <h2>📈 단계별 미달성 금액 (요약)</h2>
+      <div class="table-scroll">
+        <table class="stage-summary" id="stageSummaryTable">
+          <thead><tr><th class="label">단계</th><th>50%</th><th>70%</th><th>80%</th><th>90%</th><th>100%</th></tr></thead>
+          <tbody>
+            <tr><td class="label">미달성 매수 필요 금액 (만원)</td>
+              <td id="shortfall-0.5"></td><td id="shortfall-0.7"></td><td id="shortfall-0.8"></td>
+              <td id="shortfall-0.9"></td><td id="shortfall-1"></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="note">현금성 종목을 제외한 실제 매수 대상 종목들만 집계합니다.</p>
+    </div>
+  </div>
+</div>
 
-<script>
-(function () {
-  'use strict';
+<div class="foot">유지보수를 위해 박스(설정 / 종목별 평가금액 / 계좌별 리밸런싱 현황 / 종목별 현재가 / 단계별 미달성 금액)별로 CSS·JS 파일을 나눠 구성했습니다.</div>
 
-  // ---------- 상수 ----------
-  var STAGES = [0.5, 0.7, 0.8, 0.9, 1];
-  var STAGE_LABELS = ['50%', '70%', '80%', '90%', '100%'];
+<div class="numpad-overlay" id="folderFileListOverlay">
+  <div class="numpad-box" style="width:320px;">
+    <div class="numpad-label">작업 폴더 (<span id="folderFileListDirName"></span>)에서 파일 선택</div>
+    <div id="folderFileListItems" style="max-height:260px; overflow-y:auto; margin-bottom:10px;"></div>
+    <div class="numpad-actions">
+      <button type="button" id="folderFileListBrowse">다른 파일 찾아보기...</button>
+      <button type="button" id="folderFileListCancel">취소</button>
+    </div>
+  </div>
+</div>
 
-  // ---------- 상태 ----------
-  var master = [];        // { id, name, type: 'stock'|'cash', price }
-  var groups = [];        // { id, broker, account, rows: [] }
-  // row: { id, stock, weight(number|null), qty, cash }
-  var stage = 100;
-  var threshold = 5;
-  var amountHidden = true;
-  var grandTotalM = 0;
+<div class="numpad-overlay" id="numpadOverlay">
+  <div class="numpad-box">
+    <div class="numpad-label" id="numpadLabel">숫자 입력</div>
+    <input type="text" id="numpadDisplay" class="numpad-display" inputmode="decimal" autocomplete="off">
+    <div class="numpad-grid">
+      <button type="button" data-k="7">7</button><button type="button" data-k="8">8</button><button type="button" data-k="9">9</button>
+      <button type="button" data-k="4">4</button><button type="button" data-k="5">5</button><button type="button" data-k="6">6</button>
+      <button type="button" data-k="1">1</button><button type="button" data-k="2">2</button><button type="button" data-k="3">3</button>
+      <button type="button" data-k="-">±</button><button type="button" data-k="0">0</button><button type="button" data-k=".">.</button>
+    </div>
+    <div class="numpad-actions">
+      <button type="button" id="numpadClear">전체 지우기</button>
+      <button type="button" id="numpadBackspace">⌫ 지우기</button>
+      <button type="button" id="numpadCancel">취소</button>
+      <button type="button" id="numpadOk" class="primary">확인</button>
+    </div>
+  </div>
+</div>
 
-  var addRowState = {};   // { [groupId]: { stockId, weight, qty, autoWeight } }
-  var addMasterState = { name: '', type: 'stock', price: 0 };
-  var addGroupState = { broker: '', account: '' };
-
-  var idSeq = 1;
-  function uid(prefix) { return prefix + '_' + (idSeq++) + '_' + Math.random().toString(36).slice(2, 7); }
-
-  // ---------- 유틸 ----------
-  function escapeHtml(s) {
-    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
-      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
-    });
-  }
-  function fmt2(n) {
-    n = Math.round((n || 0) * 100) / 100;
-    if (n === 0) n = 0; // -0 방지
-    return n.toLocaleString('ko-KR', { maximumFractionDigits: 2 });
-  }
-  function fmtMan(n) { return fmt2(n) + '만원'; }
-  function fmtPct(n) { return fmt2(n) + '%'; }
-
-  function findMaster(id) { return master.find(function (m) { return m.id === id; }); }
-  function findMasterByName(name) { return master.find(function (m) { return m.name === name; }); }
-  function findGroup(id) { return groups.find(function (g) { return g.id === id; }); }
-  function findRow(gid, rid) {
-    var g = findGroup(gid);
-    if (!g) return null;
-    return g.rows.find(function (r) { return r.id === rid; }) || null;
-  }
-  function ensureAddRowState(gid) {
-    if (!addRowState[gid]) addRowState[gid] = { stockId: '', weight: 0, qty: 0, autoWeight: true };
-    return addRowState[gid];
-  }
-  function groupSpanCount(g) { return Math.max(g.rows.length, 1) + 2; }
-
-  // ---------- 저장 ----------
-  function autosave() {
-    try {
-      localStorage.setItem('rebal:autosave', JSON.stringify({ master: master, groups: groups, stage: stage, threshold: threshold }));
-    } catch (e) { /* ignore */ }
-  }
-  function setSaveStatus(text) {
-    var el = document.getElementById('saveStatus');
-    if (el) el.textContent = text;
-  }
-  function saveToServer() {
-    setSaveStatus('저장 중...');
-    fetch('/api/save', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ master: master, groups: groups, stage: stage, threshold: threshold, savedAt: new Date().toISOString() })
-    }).then(function (res) {
-      if (!res.ok) throw new Error('save failed');
-      setSaveStatus('저장 완료 (' + new Date().toLocaleTimeString('ko-KR') + ')');
-    }).catch(function () {
-      setSaveStatus('저장 실패 - 네트워크 상태를 확인하세요.');
-    });
-  }
-  function loadFromServer() {
-    setSaveStatus('불러오는 중...');
-    fetch('/api/load').then(function (res) {
-      if (!res.ok) throw new Error('load failed');
-      return res.json();
-    }).then(function (json) {
-      if (!json.data) { setSaveStatus('서버에 저장된 데이터가 없습니다.'); return; }
-      applyData(json.data);
-      setSaveStatus('불러오기 완료 (' + new Date().toLocaleTimeString('ko-KR') + ')');
-    }).catch(function () {
-      setSaveStatus('불러오기 실패 - 네트워크 상태를 확인하세요.');
-    });
-  }
-  function applyData(data) {
-    master = Array.isArray(data.master) ? data.master : [];
-    groups = Array.isArray(data.groups) ? data.groups : [];
-    stage = typeof data.stage === 'number' ? data.stage : 100;
-    threshold = typeof data.threshold === 'number' ? data.threshold : 5;
-    addRowState = {};
-    autosave();
-    renderAll();
-  }
-  function exportFile() {
-    var payload = { master: master, groups: groups, stage: stage, threshold: threshold, exportedAt: new Date().toISOString() };
-    var blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
-    var now = new Date();
-    var pad = function (n) { return String(n).padStart(2, '0'); };
-    var ts = now.getFullYear() + pad(now.getMonth() + 1) + pad(now.getDate()) + '_' + pad(now.getHours()) + pad(now.getMinutes());
-    var filename = '투자_리밸런싱_데이터_' + ts + '.json';
-    var url = URL.createObjectURL(blob);
-    var a = document.createElement('a');
-    a.href = url; a.download = filename; a.click();
-    URL.revokeObjectURL(url);
-  }
-  function importFile(file) {
-    var reader = new FileReader();
-    reader.onload = function () {
-      try {
-        var data = JSON.parse(reader.result);
-        if (!Array.isArray(data.master) || !Array.isArray(data.groups)) {
-          alert('올바른 데이터 파일이 아닙니다.');
-          return;
-        }
-        applyData(data);
-      } catch (e) {
-        alert('파일을 읽을 수 없습니다.');
-      }
-    };
-    reader.readAsText(file);
-  }
-  function doReset() {
-    if (!confirm('모든 데이터를 초기화하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) return;
-    master = []; groups = []; stage = 100; threshold = 5; amountHidden = true;
-    addRowState = {}; addMasterState = { name: '', type: 'stock', price: 0 }; addGroupState = { broker: '', account: '' };
-    autosave();
-    renderAll();
-  }
-
-  // ---------- 계산 ----------
-  function computeGroup(g) {
-    g.rows.forEach(function (r) {
-      var m = findMasterByName(r.stock);
-      r._isCash = !!(m && m.type === 'cash');
-      if (r._isCash) {
-        r._M = r.qty || 0;
-      } else {
-        var price = m ? (m.price || 0) : 0;
-        r._M = (price * (r.qty || 0)) / 10000;
-      }
-    });
-    var D = g.rows.reduce(function (s, r) { return s + r._M; }, 0);
-    var explicitSum = g.rows.filter(function (r) { return r.weight != null; })
-      .reduce(function (s, r) { return s + r.weight; }, 0);
-    var remaining = Math.max(0, 100 - explicitSum);
-    var nullRows = g.rows.filter(function (r) { return r.weight == null; });
-    g.rows.forEach(function (r) {
-      if (r.weight != null) r._resolvedWeight = r.weight;
-      else r._resolvedWeight = nullRows.length > 0 ? remaining / nullRows.length : 0;
-    });
-    g.rows.forEach(function (r) {
-      r._G = D * r._resolvedWeight / 100;
-      r._targetPrice = r._isCash ? r._G : r._G * (stage / 100);
-      r._N = r._targetPrice - r._M;
-      r._note = r._N < -0.001 ? '축소' : (r._N > 0.001 ? '확대' : '');
-      r._ratio = D > 0 ? Math.floor((Math.abs(r._N) / D) * 1000) / 1000 : 0;
-      r._over = (r._ratio * 100) >= threshold;
-    });
-    g._D = D;
-    var cashRows = g.rows.filter(function (r) { return r._isCash; });
-    g._cashN = cashRows.reduce(function (s, r) { return s + r._N; }, 0);
-    var cashRatio = D > 0 ? Math.floor((Math.abs(g._cashN) / D) * 1000) / 1000 : 0;
-    g._cashOver = (cashRatio * 100) >= threshold;
-    var maxRow = null;
-    g.rows.filter(function (r) { return !r._isCash; }).forEach(function (r) {
-      if (!maxRow || Math.abs(r._N) > Math.abs(maxRow._N)) maxRow = r;
-    });
-    g._maxDeviationRowId = maxRow ? maxRow.id : null;
-  }
-  function computeAll() {
-    groups.forEach(computeGroup);
-    grandTotalM = groups.reduce(function (s, g) { return s + g._D; }, 0);
-  }
-
-  // ---------- 렌더: 상단 요약 ----------
-  function renderSummary() {
-    var el = document.getElementById('grandTotal');
-    el.textContent = amountHidden ? '••••••만원' : fmtMan(grandTotalM);
-    document.getElementById('grandTotalCell').textContent = fmtMan(grandTotalM);
-    document.getElementById('stageHeaderField').textContent = fmt2(stage);
-    document.getElementById('thresholdHeaderField').textContent = fmt2(threshold);
-  }
-
-  // ---------- 렌더: 파이 차트 + 종목별 요약 ----------
-  function aggregateByStock() {
-    var map = {};
-    groups.forEach(function (g) {
-      g.rows.forEach(function (r) {
-        var m = findMasterByName(r.stock);
-        if (!map[r.stock]) map[r.stock] = { name: r.stock, type: m ? m.type : 'stock', accounts: {}, sum: 0 };
-        map[r.stock].sum += r._M;
-        map[r.stock].accounts[g.id] = true;
-      });
-    });
-    return Object.keys(map).map(function (k) {
-      var e = map[k];
-      return { name: e.name, type: e.type, sum: e.sum, accountCount: Object.keys(e.accounts).length };
-    });
-  }
-  function renderPieAndTable() {
-    var data = aggregateByStock().sort(function (a, b) { return b.sum - a.sum; });
-    var total = data.reduce(function (s, d) { return s + d.sum; }, 0) || 1;
-    var acc = 0;
-    var stops = [];
-    data.forEach(function (d, i) {
-      var start = acc / total * 100;
-      acc += d.sum;
-      var end = acc / total * 100;
-      var color = 'hsl(' + Math.round((i * 137.508) % 360) + ',60%,55%)';
-      d._color = color;
-      stops.push(color + ' ' + start + '% ' + end + '%');
-    });
-    var pie = document.getElementById('pieChart');
-    pie.style.background = data.length ? ('conic-gradient(' + stops.join(', ') + ')') : '#e5e7eb';
-
-    document.getElementById('pieLegend').innerHTML = data.map(function (d) {
-      return '<div class="legend-row"><span class="swatch" style="background:' + d._color + '"></span>' +
-        '<span class="legend-name">' + escapeHtml(d.name) + '</span>' +
-        '<span class="legend-pct">' + fmtPct(d.sum / total * 100) + '</span></div>';
-    }).join('') || '<div class="empty-msg">데이터가 없습니다.</div>';
-
-    document.getElementById('stockSummaryTable').innerHTML = data.map(function (d) {
-      return '<tr><td>' + escapeHtml(d.name) + '</td><td>' + (d.type === 'cash' ? '현금' : '주식') + '</td>' +
-        '<td>' + d.accountCount + '</td><td>' + fmtMan(d.sum) + '</td><td>' + fmtPct(d.sum / total * 100) + '</td></tr>';
-    }).join('') || '<tr><td colspan="5" class="empty-row">데이터가 없습니다.</td></tr>';
-  }
-
-  // ---------- 렌더: 메인 테이블 ----------
-  function renderWeightCell(g, r) {
-    if (r.weight === null || r.weight === undefined) {
-      return '<span class="auto-value">' + fmt2(r._resolvedWeight) + '% (자동)</span>';
-    }
-    return numFieldWithStepper('weight', g.id, r.id, r.weight, '%');
-  }
-  function renderQtyCell(g, r) {
-    return numFieldWithStepper('qty', g.id, r.id, r.qty, r._isCash ? '만원' : '주');
-  }
-  function numFieldWithStepper(field, gid, rid, value, unit) {
-    return '<div class="numwrap">' +
-      '<span class="numfield" tabindex="0" data-field="' + field + '" data-group="' + gid + '" data-row="' + rid + '">' + fmt2(value) + '</span>' +
-      '<span class="unit">' + unit + '</span>' +
-      '<span class="steppers">' +
-      '<button type="button" class="stepbtn" data-field="' + field + '" data-group="' + gid + '" data-row="' + rid + '" data-dir="up">▲</button>' +
-      '<button type="button" class="stepbtn" data-field="' + field + '" data-group="' + gid + '" data-row="' + rid + '" data-dir="down">▼</button>' +
-      '</span></div>';
-  }
-  function rowControls(g, r, ridx, total) {
-    return '<button type="button" class="ctrlbtn" data-action="moveRowUp" data-group="' + g.id + '" data-row="' + r.id + '" ' + (ridx === 0 ? 'disabled' : '') + '>▲</button>' +
-      '<button type="button" class="ctrlbtn" data-action="moveRowDown" data-group="' + g.id + '" data-row="' + r.id + '" ' + (ridx === total - 1 ? 'disabled' : '') + '>▼</button>' +
-      '<button type="button" class="ctrlbtn danger" data-action="deleteRow" data-group="' + g.id + '" data-row="' + r.id + '">×</button>';
-  }
-  function renderAddRowLine(g) {
-    var state = ensureAddRowState(g.id);
-    var usedNames = {};
-    g.rows.forEach(function (r) { usedNames[r.stock] = true; });
-    var options = master.filter(function (m) { return !usedNames[m.name]; });
-    var optHtml = options.map(function (m) {
-      return '<option value="' + m.id + '" ' + (state.stockId === m.id ? 'selected' : '') + '>' +
-        escapeHtml(m.name) + ' (' + (m.type === 'cash' ? '현금' : '주식') + ')</option>';
-    }).join('');
-    var weightCell = state.autoWeight ? '' :
-      ('<span class="numfield" tabindex="0" data-field="newRowWeight" data-group="' + g.id + '">' + fmt2(state.weight) + '</span>%');
-    return '<tr class="add-row-line">' +
-      '<td><select class="addRowStockSelect" data-group="' + g.id + '"><option value="">+ 종목 선택...</option>' + optHtml + '</select></td>' +
-      '<td><label class="autoWeightLabel"><input type="checkbox" class="addRowAutoWeight" data-group="' + g.id + '" ' + (state.autoWeight ? 'checked' : '') + '/> 자동배분</label>' + weightCell + '</td>' +
-      '<td></td>' +
-      '<td><span class="numfield" tabindex="0" data-field="newRowQty" data-group="' + g.id + '">' + fmt2(state.qty) + '</span></td>' +
-      '<td colspan="6"></td>' +
-      '<td><button type="button" class="btn small" data-action="addRow" data-group="' + g.id + '">+ 추가</button></td>' +
-      '</tr>';
-  }
-  function renderSubtotalRow(g, idx, totalGroups) {
-    return '<tr class="subtotal-row">' +
-      '<td colspan="4">소계</td>' +
-      '<td>' + fmtMan(g._D) + '</td>' +
-      '<td colspan="6"></td>' +
-      '<td class="controls">' +
-      '<button type="button" class="ctrlbtn" data-action="moveGroupUp" data-group="' + g.id + '" ' + (idx === 0 ? 'disabled' : '') + '>▲</button>' +
-      '<button type="button" class="ctrlbtn" data-action="moveGroupDown" data-group="' + g.id + '" ' + (idx === totalGroups - 1 ? 'disabled' : '') + '>▼</button>' +
-      '<button type="button" class="ctrlbtn danger" data-action="deleteGroup" data-group="' + g.id + '">그룹삭제</button>' +
-      '</td></tr>';
-  }
-  function renderAddGroupLine() {
-    return '<tr class="add-group-line">' +
-      '<td><input type="text" id="newBrokerInput" placeholder="증권사명" value="' + escapeHtml(addGroupState.broker) + '"></td>' +
-      '<td><input type="text" id="newAccountInput" placeholder="계좌명" value="' + escapeHtml(addGroupState.account) + '"></td>' +
-      '<td colspan="10"></td>' +
-      '<td><button type="button" class="btn small" data-action="addGroup">+ 계좌(그룹) 추가</button></td>' +
-      '</tr>';
-  }
-  function renderMainTable() {
-    var html = '';
-    var i = 0;
-    while (i < groups.length) {
-      var broker = groups[i].broker;
-      var j = i;
-      var brokerRowSpan = 0;
-      while (j < groups.length && groups[j].broker === broker) {
-        brokerRowSpan += groupSpanCount(groups[j]);
-        j++;
-      }
-      for (var k = i; k < j; k++) {
-        var g = groups[k];
-        var accountRowSpan = groupSpanCount(g);
-        var cashRows = g.rows.filter(function (r) { return r._isCash; });
-        var firstCashIdx = g.rows.findIndex(function (r) { return r._isCash; });
-
-        if (g.rows.length === 0) {
-          html += '<tr>';
-          if (k === i) html += '<td rowspan="' + brokerRowSpan + '" class="broker-cell" data-action="renameBroker" data-group="' + g.id + '">' + escapeHtml(broker) + '</td>';
-          html += '<td rowspan="' + accountRowSpan + '" class="account-cell" data-action="renameAccount" data-group="' + g.id + '">' + escapeHtml(g.account) + '</td>';
-          html += '<td colspan="11" class="empty-row">종목이 없습니다. 아래에서 추가하세요.</td>';
-          html += '</tr>';
-        } else {
-          g.rows.forEach(function (r, ridx) {
-            html += '<tr>';
-            if (k === i && ridx === 0) {
-              html += '<td rowspan="' + brokerRowSpan + '" class="broker-cell" data-action="renameBroker" data-group="' + g.id + '">' + escapeHtml(broker) + '</td>';
-            }
-            if (ridx === 0) {
-              html += '<td rowspan="' + accountRowSpan + '" class="account-cell" data-action="renameAccount" data-group="' + g.id + '">' + escapeHtml(g.account) + '</td>';
-            }
-            html += '<td>' + escapeHtml(r.stock) + '</td>';
-            html += '<td>' + renderWeightCell(g, r) + '</td>';
-            html += '<td>' + fmtMan(r._G) + '</td>';
-            html += '<td>' + renderQtyCell(g, r) + '</td>';
-            html += '<td>' + fmtMan(r._M) + '</td>';
-            html += '<td>' + fmtMan(r._targetPrice) + '</td>';
-            var nClass = r._N < -0.001 ? 'text-red' : (r._N > 0.001 ? 'text-green' : '');
-            var maxCls = g._maxDeviationRowId === r.id ? 'max-dev' : '';
-            html += '<td class="' + nClass + ' ' + maxCls + '">' + (Math.abs(r._N) < 0.001 ? '' : fmtMan(r._N)) + '</td>';
-            html += '<td class="' + (r._note === '축소' ? 'text-red' : (r._note === '확대' ? 'text-green' : '')) + '">' + r._note + '</td>';
-            if (r._isCash) {
-              if (ridx === firstCashIdx) {
-                var cCls = g._cashN < -0.001 ? 'text-red' : (g._cashN > 0.001 ? 'text-green' : '');
-                html += '<td rowspan="' + cashRows.length + '" class="' + cCls + '">' + fmtMan(g._cashN) + '</td>';
-              }
-            } else {
-              html += '<td class="hatch">미사용</td>';
-            }
-            if (r._isCash) {
-              if (ridx === firstCashIdx) {
-                html += '<td rowspan="' + cashRows.length + '" class="' + (g._cashOver ? 'over-flag' : '') + '">' + (g._cashOver ? 'O' : '') + '</td>';
-              }
-            } else {
-              html += '<td class="' + (r._over ? 'over-flag' : '') + '">' + (r._over ? 'O' : '') + '</td>';
-            }
-            html += '<td class="controls">' + rowControls(g, r, ridx, g.rows.length) + '</td>';
-            html += '</tr>';
-          });
-        }
-        html += renderAddRowLine(g);
-        html += renderSubtotalRow(g, k, groups.length);
-      }
-      i = j;
-    }
-    html += renderAddGroupLine();
-
-    document.getElementById('mainTableBody').innerHTML = html;
-    document.getElementById('mainTableEmpty').style.display = groups.length === 0 ? 'block' : 'none';
-  }
-
-  // ---------- 렌더: 마스터 테이블 ----------
-  function renderMasterTable() {
-    var sorted = master.slice().sort(function (a, b) {
-      if (a.type !== b.type) return a.type === 'stock' ? -1 : 1;
-      return 0;
-    });
-    var rows = sorted.map(function (m) {
-      var accountCount = groups.filter(function (g) {
-        return g.rows.some(function (r) { return r.stock === m.name; });
-      }).length;
-      return '<tr>' +
-        '<td class="clickable" data-action="renameMaster" data-master="' + m.id + '">' + escapeHtml(m.name) + '</td>' +
-        '<td><select class="masterTypeSelect" data-master="' + m.id + '">' +
-        '<option value="stock" ' + (m.type === 'stock' ? 'selected' : '') + '>주식</option>' +
-        '<option value="cash" ' + (m.type === 'cash' ? 'selected' : '') + '>현금</option>' +
-        '</select></td>' +
-        '<td>' + accountCount + '</td>' +
-        '<td><span class="numfield" tabindex="0" data-field="masterPrice" data-master="' + m.id + '">' + fmt2(m.price) + '</span> <span class="unit">원</span></td>' +
-        '<td class="controls">' +
-        '<button type="button" class="ctrlbtn" data-action="moveMasterUp" data-master="' + m.id + '">▲</button>' +
-        '<button type="button" class="ctrlbtn" data-action="moveMasterDown" data-master="' + m.id + '">▼</button>' +
-        '<button type="button" class="ctrlbtn danger" data-action="deleteMaster" data-master="' + m.id + '">×</button>' +
-        '</td></tr>';
-    }).join('');
-
-    var addRowHtml = '<tr class="add-row-line">' +
-      '<td><input type="text" id="newMasterNameInput" placeholder="종목명" value="' + escapeHtml(addMasterState.name) + '"></td>' +
-      '<td><select class="addMasterTypeSelect"><option value="stock" ' + (addMasterState.type === 'stock' ? 'selected' : '') + '>주식</option>' +
-      '<option value="cash" ' + (addMasterState.type === 'cash' ? 'selected' : '') + '>현금</option></select></td>' +
-      '<td>-</td>' +
-      '<td><span class="numfield" tabindex="0" data-field="newMasterPrice">' + fmt2(addMasterState.price) + '</span> <span class="unit">원</span></td>' +
-      '<td><button type="button" class="btn small" data-action="addMaster">+ 추가</button></td>' +
-      '</tr>';
-
-    document.getElementById('masterTableBody').innerHTML = rows + addRowHtml;
-    document.getElementById('masterEmpty').style.display = master.length === 0 ? 'block' : 'none';
-  }
-
-  // ---------- 렌더: 단계별 미달성 금액 ----------
-  function renderStageSummary() {
-    var totals = STAGES.map(function (s) {
-      var sum = 0;
-      groups.forEach(function (g) {
-        g.rows.forEach(function (r) {
-          if (r._isCash) return;
-          var shortfall = r._G * s - r._M;
-          if (shortfall > 0) sum += shortfall;
-        });
-      });
-      return sum;
-    });
-    var curStagePct = Math.round(stage);
-    var headHtml = STAGE_LABELS.map(function (l) {
-      var pct = Math.round(parseFloat(l));
-      return '<th class="' + (curStagePct === pct ? 'stage-current' : '') + '">' + l + '</th>';
-    }).join('');
-    var bodyHtml = totals.map(function (t, idx) {
-      var pct = Math.round(STAGES[idx] * 100);
-      return '<td class="' + (curStagePct === pct ? 'stage-current' : '') + '">' + fmtMan(t) + '</td>';
-    }).join('');
-    document.getElementById('stageSummaryContainer').innerHTML =
-      '<table class="stage-table"><thead><tr>' + headHtml + '</tr></thead><tbody><tr>' + bodyHtml + '</tr></tbody></table>';
-  }
-
-  // ---------- 전체 렌더 ----------
-  function renderAll() {
-    computeAll();
-    renderSummary();
-    renderPieAndTable();
-    renderMainTable();
-    renderMasterTable();
-    renderStageSummary();
-  }
-
-  // ---------- 액션 ----------
-  function moveGroup(gid, dir) {
-    var idx = groups.findIndex(function (g) { return g.id === gid; });
-    var swapIdx = idx + dir;
-    if (swapIdx < 0 || swapIdx >= groups.length) return;
-    var tmp = groups[idx]; groups[idx] = groups[swapIdx]; groups[swapIdx] = tmp;
-    autosave(); renderAll();
-  }
-  function deleteGroup(gid) {
-    if (!confirm('이 계좌(그룹)를 삭제하시겠습니까?')) return;
-    groups = groups.filter(function (g) { return g.id !== gid; });
-    autosave(); renderAll();
-  }
-  function moveRow(gid, rid, dir) {
-    var g = findGroup(gid);
-    var idx = g.rows.findIndex(function (r) { return r.id === rid; });
-    var swapIdx = idx + dir;
-    if (swapIdx < 0 || swapIdx >= g.rows.length) return;
-    var tmp = g.rows[idx]; g.rows[idx] = g.rows[swapIdx]; g.rows[swapIdx] = tmp;
-    autosave(); renderAll();
-  }
-  function deleteRow(gid, rid) {
-    var g = findGroup(gid);
-    g.rows = g.rows.filter(function (r) { return r.id !== rid; });
-    autosave(); renderAll();
-  }
-  function renameBroker(gid) {
-    var g = findGroup(gid);
-    var name = prompt('증권사명을 입력하세요.', g.broker);
-    if (name === null) return;
-    var trimmed = name.trim();
-    if (!trimmed) return;
-    g.broker = trimmed;
-    autosave(); renderAll();
-  }
-  function renameAccount(gid) {
-    var g = findGroup(gid);
-    var name = prompt('계좌명을 입력하세요.', g.account);
-    if (name === null) return;
-    var trimmed = name.trim();
-    if (!trimmed) return;
-    g.account = trimmed;
-    autosave(); renderAll();
-  }
-  function addRow(gid) {
-    var g = findGroup(gid);
-    var state = ensureAddRowState(gid);
-    if (!state.stockId) { alert('종목을 선택하세요.'); return; }
-    var m = findMaster(state.stockId);
-    if (!m) return;
-    g.rows.push({
-      id: uid('row'),
-      stock: m.name,
-      weight: state.autoWeight ? null : state.weight,
-      qty: state.qty,
-      cash: m.type === 'cash'
-    });
-    delete addRowState[gid];
-    autosave(); renderAll();
-  }
-  function addGroup() {
-    var broker = addGroupState.broker.trim();
-    var account = addGroupState.account.trim();
-    if (!broker || !account) { alert('증권사명과 계좌명을 입력하세요.'); return; }
-    groups.push({ id: uid('grp'), broker: broker, account: account, rows: [] });
-    addGroupState = { broker: '', account: '' };
-    autosave(); renderAll();
-  }
-  function moveMaster(mid, dir) {
-    var idx = master.findIndex(function (m) { return m.id === mid; });
-    var swapIdx = idx + dir;
-    if (swapIdx < 0 || swapIdx >= master.length) return;
-    var tmp = master[idx]; master[idx] = master[swapIdx]; master[swapIdx] = tmp;
-    autosave(); renderAll();
-  }
-  function deleteMaster(mid) {
-    var m = findMaster(mid);
-    if (!m) return;
-    var inUse = groups.some(function (g) { return g.rows.some(function (r) { return r.stock === m.name; }); });
-    if (inUse && !confirm('이 종목은 계좌에서 사용 중입니다. 삭제하면 관련 보유 항목도 함께 삭제됩니다. 계속하시겠습니까?')) return;
-    master = master.filter(function (x) { return x.id !== mid; });
-    groups.forEach(function (g) { g.rows = g.rows.filter(function (r) { return r.stock !== m.name; }); });
-    autosave(); renderAll();
-  }
-  function renameMaster(mid) {
-    var m = findMaster(mid);
-    var name = prompt('종목명을 입력하세요.', m.name);
-    if (name === null) return;
-    var trimmed = name.trim();
-    if (!trimmed) return;
-    if (master.some(function (x) { return x.id !== mid && x.name === trimmed; })) {
-      alert('이미 등록된 종목명입니다.');
-      return;
-    }
-    var oldName = m.name;
-    m.name = trimmed;
-    groups.forEach(function (g) {
-      g.rows.forEach(function (r) { if (r.stock === oldName) r.stock = trimmed; });
-    });
-    autosave(); renderAll();
-  }
-  function addMaster() {
-    var name = addMasterState.name.trim();
-    if (!name) { alert('종목명을 입력하세요.'); return; }
-    if (master.some(function (m) { return m.name === name; })) { alert('이미 등록된 종목명입니다.'); return; }
-    master.push({ id: uid('mst'), name: name, type: addMasterState.type, price: addMasterState.price });
-    addMasterState = { name: '', type: 'stock', price: 0 };
-    autosave(); renderAll();
-  }
-
-  // ---------- 숫자 필드 값 읽기/쓰기 ----------
-  function getFieldValue(ds) {
-    switch (ds.field) {
-      case 'stage': return stage;
-      case 'threshold': return threshold;
-      case 'weight': { var r = findRow(ds.group, ds.row); return r ? r.weight : 0; }
-      case 'qty': { var r2 = findRow(ds.group, ds.row); return r2 ? r2.qty : 0; }
-      case 'masterPrice': { var m = findMaster(ds.master); return m ? m.price : 0; }
-      case 'newRowWeight': return ensureAddRowState(ds.group).weight;
-      case 'newRowQty': return ensureAddRowState(ds.group).qty;
-      case 'newMasterPrice': return addMasterState.price;
-      default: return 0;
-    }
-  }
-  function setFieldValue(ds, val) {
-    switch (ds.field) {
-      case 'stage': stage = val; break;
-      case 'threshold': threshold = Math.max(0, val); break;
-      case 'weight': { var r = findRow(ds.group, ds.row); if (r) r.weight = Math.max(0, val); break; }
-      case 'qty': { var r2 = findRow(ds.group, ds.row); if (r2) r2.qty = Math.max(0, val); break; }
-      case 'masterPrice': { var m = findMaster(ds.master); if (m) m.price = Math.max(0, val); break; }
-      case 'newRowWeight': ensureAddRowState(ds.group).weight = Math.max(0, val); break;
-      case 'newRowQty': ensureAddRowState(ds.group).qty = Math.max(0, val); break;
-      case 'newMasterPrice': addMasterState.price = Math.max(0, val); break;
-    }
-    autosave();
-    renderAll();
-  }
-
-  // ---------- 넘패드 ----------
-  var numpad = null; // { value, onConfirm }
-  function openNumpadFor(ds) {
-    var current = getFieldValue(ds);
-    numpad = {
-      value: (current === null || current === undefined) ? '' : String(current),
-      onConfirm: function (val) { setFieldValue(ds, val); }
-    };
-    renderNumpadDisplay();
-    document.getElementById('numpadOverlay').classList.add('open');
-  }
-  function closeNumpad() {
-    document.getElementById('numpadOverlay').classList.remove('open');
-    numpad = null;
-  }
-  function renderNumpadDisplay() {
-    document.getElementById('numpadDisplay').textContent = (numpad.value === '' || numpad.value === '-') ? (numpad.value + '0') : numpad.value;
-  }
-  function numpadPress(ch) {
-    if (!numpad) return;
-    if (ch === '.') {
-      if (numpad.value.indexOf('.') !== -1) return;
-      numpad.value = (numpad.value === '' ? '0' : numpad.value) + '.';
-    } else {
-      if (numpad.value === '0') numpad.value = ch;
-      else numpad.value += ch;
-    }
-    renderNumpadDisplay();
-  }
-  function numpadToggleSign() {
-    if (!numpad) return;
-    if (numpad.value.charAt(0) === '-') numpad.value = numpad.value.slice(1);
-    else if (numpad.value !== '' && numpad.value !== '0') numpad.value = '-' + numpad.value;
-    renderNumpadDisplay();
-  }
-  function numpadBackspace() {
-    if (!numpad) return;
-    numpad.value = numpad.value.slice(0, -1);
-    renderNumpadDisplay();
-  }
-  function numpadClearAll() {
-    if (!numpad) return;
-    numpad.value = '';
-    renderNumpadDisplay();
-  }
-  function numpadConfirm() {
-    if (!numpad) return;
-    var v = parseFloat(numpad.value);
-    var result = isNaN(v) ? 0 : v;
-    var cb = numpad.onConfirm;
-    closeNumpad();
-    cb(result);
-  }
-  function numpadCancel() { closeNumpad(); }
-
-  // ---------- 이벤트 위임 ----------
-  document.addEventListener('click', function (e) {
-    var numkey = e.target.closest('.numkey');
-    if (numkey) { numpadPress(numkey.dataset.key); return; }
-
-    var numField = e.target.closest('.numfield');
-    if (numField) { openNumpadFor(numField.dataset); return; }
-
-    var stepBtn = e.target.closest('.stepbtn');
-    if (stepBtn) {
-      var ds = stepBtn.dataset;
-      var delta = ds.dir === 'up' ? 1 : -1;
-      var cur = getFieldValue(ds) || 0;
-      setFieldValue(ds, Math.round((cur + delta) * 100) / 100);
-      return;
-    }
-
-    var overlay = document.getElementById('numpadOverlay');
-    if (e.target === overlay) { numpadCancel(); return; }
-
-    var actionEl = e.target.closest('[data-action]');
-    if (actionEl) {
-      var a = actionEl.dataset.action;
-      var gId = actionEl.dataset.group, rId = actionEl.dataset.row, mId = actionEl.dataset.master;
-      switch (a) {
-        case 'moveRowUp': moveRow(gId, rId, -1); break;
-        case 'moveRowDown': moveRow(gId, rId, 1); break;
-        case 'deleteRow': deleteRow(gId, rId); break;
-        case 'moveGroupUp': moveGroup(gId, -1); break;
-        case 'moveGroupDown': moveGroup(gId, 1); break;
-        case 'deleteGroup': deleteGroup(gId); break;
-        case 'addRow': addRow(gId); break;
-        case 'addGroup': addGroup(); break;
-        case 'renameBroker': renameBroker(gId); break;
-        case 'renameAccount': renameAccount(gId); break;
-        case 'moveMasterUp': moveMaster(mId, -1); break;
-        case 'moveMasterDown': moveMaster(mId, 1); break;
-        case 'deleteMaster': deleteMaster(mId); break;
-        case 'renameMaster': renameMaster(mId); break;
-        case 'addMaster': addMaster(); break;
-        case 'toggleAmount': amountHidden = !amountHidden; renderSummary(); break;
-        case 'save': saveToServer(); break;
-        case 'load': loadFromServer(); break;
-        case 'exportFile': exportFile(); break;
-        case 'reset': doReset(); break;
-      }
-    }
-  });
-
-  document.addEventListener('focusin', function (e) {
-    var numField = e.target.closest('.numfield');
-    if (numField && (!numpad)) { openNumpadFor(numField.dataset); }
-  });
-
-  document.addEventListener('change', function (e) {
-    if (e.target.matches('.masterTypeSelect')) {
-      var m = findMaster(e.target.dataset.master);
-      if (m) { m.type = e.target.value; autosave(); renderAll(); }
-    } else if (e.target.matches('.addMasterTypeSelect')) {
-      addMasterState.type = e.target.value;
-    } else if (e.target.matches('.addRowStockSelect')) {
-      ensureAddRowState(e.target.dataset.group).stockId = e.target.value;
-    } else if (e.target.matches('.addRowAutoWeight')) {
-      ensureAddRowState(e.target.dataset.group).autoWeight = e.target.checked;
-      renderAll();
-    }
-  });
-
-  document.addEventListener('input', function (e) {
-    if (e.target.id === 'newBrokerInput') addGroupState.broker = e.target.value;
-    else if (e.target.id === 'newAccountInput') addGroupState.account = e.target.value;
-    else if (e.target.id === 'newMasterNameInput') addMasterState.name = e.target.value;
-  });
-
-  document.addEventListener('keydown', function (e) {
-    if (!numpad) return;
-    if (e.key === 'Enter') { e.preventDefault(); numpadConfirm(); }
-    else if (e.key === 'Escape') { e.preventDefault(); numpadCancel(); }
-    else if (/^[0-9]$/.test(e.key)) { numpadPress(e.key); }
-    else if (e.key === '.') { numpadPress('.'); }
-    else if (e.key === 'Backspace') { numpadBackspace(); }
-  });
-
-  document.getElementById('numpadSign').addEventListener('click', numpadToggleSign);
-  document.getElementById('numpadClearAll').addEventListener('click', numpadClearAll);
-  document.getElementById('numpadBackspace').addEventListener('click', numpadBackspace);
-  document.getElementById('numpadCancel').addEventListener('click', numpadCancel);
-  document.getElementById('numpadOk').addEventListener('click', numpadConfirm);
-
-  document.getElementById('importBtn').addEventListener('click', function () {
-    document.getElementById('importFileInput').click();
-  });
-  document.getElementById('importFileInput').addEventListener('change', function (e) {
-    var file = e.target.files[0];
-    if (file) importFile(file);
-    e.target.value = '';
-  });
-
-  // ---------- 초기화 ----------
-  function init() {
-    try {
-      var raw = localStorage.getItem('rebal:autosave');
-      if (raw) {
-        var data = JSON.parse(raw);
-        master = Array.isArray(data.master) ? data.master : [];
-        groups = Array.isArray(data.groups) ? data.groups : [];
-        stage = typeof data.stage === 'number' ? data.stage : 100;
-        threshold = typeof data.threshold === 'number' ? data.threshold : 5;
-      }
-    } catch (e) { /* ignore */ }
-    renderAll();
-  }
-  init();
-})();
-</script>
+<script src="js/core.js"></script>
+<script src="js/numpad.js"></script>
+<script src="js/settings-box.js"></script>
+<script src="js/stock-summary-box.js"></script>
+<script src="js/main-table-box.js"></script>
+<script src="js/price-table-box.js"></script>
+<script src="js/stage-summary-box.js"></script>
+<script src="js/app.js"></script>
 </body>
 </html>
