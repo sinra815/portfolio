@@ -86,7 +86,7 @@
           <th>비중(%)</th>
           <th>목표금액<br>(만원)</th>
           <th>보유수량<br>(주식수/현금)</th>
-          <th>全글금액<br>(만원)</th>
+          <th>평가금액<br>(만원)</th>
           <th>
             목표금액 (만원)<br>
             <input type="text" id="stagePercentInput" class="numpad-trigger" data-label="목표금액 계산 비율(%)" value="100" readonly
@@ -113,7 +113,7 @@
     · 차액 = 목표가 − 평가금액<br>
     · 최대 괴리 금액 = 현금성 종목을 제외한 실제 매수 대상 종목 중 차액(목표금액-평가금액)이 가장 큰 종목 — 별도 요약 행 대신 해당 종목의 "차액" 셀을 노란색으로 표시<br>
     · 현금성자산 = 같은 계좌 내 유형이 '현금'인 모든 종목(예: 현금, TIGER CD금리투자 등)의 차액 합계 — 여러 안전자산을 엄격히 구분하지 않고 하나의 병합 셀로 합쳐서 보여줌<br>
-    · 과비중 차액 = |,'	��%hv| ÷ 계좌 총평가금액 을 소수 3자리에서 내림했을 때 과비중 차액 헤더에 입력한 임계값(%) 이상이면 "O" (유형이 '현금'인 종목들은 각 행의 차액을 합친 "현금성자산" 값 기준으로 판단)
+    · 과비중 차액 = |차액| ÷ 계좌 총평가금액 을 소수 3자리에서 내림했을 때 과비중 차액 헤더에 입력한 임계값(%) 이상이면 "O" (유형이 '현금'인 종목들은 각 행의 차액을 합친 "현금성자산" 값 기준으로 판단)
   </p>
 </div>
 <div class="panel">
@@ -216,6 +216,7 @@
 <script src="js/price-table-box.js"></script>
 <script src="js/stage-summary-box.js"></script>
 <script src="js/app.js"></script>
+
 <div id="toast" class="toast"></div>
 </body>
 </html>
