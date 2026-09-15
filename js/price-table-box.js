@@ -136,4 +136,3 @@ document.addEventListener('click', (e) => {
   master[idx].ticker = newValue.trim();
   renderAll();
 });
-
