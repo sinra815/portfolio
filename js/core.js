@@ -156,6 +156,32 @@ function computeDividerCount(g){
   return dividerCount;
 }
 
+async function withButtonLoading(btn, loadingText, task){
+  const original = btn.textContent;
+  btn.textContent = loadingText;
+  btn.disabled = true;
+  try {
+    return await task();
+  } finally {
+    btn.textContent = original;
+    btn.disabled = false;
+  }
+}
+
+async function fetchPriceForTicker(ticker){
+  const query = (ticker || '').trim();
+  if (!query) { alert('티커를 먼저 입력해주세요.'); return null; }
+  try {
+    const res = await fetch('/api/price?query=' + encodeURIComponent(query));
+    const json = await res.json();
+    if (!res.ok || json.error) { alert(json.error || '현재가를 불러오지 못했습니다.'); return null; }
+    return json.price;
+  } catch (e) {
+    alert('현재가를 불러오는 중 오류가 발생했습니다: ' + e.message);
+    return null;
+  }
+}
+
 function renderAll(){
   groups.forEach((g,i)=> g.__idx = i);
   computeAll();
