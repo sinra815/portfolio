@@ -26,18 +26,13 @@ function renderPriceTable(){
       </div></td>
       <td style="text-align:left;"><span class="ticker-edit" data-idx="${idx}" title="클릭하여 티커 변경" style="cursor:pointer; color:var(--muted);">${m.ticker || '-'}</span></td>
       <td style="text-align:left;">
-        <select class="stock-type-select" data-idx="${idx}" style="width:auto; padding:4px 20px 4px 6px; border:1px solid var(--border-strong); border-radius:4px; font-size:12.5px; font-family:inherit; background:#fff;">
+        <select class="stock-type-select" data-idx="${idx}" style="width:100%; box-sizing:border-box; padding:4px 20px 4px 6px; border:1px solid var(--border-strong); border-radius:4px; font-size:12.5px; font-family:inherit; background:#fff;">
           <option value="stock" ${(m.type || 'stock') === 'stock' ? 'selected' : ''}>주식</option>
           <option value="cash" ${m.type === 'cash' ? 'selected' : ''}>현금</option>
         </select>
       </td>
       <td class="num">${count}</td>
-      <td class="num">
-        <div style="display:flex; align-items:center; justify-content:flex-end; gap:6px;">
-          <input type="text" class="cell-input wide price-input numpad-trigger" data-label="${m.name} 현재가(원)" data-idx="${idx}" value="${m.price}" readonly>
-          <button type="button" class="fetch-price-btn" data-idx="${idx}" title="티커로 현재가 불러오기" style="padding:4px 8px; border-radius:5px; border:1px solid var(--border-strong); background:#fff; cursor:pointer; font-size:11.5px; white-space:nowrap;">금액 불러오기</button>
-        </div>
-      </td>
+      <td class="num"><input type="text" class="cell-input wide price-input numpad-trigger" data-label="${m.name} 현재가(원)" data-idx="${idx}" value="${m.price}" readonly></td>
     `;
     tbody.appendChild(tr);
   });
@@ -67,12 +62,20 @@ document.getElementById('addStockBtn').addEventListener('click', () => {
   renderAll();
 });
 
-document.getElementById('fetchNewStockPriceBtn').addEventListener('click', async (e) => {
-  const tickerInput = document.getElementById('newStockTicker');
-  const priceInput = document.getElementById('newStockPrice');
+document.getElementById('fetchAllPricesBtn').addEventListener('click', async (e) => {
   const btn = e.currentTarget;
-  const price = await withButtonLoading(btn, '조회 중...', () => fetchPriceForTicker(tickerInput.value));
-  if (price !== null) priceInput.value = price;
+  const targets = master.filter(m => (m.ticker || '').trim());
+  if (targets.length === 0) { alert('티커가 입력된 종목이 없습니다.'); return; }
+  await withButtonLoading(btn, `불러오는 중... (0/${targets.length})`, async () => {
+    let ok = 0;
+    for (let i = 0; i < targets.length; i++) {
+      btn.textContent = `불러오는 중... (${i + 1}/${targets.length})`;
+      const price = await fetchPriceForTicker(targets[i].ticker, { silent: true });
+      if (price !== null) { targets[i].price = price; ok++; }
+    }
+    renderAll();
+    alert(`${targets.length}개 중 ${ok}개 종목의 금액을 불러왔습니다.`);
+  });
 });
 
 document.addEventListener('change', (e) => {
@@ -134,13 +137,3 @@ document.addEventListener('click', (e) => {
   renderAll();
 });
 
-document.addEventListener('click', async (e) => {
-  const btn = e.target.closest('.fetch-price-btn');
-  if (!btn) return;
-  const idx = +btn.dataset.idx;
-  const price = await withButtonLoading(btn, '조회 중...', () => fetchPriceForTicker(master[idx].ticker));
-  if (price !== null) {
-    master[idx].price = price;
-    renderAll();
-  }
-});
