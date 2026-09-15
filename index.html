@@ -119,13 +119,16 @@
 <div class="panel">
   <div class="price-cols">
     <div style="min-width:0;">
-      <h2 style="margin:0;">📌 종목별 현재가 (마스터 테이블)</h2>
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap;">
+        <h2 style="margin:0;">📌 종목별 현재가 (마스터 테이블)</h2>
+        <button type="button" id="fetchAllPricesBtn" style="padding:5px 10px; border-radius:5px; border:1px solid var(--border-strong); background:#fff; cursor:pointer; font-size:12px; white-space:nowrap;">금액 불러오기</button>
+      </div>
       <div class="table-scroll">
         <table class="price-table">
           <colgroup>
             <col style="width:auto;">
             <col style="width:80px;">
-            <col style="width:60px;">
+            <col style="width:78px;">
             <col style="width:60px;">
             <col style="width:190px;">
           </colgroup>
@@ -136,16 +139,15 @@
               <td><input type="text" id="newStockName" placeholder="새 종목명" style="width:100%; box-sizing:border-box; padding:4px 6px; border:1px solid var(--border-strong); border-radius:4px; font-size:12.5px; font-family:inherit;"></td>
               <td style="text-align:left;"><input type="text" id="newStockTicker" placeholder="티커" style="width:100%; box-sizing:border-box; padding:4px 6px; border:1px solid var(--border-strong); border-radius:4px; font-size:12.5px; font-family:inherit;"></td>
               <td style="text-align:left;">
-                <select id="newStockType" style="width:auto; padding:4px 20px 4px 6px; border:1px solid var(--border-strong); border-radius:4px; font-size:12.5px; font-family:inherit; background:#fff;">
+                <select id="newStockType" style="width:100%; box-sizing:border-box; padding:4px 20px 4px 6px; border:1px solid var(--border-strong); border-radius:4px; font-size:12.5px; font-family:inherit; background:#fff;">
                   <option value="stock" selected>주식</option>
                   <option value="cash">현금</option>
                 </select>
               </td>
               <td class="num">-</td>
               <td class="num">
-                <div style="display:flex; align-items:center; justify-content:flex-end; gap:6px; flex-wrap:wrap;">
+                <div style="display:flex; align-items:center; justify-content:flex-end; gap:6px;">
                   <input type="text" id="newStockPrice" class="cell-input wide numpad-trigger" data-label="새 종목 현재가(원)" value="0" readonly>
-                  <button type="button" id="fetchNewStockPriceBtn" style="padding:5px 10px; border-radius:5px; border:1px solid var(--border-strong); background:#fff; cursor:pointer; font-size:12px; white-space:nowrap;">금액 불러오기</button>
                   <button type="button" id="addStockBtn" style="padding:5px 10px; border-radius:5px; border:1px solid var(--border-strong); background:#fff; cursor:pointer; font-size:12px; white-space:nowrap;">+ 추가</button>
                 </div>
               </td>
