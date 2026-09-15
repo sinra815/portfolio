@@ -168,16 +168,22 @@ async function withButtonLoading(btn, loadingText, task){
   }
 }
 
-async function fetchPriceForTicker(ticker){
+async function fetchPriceForTicker(ticker, opts){
+  const silent = opts && opts.silent;
   const query = (ticker || '').trim();
-  if (!query) { alert('티커를 먼저 입력해주세요.'); return null; }
+  if (!query) { if (!silent) alert('티커를 먼저 입력해주세요.'); return null; }
   try {
     const res = await fetch('/api/price?query=' + encodeURIComponent(query));
     const json = await res.json();
-    if (!res.ok || json.error) { alert(json.error || '현재가를 불러오지 못했습니다.'); return null; }
+    if (!res.ok || json.error) {
+      if (!silent) alert(json.error || '현재가를 불러오지 못했습니다.');
+      else console.warn(`[${query}] 현재가 조회 실패:`, json.error);
+      return null;
+    }
     return json.price;
   } catch (e) {
-    alert('현재가를 불러오는 중 오류가 발생했습니다: ' + e.message);
+    if (!silent) alert('현재가를 불러오는 중 오류가 발생했습니다: ' + e.message);
+    else console.warn(`[${query}] 현재가 조회 오류:`, e.message);
     return null;
   }
 }
