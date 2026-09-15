@@ -1,2 +1,0 @@
-Vercel에 이 폴더를 프로젝트로 배포하세요.
-서버 저장을 쓰려면 Vercel KV/Redis 저장소를 연결하고 KV_REST_API_URL / KV_REST_API_TOKEN 환경변수를 설정하세요.
