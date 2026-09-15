@@ -257,7 +257,7 @@ document.getElementById('saveBtn').addEventListener('click', () => {
   }).then((res) => {
     if (!res.ok) throw new Error('save failed');
     document.getElementById('saveBadge').style.display = 'block';
-    alert('서버에 저장되었습니다. 다른 기기에서도 "저장 데이터 불러오기"로 동일한 데이터를 볼 수 있습니다.');
+    alert('서버에 저장되었습니다. 다른 기기에서도 "불러오기"로 동일한 데이터를 볼 수 있습니다.');
   }).catch(() => {
     alert('저장 실패 - 네트워크 상태를 확인해주세요.');
   }).finally(() => {
