@@ -156,6 +156,16 @@ function computeDividerCount(g){
   return dividerCount;
 }
 
+let toastHideTimer = null;
+function showToast(message, type){
+  const el = document.getElementById('toast');
+  if (!el) return;
+  clearTimeout(toastHideTimer);
+  el.textContent = message;
+  el.className = 'toast show' + (type ? ' ' + type : '');
+  toastHideTimer = setTimeout(() => { el.className = 'toast'; }, 2200);
+}
+
 async function withButtonLoading(btn, loadingText, task){
   const original = btn.textContent;
   btn.textContent = loadingText;

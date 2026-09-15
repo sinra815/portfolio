@@ -257,9 +257,9 @@ document.getElementById('saveBtn').addEventListener('click', () => {
   }).then((res) => {
     if (!res.ok) throw new Error('save failed');
     document.getElementById('saveBadge').style.display = 'block';
-    alert('서버에 저장되었습니다. 다른 기기에서도 "불러오기"로 동일한 데이터를 볼 수 있습니다.');
+    showToast('저장되었습니다.');
   }).catch(() => {
-    alert('저장 실패 - 네트워크 상태를 확인해주세요.');
+    showToast('저장 실패 - 네트워크 상태를 확인해주세요.', 'error');
   }).finally(() => {
     btn.textContent = original;
     btn.disabled = false;
@@ -275,7 +275,7 @@ document.getElementById('loadBtn').addEventListener('click', () => {
     if (!res.ok) throw new Error('load failed');
     return res.json();
   }).then((json) => {
-    if (!json.data) { alert('서버에 저장된 데이터가 없습니다.'); return; }
+    if (!json.data) { showToast('서버에 저장된 데이터가 없습니다.', 'error'); return; }
     if (!confirm('서버에 저장된 데이터를 불러올까요? 현재 화면의 변경 사항은 사라집니다.')) return;
     const saved = json.data;
     master = saved.master || master;
@@ -283,8 +283,9 @@ document.getElementById('loadBtn').addEventListener('click', () => {
     if (saved.stage !== undefined) document.getElementById('stagePercentInput').value = saved.stage;
     if (saved.threshold !== undefined) document.getElementById('overweightThreshold').value = saved.threshold;
     renderAll();
+    showToast('불러왔습니다.');
   }).catch(() => {
-    alert('불러오기 실패 - 네트워크 상태를 확인해주세요.');
+    showToast('불러오기 실패 - 네트워크 상태를 확인해주세요.', 'error');
   }).finally(() => {
     btn.textContent = original;
     btn.disabled = false;
