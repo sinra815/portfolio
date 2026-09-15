@@ -28,9 +28,9 @@
           <button id="saveBtn" style="padding:7px 14px;border-radius:6px;border:1px solid var(--accent);background:var(--accent);color:#fff;cursor:pointer;">저장</button>
           <span id="saveBadge" title="저장된 데이터가 있습니다" style="display:none; position:absolute; top:-4px; right:-4px; width:11px; height:11px; border-radius:50%; background:#16a34a; border:2px solid #fff;"></span>
         </div>
-        <button id="loadBtn" style="padding:7px 14px;border-radius:6px;border:1px solid var(--border-strong);background:#fff;cursor:pointer;">저장 데이터 불러오기</button>
-        <button id="exportBtn" style="padding:7px 14px;border-radius:6px;border:1px solid var(--border-strong);background:#fff;cursor:pointer;">⬇ File로 내보내기</button>
-        <button id="importBtn" style="padding:7px 14px;border-radius:6px;border:1px solid var(--border-strong);background:#fff;cursor:pointer;">⬆ File에서 가져오기</button>
+        <button id="loadBtn" style="padding:7px 14px;border-radius:6px;border:1px solid var(--border-strong);background:#fff;cursor:pointer;">불러오기</button>
+        <button id="exportBtn" style="padding:7px 14px;border-radius:6px;border:1px solid var(--border-strong);background:#fff;cursor:pointer;">⬇ File Export</button>
+        <button id="importBtn" style="padding:7px 14px;border-radius:6px;border:1px solid var(--border-strong);background:#fff;cursor:pointer;">⬆ File Import</button>
         <input type="file" id="importFileInput" accept="application/json,.json" style="display:none;">
         <button id="resetAllBtn" style="padding:7px 14px;border-radius:6px;border:1px solid var(--down);background:#fff;color:var(--down);cursor:pointer;">초기화</button>
       </div>
@@ -124,15 +124,17 @@
         <table class="price-table">
           <colgroup>
             <col style="width:auto;">
-            <col style="width:70px;">
+            <col style="width:80px;">
             <col style="width:60px;">
-            <col style="width:150px;">
+            <col style="width:60px;">
+            <col style="width:190px;">
           </colgroup>
-          <thead><tr><th>종목</th><th>유형</th><th>보유<br>계좌 수</th><th>현재가(원)</th></tr></thead>
+          <thead><tr><th>종목</th><th>티커</th><th>유형</th><th>보유<br>계좌 수</th><th>현재가(원)</th></tr></thead>
           <tbody id="priceBody"></tbody>
           <tfoot>
             <tr>
               <td><input type="text" id="newStockName" placeholder="새 종목명" style="width:100%; box-sizing:border-box; padding:4px 6px; border:1px solid var(--border-strong); border-radius:4px; font-size:12.5px; font-family:inherit;"></td>
+              <td style="text-align:left;"><input type="text" id="newStockTicker" placeholder="티커" style="width:100%; box-sizing:border-box; padding:4px 6px; border:1px solid var(--border-strong); border-radius:4px; font-size:12.5px; font-family:inherit;"></td>
               <td style="text-align:left;">
                 <select id="newStockType" style="width:auto; padding:4px 20px 4px 6px; border:1px solid var(--border-strong); border-radius:4px; font-size:12.5px; font-family:inherit; background:#fff;">
                   <option value="stock" selected>주식</option>
@@ -141,8 +143,9 @@
               </td>
               <td class="num">-</td>
               <td class="num">
-                <div style="display:flex; align-items:center; justify-content:flex-end; gap:6px;">
+                <div style="display:flex; align-items:center; justify-content:flex-end; gap:6px; flex-wrap:wrap;">
                   <input type="text" id="newStockPrice" class="cell-input wide numpad-trigger" data-label="새 종목 현재가(원)" value="0" readonly>
+                  <button type="button" id="fetchNewStockPriceBtn" style="padding:5px 10px; border-radius:5px; border:1px solid var(--border-strong); background:#fff; cursor:pointer; font-size:12px; white-space:nowrap;">금액 불러오기</button>
                   <button type="button" id="addStockBtn" style="padding:5px 10px; border-radius:5px; border:1px solid var(--border-strong); background:#fff; cursor:pointer; font-size:12px; white-space:nowrap;">+ 추가</button>
                 </div>
               </td>
