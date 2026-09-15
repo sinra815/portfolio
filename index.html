@@ -8,8 +8,6 @@
 </head>
 <body>
 
-<div id="toast" class="toast"></div>
-
 <h1>íˆ¬ìž í¬íŠ¸í´ë¦¬ì˜¤ ë¦¬ë°¸ëŸ°ì‹± ê³„ì‚°ê¸°</h1>
 <p class="sub">ì¦ê¶Œì‚¬/ê³„ì¢Œë³„ ëª©í‘œ ë¹„ì¤‘ê³¼ ë‹¨ê³„ë³„(ë¶„í• ë§¤ìˆ˜) ëª©í‘œê°€ ëŒ€ë¹„ í˜„ìž¬ í‰ê°€ê¸ˆì•¡ì„ ë¹„êµí•´ í™•ëŒ€/ì¶•ì†Œ ì—¬ë¶€ë¥¼ íŒë‹¨í•©ë‹ˆë‹¤. ì£¼í™©ìƒ‰ ë°°ê²½ ì…€ì€ ì§ì ‘ ìž…ë ¥í•˜ëŠ” ê°’ìž…ë‹ˆë‹¤.</p>
 
@@ -88,7 +86,7 @@
           <th>ë¹„ì¤‘(%)</th>
           <th>ëª©í‘œê¸ˆì•¡<br>(ë§Œì›)</th>
           <th>ë³´ìœ ìˆ˜ëŸ‰<br>(ì£¼ì‹ìˆ˜/í˜„ê¸ˆ)</th>
-          <th>å…¨ê°€ê¸ˆì•¡<br>(ë§Œì›)</th>
+          <th>å…¨ê¸€ê¸ˆì•¡<br>(ë§Œì›)</th>
           <th>
             ëª©í‘œê¸ˆì•¡ (ë§Œì›)<br>
             <input type="text" id="stagePercentInput" class="numpad-trigger" data-label="ëª©í‘œê¸ˆì•¡ ê³„ì‚° ë¹„ìœ¨(%)" value="100" readonly
@@ -114,15 +112,110 @@
     Â· í‰ê°€ê¸ˆì•¡ = í˜„ìž¬ê°€(ì›, ì•„ëž˜ "ì¢…ëª© ë§ˆìŠ¤í„°" í‘œì—ì„œ ê´€ë¦¬) Ã— ìˆ˜ëŸ‰ Ã· 10000 (í˜„ê¸ˆ í–‰ì€ ìˆ˜ëŸ‰ ìž…ë ¥ê°’ì„ ë§Œì› ë‹¨ìœ„ ê¸ˆì•¡ìœ¼ë¡œ ê·¸ëŒ€ë¡œ ì‚¬ìš©)<br>
     Â· ì°¨ì•¡ = ëª©í‘œê°€ âˆ’ í‰ê°€ê¸ˆì•¡<br>
     Â· ìµœëŒ€ ê´´ë¦¬ ê¸ˆì•¡ = í˜„ê¸ˆì„± ì¢…ëª©ì„ ì œì™¸í•œ ì‹¤ì œ ë§¤ìˆ˜ ëŒ€ìƒ ì¢…ëª© ì¤‘ ì°¨ì•¡(ëª©í‘œê¸ˆì•¡-í‰ê°€ê¸ˆì•¡)ì´ ê°€ìž¥ í° ì¢…ëª© â€” ë³„ë„ ìš”ì•½ í–‰ ëŒ€ì‹  í•´ë‹¹ ì¢…ëª©ì˜ "ì°¨ì•¡" ì…€ì„ ë…¸ëž€ìƒ‰ìœ¼ë¡œ í‘œì‹œ<br>
-    Â· í˜„ê¸ˆì„±ìžì‚° = ê°™ì€ ê³„ì¢Œ ë‚´ ìœ í˜•ì´ 'í˜„ê¸ˆ'ì¸ ëª¨ë“  ì¢…ëª©(ì˜ˆ: í˜„ê¸ˆ, TIGER CDê¸ˆë¦¬íˆ¬ìž ë“±)ì˜ ì°¨ì•¡ í•©ê³„ â€” ì—¬ëŸ¬ ì•ˆì „ìžì‚°ì„ ì—„ê²©ížˆ êµ¬ë¶„í•˜ês§ˆ0­È:¬ï:îa;)$H;,*;%hHH;,*;%h_0íÈ:¬á;(£;-'{câz¬ :®";%hH;'a;!£;"&û'¤:é«;%ä;!':à­:é¯;e¢;'a:åc:¬ï:îa;)$H;,*;%hH;eé:ãe;%ä;'¡zè){eg;'¡:¬á:¬$Š	JH;'m; à{'m:êm“Èˆ
-;'(;f%{'m	ûf!:®"	û'n;(¡zêªzäé;'`:¬ H;e¢{'f;,*;%h{'a;ej{.g»f!:®";!,{'¤; ¬ˆ:¬$ˆ:®,;) ;'/:èg;c$:âê
-BˆÜ‚Ù]‚]ˆÛ\ÜÏHœ[™[‚ˆ]ˆÛ\ÜÏHœšXÙKXÛÛÈ‚ˆ]ˆÝ[OH›Z[‹]ÚYŒÈ‚ˆ]ˆÝ[OH™\Ü^N™›^È[YÛ‹Z][\Î˜Ù[\ŽÈ\ÝYžKXÛÛ[œÜXÙKX™]ÙY[ŽÈØ\ŽÈ›^]Ü˜\Ü˜\È‚ˆˆÝ[OH›X\™Ú[ŽŒÈ¼'äã;(¡zêªH:éâ;"©;a,Ú‚ˆ]Ûˆ\OH˜]ÛˆˆYH™™]Ú[šXÙ\ÐˆˆÝ[OHœY[™Î\LÈ›Ü™\‹\˜Y]\Î\È›Ü™\ŽŒ\ÛÛY˜\ŠKX›Ü™\‹\Ý›Û™ÊNÈ˜XÚÙÜ›Ý[™ˆÙ™™ŽÈÝ\œÛÜŽœÚ[\ŽÈ›Û\Ú^™NŒLœÈÚ]K\ÜXÙN››ÝÜ˜\Èº®";%hH:í¢:çë;&):®,Ø]Û‚ˆÙ]‚ˆ]ˆÛ\ÜÏHX›K\ØÜ›Û‚ˆX›HÛ\ÜÏHœšXÙK]X›H‚ˆÛÛÜ›Ý\‚ˆÛÛÝ[OHÚY˜]]ÎÈ‚ˆÛÛÝ[OHÚYŽÈ‚ˆÛÛÝ[OHÚYŽMœÈ‚ˆÛÛÝ[OHÚYŒÈ‚ˆÛÛÝ[OHÚYŒNLÈ‚ˆØÛÛÜ›Ý\‚ˆXY»(¡zêªOÝ»bì;.éÝ»'(;f%OÝºìí;'(œº¬á;(£;"&Ý»f!;'«:¬ 
-;&ä
-OÝÝÝXY‚ˆ›ÙHYHœšXÙP›ÙHÝ›ÙO‚ˆ›ÛÝ‚ˆ‚ˆ[œ]\OH^ˆYH›™]ÔÝØÚÓ˜[YHˆXÙZÛ\H» â;(¡zêªzê¡Hˆ\ÝH›™]ÔÝØÚÓ˜[YS\Ýˆ]]ØÛÛ\]OH›Ù™ˆˆÝ[OHÚYŒL	NÈ›Þ\Ú^š[™Î˜›Ü™\‹X›ÞÈY[™ÎœÈ›Ü™\ŽŒ\ÛÛY˜\ŠKX›Ü™\‹\Ý›Û™ÊNÈ›Ü™\‹\˜Y]\ÎÈ›Û\Ú^™NŒL‹\È›ÛY˜[Z[Nš[š\š]È‚ˆ][\ÝYH›™]ÔÝØÚÓ˜[YS\ÝÙ][\Ý‚ˆÝ‚ˆÝ[OH^X[YÛŽ›YÈ[œ]\OH^ˆYH›™]ÔÝØÚÕXÚÙ\ˆˆXÙZÛ\H»bì;.éˆÝ[OHÚYŒL	NÈ›Þ\Ú^š[™Î˜›Ü™\‹X›ÞÈY[™ÎœÈ›Ü™\ŽŒ\ÛÛY˜\ŠKX›Ü™\‹\Ý›Û™ÊNÈ›Ü™\‹\˜Y]\ÎÈ›Û\Ú^™NŒL‹\È›ÛY˜[Z[Nš[š\š]ÈÝ‚ˆÝ[OH^X[YÛŽ›YÈ‚ˆÙ[XÝYH›™]ÔÝØÚÕ\HˆÝ[OHÚYŒL	NÈZ[‹]ÚYÌœÈ›Þ\Ú^š[™Î˜›Ü™\‹X›ÞÈY[™ÎNœÈ›Ü™\ŽŒ\ÛÛY˜\ŠKX›Ü™\‹\Ý›Û™ÊNÈ›Ü™\‹\˜Y]\ÎÈ›Û\Ú^™NŒL‹\È›ÛY˜[Z[Nš[š\š]È˜XÚÙÜ›Ý[™ˆÙ™™ŽÈ‚ˆÜ[Ûˆ˜[YOHœÝØÚÈˆÙ[XÝY»(ï;"çOÛÜ[Û‚ˆÜ[Ûˆ˜[YOH˜Ø\Ú»f!:®"ÛÜ[Û‚ˆÜÙ[XÝ‚ˆÝ‚ˆÛ\ÜÏH›[H‹OÝ‚ˆÛ\ÜÏH›[H‚ˆ]ˆÝ[OH™\Ü^N™›^È[YÛ‹Z][\Î˜Ù[\ŽÈ\ÝYžKXÛÛ[™›^Y[™ÈØ\œÈ‚ˆ[œ]\OH^ˆYH›™]ÔÝØÚÔšXÙHˆÛ\ÜÏH˜Ù[Z[œ]ÚYH[\Y]šYÙÙ\ˆˆ]K[X™[H» â;(¡zêªH;f!;'«:¬ 
-;&ä
-Hˆ˜[YOHŒˆ™XYÛ›O‚ˆ]Ûˆ\OH˜]ÛˆˆYH˜YÝØÚÐˆˆÝ[OHœY[™Î\LÈ›Ü™\‹\˜Y]\Î\È›Ü™\ŽŒ\ÛÛY˜\ŠKX›Ü™\‹\Ý›Û™ÊNÈ˜XÚÙÜ›Ý[™ˆÙ™™ŽÈÝ\œÛÜŽœÚ[\ŽÈ›Û\Ú^™NŒLœÈÚ]K\ÜXÙN››ÝÜ˜\ÈŠÈ;-¥:¬ Ø]Û‚ˆÙ]‚ˆÝ‚ˆÝ‚ˆÝ›ÛÝ‚ˆÝX›O‚ˆÙ]‚ˆÙ]‚ˆ]ˆÝ[OH›Z[‹]ÚYŒÈ‚ˆ¼'äâ:âê:¬á:ìá:ëî:âë;!,H:®";%hH
-;&¥;%oJOÚ‚ˆ]ˆÛ\ÜÏHX›K\ØÜ›Û‚ˆX›HÛ\ÜÏHœÝYÙK\Ý[[X\žHˆYHœÝYÙTÝ[[X\žUX›H‚ˆXYÛ\ÜÏH›X™[ºâê:¬áÝL	OÝÌ	OÝŽ	OÝŽL	OÝŒL	OÝÝÝXY‚ˆ›ÙO‚ˆÛ\ÜÏH›X™[ºëî:âë;!,H:éé;"&;ea;&¥:®";%hH
-:éã;&ä
-OÝ‚ˆYHœÚÜ˜[LHÝYHœÚÜ˜[LÈÝYHœÚÜ˜[LŽÝ‚ˆYHœÚÜ˜[LŽHÝYHœÚÜ˜[LHÝ‚ˆÝ‚ˆÝ›ÙO‚ˆÝX›O‚ˆÙ]‚ˆÛ\ÜÏH››ÝH»f!:®";!,H;(¡zêª{'a;(';&n;eg;"é;(':éé;"&:ã ; àH;(¡zêªzäé:éã;)äz¬á;ejzââ:âéÜ‚ˆÙ]‚ˆÙ]‚Ù]‚‚]ˆÛ\ÜÏH™›ÛÝ»'(;)à:ìí;"&:éo;'!;em:ì%{"©
-;!);(%HÈ;(¡zêªzìá;câz¬ :®";%hHÈ:¬á;(£:ìá:é«:ì.:çì;"ìH;f!;fjHÈ;(¡zêªH:éâ;"©;a,È:âê:¬á:ìá:ëî:âë;!,H:®";%hJzìá:ègÔÔð­Ò”È;c#;'o;'a:à¦:â(:­k;!,{e¢;"­zââ:âéÙ]‚‚]ˆÛ\ÜÏH›[\Y[Ý™\›^HˆYH™›Û\‘š[S\ÝÝ™\›^H‚ˆ]ˆÛ\ÜÏH›[\YX›ÞˆÝ[OHÚYŒÌŒÈ‚ˆ]ˆÛ\ÜÏH›[\Y[X™[»'¤{%áH;cí:ãe
-Ü[ˆYH™›Û\‘š[S\Ý\“˜[YHÜÜ[Š{%ä;!';c#;'o;!(;`çOÙ]‚ˆ]ˆYH™›Û\‘š[S\Ý][\ÈˆÝ[OH›X^ZZYÚŒŒÈÝ™\™›ÝË^N˜]]ÎÈX\™Ú[‹X›ÝÛNŒLÈÙ]‚ˆ]ˆÛ\ÜÏH›[\YXXÝ[ÛœÈ‚ˆ]Ûˆ\OH˜]ÛˆˆYH™›Û\‘š[S\Ýœ›ÝÜÙHºâé:én;c#;'o;,/»%a:ìí:®,‹‹Ø]Û‚ˆ]Ûˆ\OH˜]ÛˆˆYH™›Û\‘š[S\ÝØ[˜Ù[»-ê;!£Ø]Û‚ˆÙ]‚ˆÙ]‚Ù]‚‚]ˆÛ\ÜÏH›[\Y[Ý™\›^HˆYH›[\YÝ™\›^H‚ˆ]ˆÛ\ÜÏH›[\YX›Þ‚ˆ]ˆÛ\ÜÏH›[\Y[X™[ˆYH›[\YX™[»"*û'¤;'¡zè)OÙ]‚ˆ[œ]\OH^ˆYH›[\Y\Ü^HˆÛ\ÜÏH›[\YY\Ü^Hˆ[œ][ÙOH™XÚ[X[ˆ]]ØÛÛ\]OH›Ù™ˆ‚ˆ]ˆÛ\ÜÏH›[\YYÜšY‚ˆ]Ûˆ\OH˜]Ûˆˆ]KZÏHÈÏØ]Û]Ûˆ\OH˜]Ûˆˆ]KZÏHŽŽØ]Û]Ûˆ\OH˜]Ûˆˆ]KZÏHŽHŽOØ]Û‚ˆ]Ûˆ\OH˜]Ûˆˆ]KZÏHØ]Û]Ûˆ\OH˜]Ûˆˆ]KZÏHHOØ]Û]Ûˆ\OH˜]Ûˆˆ]KZÏHˆØ]Û‚ˆ]Ûˆ\OH˜]Ûˆˆ]KZÏHŒHŒOØ]Û]Ûˆ\OH˜]Ûˆˆ]KZÏHŒˆŒØ]Û]Ûˆ\OH˜]Ûˆˆ]KZÏHŒÈŒÏØ]Û‚ˆ]Ûˆ\OH˜]Ûˆˆ]KZÏH‹H°¬OØ]Û]Ûˆ\OH˜]Ûˆˆ]KZÏHŒŒØ]Û]Ûˆ\OH˜]Ûˆˆ]KZÏH‹ˆ‹Ø]Û‚ˆÙ]‚ˆ]ˆÛ\ÜÏH›[\YXXÝ[ÛœÈ‚ˆ]Ûˆ\OH˜]ÛˆˆYH›[\YÛX\ˆ»(!;,­;)à;&¬:®,Ø]Û‚ˆ]Ûˆ\OH˜]ÛˆˆYH›[\Y˜XÚÜÜXÙH¸£*È;)à;&¬:®,Ø]Û‚ˆ]Ûˆ\OH˜]ÛˆˆYH›[\YØ[˜Ù[»-ê;!£Ø]Û‚ˆ]Ûˆ\OH˜]ÛˆˆYH›[\YÚÈˆÛ\ÜÏHœš[X\žH»fe{'nØ]Û‚ˆÙ]‚ˆÙ]‚Ù]‚‚ØÜš\Ü˜ÏHšœËØÛÜ™KšœÈÜØÜš\‚ØÜš\Ü˜ÏHšœËÛ[\YšœÈÜØÜš\‚ØÜš\Ü˜ÏHšœËÜÙ][™ÜËX›ÞšœÈÜØÜš\‚ØÜš\Ü˜ÏHšœËÜÝØÚË\Ý[[X\žKX›ÞšœÈÜØÜš\‚ØÜš\Ü˜ÏHšœËÛXZ[‹]X›KX›ÞšœÈÜØÜš\‚ØÜš\Ü˜ÏHšœËÜšXÙK]X›KX›ÞšœÈÜØÜš\‚ØÜš\Ü˜ÏHšœËÜÝYÙK\Ý[[X\žKX›ÞšœÈÜØÜš\‚ØÜš\Ü˜ÏHšœËØ\šœÈÜØÜš\‚Ø›ÙO‚Ú[‚
+    Â· í˜„ê¸ˆì„±ìžì‚° = ê°™ì€ ê³„ì¢Œ ë‚´ ìœ í˜•ì´ 'í˜„ê¸ˆ'ì¸ ëª¨ë“  ì¢…ëª©(ì˜ˆ: í˜„ê¸ˆ, TIGER CDê¸ˆë¦¬íˆ¬ìž ë“±)ì˜ ì°¨ì•¡ í•©ê³„ â€” ì—¬ëŸ¬ ì•ˆì „ìžì‚°ì„ ì—„ê²©ížˆ êµ¬ë¶„í•˜ì§€ ì•Šê³  í•˜ë‚˜ì˜ ë³‘í•© ì…€ë¡œ í•©ì³ì„œ ë³´ì—¬ì¤Œ<br>
+    Â· ê³¼ë¹„ì¤‘ ì°¨ì•¡ = |,'	«Ë%hv| Ã· ê³„ì¢Œ ì´í‰ê°€ê¸ˆì•¡ ì„ ì†Œìˆ˜ 3ìžë¦¬ì—ì„œ ë‚´ë¦¼í–ˆì„ ë•Œ ê³¼ë¹„ì¤‘ ì°¨ì•¡ í—¤ë”ì— ìž…ë ¥í•œ ìž„ê³„ê°’(%) ì´ìƒì´ë©´ "O" (ìœ í˜•ì´ 'í˜„ê¸ˆ'ì¸ ì¢…ëª©ë“¤ì€ ê° í–‰ì˜ ì°¨ì•¡ì„ í•©ì¹œ "í˜„ê¸ˆì„±ìžì‚°" ê°’ ê¸°ì¤€ìœ¼ë¡œ íŒë‹¨)
+  </p>
+</div>
+<div class="panel">
+  <div class="price-cols">
+    <div style="min-width:0;">
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap;">
+        <h2 style="margin:0;">ðŸ“Œ ì¢…ëª© ë§ˆìŠ¤í„°</h2>
+        <button type="button" id="fetchAllPricesBtn" style="padding:5px 10px; border-radius:5px; border:1px solid var(--border-strong); background:#fff; cursor:pointer; font-size:12px; white-space:nowrap;">ê¸ˆì•¡ ë¶ˆëŸ¬ì˜¤ê¸°</button>
+      </div>
+      <div class="table-scroll">
+        <table class="price-table">
+          <colgroup>
+            <col style="width:auto;">
+            <col style="width:80px;">
+            <col style="width:96px;">
+            <col style="width:60px;">
+            <col style="width:190px;">
+          </colgroup>
+          <thead><tr><th>ì¢…ëª©</th><th>í‹°ì»¤</th><th>ìœ í˜•</th><th>ë³´ìœ <br>ê³„ì¢Œ ìˆ˜</th><th>í˜„ìž¬ê°€(ì›)</th></tr></thead>
+          <tbody id="priceBody"></tbody>
+          <tfoot>
+            <tr>
+              <td><input type="text" id="newStockName" placeholder="ìƒˆ ì¢…ëª©ëª…" list="newStockNameList" autocomplete="off" style="width:100%; box-sizing:border-box; padding:4px 6px; border:1px solid var(--border-strong); border-radius:4px; font-size:12.5px; font-family:inherit;">
+                <datalist id="newStockNameList"></datalist>
+              </td>
+              <td style="text-align:left;"><input type="text" id="newStockTicker" placeholder="í‹°ì»¤" style="width:100%; box-sizing:border-box; padding:4px 6px; border:1px solid var(--border-strong); border-radius:4px; font-size:12.5px; font-family:inherit;"></td>
+              <td style="text-align:left;">
+                <select id="newStockType" style="width:100%; min-width:72px; box-sizing:border-box; padding:4px 18px 4px 6px; border:1px solid var(--border-strong); border-radius:4px; font-size:12.5px; font-family:inherit; background:#fff;">
+                  <option value="stock" selected>ì£¼ì‹</option>
+                  <option value="cash">í˜„ê¸ˆ</option>
+                </select>
+              </td>
+              <td class="num">-</td>
+              <td class="num">
+                <div style="display:flex; align-items:center; justify-content:flex-end; gap:6px;">
+                  <input type="text" id="newStockPrice" class="cell-input wide numpad-trigger" data-label="ìƒˆ ì¢…ëª© í˜„ìž¬ê°€(ì›)" value="0" readonly>
+                  <button type="button" id="addStockBtn" style="padding:5px 10px; border-radius:5px; border:1px solid var(--border-strong); background:#fff; cursor:pointer; font-size:12px; white-space:nowrap;">+ ì¶”ê°€</button>
+                </div>
+              </td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+    <div style="min-width:0;">
+      <h2>ðŸ“ˆ ë‹¨ê³„ë³„ ë¯¸ë‹¬ì„± ê¸ˆì•¡ (ìš”ì•½)</h2>
+      <div class="table-scroll">
+        <table class="stage-summary" id="stageSummaryTable">
+          <thead><tr><th class="label">ë‹¨ê³„</th><th>50%</th><th>70%</th><th>80%</th><th>90%</th><th>100%</th></tr></thead>
+          <tbody>
+            <tr><td class="label">ë¯¸ë‹¬ì„± ë§¤ìˆ˜ í•„ìš” ê¸ˆì•¡ (ë§Œì›)</td>
+              <td id="shortfall-0.5"></td><td id="shortfall-0.7"></td><td id="shortfall-0.8"></td>
+              <td id="shortfall-0.9"></td><td id="shortfall-1"></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="note">í˜„ê¸ˆì„± ì¢…ëª©ì„ ì œì™¸í•œ ì‹¤ì œ ë§¤ìˆ˜ ëŒ€ìƒ ì¢…ëª©ë“¤ë§Œ ì§‘ê³„í•©ë‹ˆë‹¤.</p>
+    </div>
+  </div>
+</div>
+
+<div class="foot">ìœ ì§€ë³´ìˆ˜ë¥¼ ìœ„í•´ ë°•ìŠ¤(ì„¤ì • / ì¢…ëª©ë³„ í‰ê°€ê¸ˆì•¡ / ê³„ì¢Œë³„ ë¦¬ë°¸ëŸ°ì‹± í˜„í™© / ì¢…ëª© ë§ˆìŠ¤í„° / ë‹¨ê³„ë³„ ë¯¸ë‹¬ì„± ê¸ˆì•¡)ë³„ë¡œ CSSÂ·JS íŒŒì¼ì„ ë‚˜ëˆ  êµ¬ì„±í–ˆìŠµë‹ˆë‹¤.</div>
+
+<div class="numpad-overlay" id="folderFileListOverlay">
+  <div class="numpad-box" style="width:320px;">
+    <div class="numpad-label">ìž‘ì—… í´ë” (<span id="folderFileListDirName"></span>)ì—ì„œ íŒŒì¼ ì„ íƒ</div>
+    <div id="folderFileListItems" style="max-height:260px; overflow-y:auto; margin-bottom:10px;"></div>
+    <div class="numpad-actions">
+      <button type="button" id="folderFileListBrowse">ë‹¤ë¥¸ íŒŒì¼ ì°¾ì•„ë³´ê¸°...</button>
+      <button type="button" id="folderFileListCancel">ì·¨ì†Œ</button>
+    </div>
+  </div>
+</div>
+
+<div class="numpad-overlay" id="numpadOverlay">
+  <div class="numpad-box">
+    <div class="numpad-label" id="numpadLabel">ìˆ«ìž ìž…ë ¥</div>
+    <input type="text" id="numpadDisplay" class="numpad-display" inputmode="decimal" autocomplete="off">
+    <div class="numpad-grid">
+      <button type="button" data-k="7">7</button><button type="button" data-k="8">8</button><button type="button" data-k="9">9</button>
+      <button type="button" data-k="4">4</button><button type="button" data-k="5">5</button><button type="button" data-k="6">6</button>
+      <button type="button" data-k="1">1</button><button type="button" data-k="2">2</button><button type="button" data-k="3">3</button>
+      <button type="button" data-k="-">Â±</button><button type="button" data-k="0">0</button><button type="button" data-k=".">.</button>
+    </div>
+    <div class="numpad-actions">
+      <button type="button" id="numpadClear">ì „ì²´ ì§€ìš°ê¸°</button>
+      <button type="button" id="numpadBackspace">âŒ« ì§€ìš°ê¸°</button>
+      <button type="button" id="numpadCancel">ì·¨ì†Œ</button>
+      <button type="button" id="numpadOk" class="primary">í™•ì¸</button>
+    </div>
+  </div>
+</div>
+
+<script src="js/core.js"></script>
+<script src="js/numpad.js"></script>
+<script src="js/settings-box.js"></script>
+<script src="js/stock-summary-box.js"></script>
+<script src="js/main-table-box.js"></script>
+<script src="js/price-table-box.js"></script>
+<script src="js/stage-summary-box.js"></script>
+<script src="js/app.js"></script>
+<div id="toast" class="toast"></div>
+</body>
+</html>
