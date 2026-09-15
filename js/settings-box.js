@@ -246,20 +246,49 @@ document.getElementById('resetAllBtn').addEventListener('click', () => {
 });
 
 document.getElementById('saveBtn').addEventListener('click', () => {
-  saveState();
-  document.getElementById('saveBadge').style.display = 'block';
-  alert('저장되었습니다.');
+  const btn = document.getElementById('saveBtn');
+  const original = btn.textContent;
+  btn.textContent = '저장 중...';
+  btn.disabled = true;
+  fetch('/api/save', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(buildStateSnapshot()),
+  }).then((res) => {
+    if (!res.ok) throw new Error('save failed');
+    document.getElementById('saveBadge').style.display = 'block';
+    alert('서버에 저장되었습니다. 다른 기기에서도 "저장 데이터 불러오기"로 동일한 데이터를 볼 수 있습니다.');
+  }).catch(() => {
+    alert('저장 실패 - 네트워크 상태를 확인해주세요.');
+  }).finally(() => {
+    btn.textContent = original;
+    btn.disabled = false;
+  });
 });
 
 document.getElementById('loadBtn').addEventListener('click', () => {
-  const saved = loadState();
-  if (!saved) { alert('저장된 데이터가 없습니다.'); return; }
-  if (!confirm('마지막으로 저장한 데이터를 불러올까요? 현재 화면의 변경 사항은 사라집니다.')) return;
-  master = saved.master || master;
-  groups = saved.groups || groups;
-  if (saved.stage !== undefined) document.getElementById('stagePercentInput').value = saved.stage;
-  if (saved.threshold !== undefined) document.getElementById('overweightThreshold').value = saved.threshold;
-  renderAll();
+  const btn = document.getElementById('loadBtn');
+  const original = btn.textContent;
+  btn.textContent = '불러오는 중...';
+  btn.disabled = true;
+  fetch('/api/load').then((res) => {
+    if (!res.ok) throw new Error('load failed');
+    return res.json();
+  }).then((json) => {
+    if (!json.data) { alert('서버에 저장된 데이터가 없습니다.'); return; }
+    if (!confirm('서버에 저장된 데이터를 불러올까요? 현재 화면의 변경 사항은 사라집니다.')) return;
+    const saved = json.data;
+    master = saved.master || master;
+    groups = saved.groups || groups;
+    if (saved.stage !== undefined) document.getElementById('stagePercentInput').value = saved.stage;
+    if (saved.threshold !== undefined) document.getElementById('overweightThreshold').value = saved.threshold;
+    renderAll();
+  }).catch(() => {
+    alert('불러오기 실패 - 네트워크 상태를 확인해주세요.');
+  }).finally(() => {
+    btn.textContent = original;
+    btn.disabled = false;
+  });
 });
 
 document.getElementById('toggleTotalMBtn').addEventListener('click', (e) => {
