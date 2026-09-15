@@ -1,4 +1,21 @@
 // ==== 티커/종목명으로 현재가를 조회하는 API (네이버 금융 공개 API 프록시) ====
+// 원화가 아닌 종목은 네이버 금융 환율 API로 원화 환산까지 처리한다.
+
+const CURRENCY_UNIT_SIZE = { JPY: 100 }; // 네이버 환율 API는 엔화를 100엔 기준으로 제공
+
+async function getExchangeRateToKrw(currencyCode){
+  if (!currencyCode || currencyCode === 'KRW') return 1;
+  const unitSize = CURRENCY_UNIT_SIZE[currencyCode] || 1;
+  const res = await fetch(`https://m.stock.naver.com/front-api/marketIndex/prices?category=exchange&reutersCode=FX_${currencyCode}KRW`);
+  if (!res.ok) throw new Error('exchange rate request failed');
+  const json = await res.json();
+  const row = json.result && json.result[0];
+  const rateStr = row && row.closePrice;
+  if (!rateStr) throw new Error(`exchange rate not found for ${currencyCode}`);
+  const rate = Number(String(rateStr).replace(/,/g, ''));
+  if (!isFinite(rate)) throw new Error(`invalid exchange rate for ${currencyCode}`);
+  return rate / unitSize;
+}
 
 export default async function handler(req, res) {
   const query = (req.query.query || '').toString().trim();
@@ -22,10 +39,17 @@ export default async function handler(req, res) {
     const priceStr = basicJson.closePrice;
     if (!priceStr) return res.status(404).json({ error: `"${item.name}"의 현재가를 가져오지 못했습니다.` });
 
-    const price = Number(String(priceStr).replace(/,/g, ''));
-    if (!isFinite(price)) return res.status(404).json({ error: `"${item.name}"의 현재가 형식을 확인할 수 없습니다.` });
+    const rawPrice = Number(String(priceStr).replace(/,/g, ''));
+    if (!isFinite(rawPrice)) return res.status(404).json({ error: `"${item.name}"의 현재가 형식을 확인할 수 없습니다.` });
 
-    return res.status(200).json({ price, name: item.name, code, nationCode: item.nationCode });
+    const currencyCode = basicJson.currencyType && basicJson.currencyType.code;
+    let price = rawPrice;
+    if (currencyCode && currencyCode !== 'KRW') {
+      const rate = await getExchangeRateToKrw(currencyCode);
+      price = Math.round(rawPrice * rate);
+    }
+
+    return res.status(200).json({ price, name: item.name, code, nationCode: item.nationCode, currency: currencyCode || 'KRW', rawPrice });
   } catch (err) {
     return res.status(500).json({ error: '현재가를 불러오는 중 오류가 발생했습니다.', detail: String(err) });
   }
