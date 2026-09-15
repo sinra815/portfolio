@@ -109,7 +109,7 @@
   <p class="note">
     · 목표금액 = 계좌 총평가금액 × 비중% (전체 자산 중 이 비중만큼 가져가려면 최종적으로 얼마가 되어야 하는지)<br>
     · 목표가 = 평가금액 옆 목표금액 × 헤더에 입력한 % 값 — 한번에 매수하지 않고 단계적으로 분할매수하는 것을 가정. 현금·TIGER CD금리투자(안전자산)는 항상 100% 기준으로 계산<br>
-    · 평가금액 = 현재가(원, 아래 "종목별 현재가" 표에서 관리) × 수량 ÷ 10000 (현금 행은 수량 입력값을 만원 단위 금액으로 그대로 사용)<br>
+    · 평가금액 = 현재가(원, 아래 "종목 마스터" 표에서 관리) × 수량 ÷ 10000 (현금 행은 수량 입력값을 만원 단위 금액으로 그대로 사용)<br>
     · 차액 = 목표가 − 평가금액<br>
     · 최대 괴리 금액 = 현금성 종목을 제외한 실제 매수 대상 종목 중 차액(목표금액-평가금액)이 가장 큰 종목 — 별도 요약 행 대신 해당 종목의 "차액" 셀을 노란색으로 표시<br>
     · 현금성자산 = 같은 계좌 내 유형이 '현금'인 모든 종목(예: 현금, TIGER CD금리투자 등)의 차액 합계 — 여러 안전자산을 엄격히 구분하지 않고 하나의 병합 셀로 합쳐서 보여줌<br>
@@ -120,7 +120,7 @@
   <div class="price-cols">
     <div style="min-width:0;">
       <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap;">
-        <h2 style="margin:0;">📌 종목별 현재가 (마스터 테이블)</h2>
+        <h2 style="margin:0;">📌 종목 마스터</h2>
         <button type="button" id="fetchAllPricesBtn" style="padding:5px 10px; border-radius:5px; border:1px solid var(--border-strong); background:#fff; cursor:pointer; font-size:12px; white-space:nowrap;">금액 불러오기</button>
       </div>
       <div class="table-scroll">
@@ -128,7 +128,7 @@
           <colgroup>
             <col style="width:auto;">
             <col style="width:80px;">
-            <col style="width:78px;">
+            <col style="width:96px;">
             <col style="width:60px;">
             <col style="width:190px;">
           </colgroup>
@@ -136,10 +136,12 @@
           <tbody id="priceBody"></tbody>
           <tfoot>
             <tr>
-              <td><input type="text" id="newStockName" placeholder="새 종목명" style="width:100%; box-sizing:border-box; padding:4px 6px; border:1px solid var(--border-strong); border-radius:4px; font-size:12.5px; font-family:inherit;"></td>
+              <td><input type="text" id="newStockName" placeholder="새 종목명" list="newStockNameList" autocomplete="off" style="width:100%; box-sizing:border-box; padding:4px 6px; border:1px solid var(--border-strong); border-radius:4px; font-size:12.5px; font-family:inherit;">
+                <datalist id="newStockNameList"></datalist>
+              </td>
               <td style="text-align:left;"><input type="text" id="newStockTicker" placeholder="티커" style="width:100%; box-sizing:border-box; padding:4px 6px; border:1px solid var(--border-strong); border-radius:4px; font-size:12.5px; font-family:inherit;"></td>
               <td style="text-align:left;">
-                <select id="newStockType" style="width:100%; box-sizing:border-box; padding:4px 20px 4px 6px; border:1px solid var(--border-strong); border-radius:4px; font-size:12.5px; font-family:inherit; background:#fff;">
+                <select id="newStockType" style="width:100%; min-width:72px; box-sizing:border-box; padding:4px 18px 4px 6px; border:1px solid var(--border-strong); border-radius:4px; font-size:12.5px; font-family:inherit; background:#fff;">
                   <option value="stock" selected>주식</option>
                   <option value="cash">현금</option>
                 </select>
@@ -174,7 +176,7 @@
   </div>
 </div>
 
-<div class="foot">유지보수를 위해 박스(설정 / 종목별 평가금액 / 계좌별 리밸런싱 현황 / 종목별 현재가 / 단계별 미달성 금액)별로 CSS·JS 파일을 나눠 구성했습니다.</div>
+<div class="foot">유지보수를 위해 박스(설정 / 종목별 평가금액 / 계좌별 리밸런싱 현황 / 종목 마스터 / 단계별 미달성 금액)별로 CSS·JS 파일을 나눠 구성했습니다.</div>
 
 <div class="numpad-overlay" id="folderFileListOverlay">
   <div class="numpad-box" style="width:320px;">

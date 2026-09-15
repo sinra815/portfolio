@@ -1,4 +1,4 @@
-// ==== "📌 종목별 현재가 (마스터 테이블)" 박스 ====
+// ==== "📌 종목 마스터" 박스 ====
 
 function renderPriceTable(){
   master.sort((a, b) => ((a.type === 'cash') ? 1 : 0) - ((b.type === 'cash') ? 1 : 0));
@@ -26,7 +26,7 @@ function renderPriceTable(){
       </div></td>
       <td style="text-align:left;"><span class="ticker-edit" data-idx="${idx}" title="클릭하여 티커 변경" style="cursor:pointer; color:var(--muted);">${m.ticker || '-'}</span></td>
       <td style="text-align:left;">
-        <select class="stock-type-select" data-idx="${idx}" style="width:100%; box-sizing:border-box; padding:4px 20px 4px 6px; border:1px solid var(--border-strong); border-radius:4px; font-size:12.5px; font-family:inherit; background:#fff;">
+        <select class="stock-type-select" data-idx="${idx}" style="width:100%; min-width:72px; box-sizing:border-box; padding:4px 18px 4px 6px; border:1px solid var(--border-strong); border-radius:4px; font-size:12.5px; font-family:inherit; background:#fff;">
           <option value="stock" ${(m.type || 'stock') === 'stock' ? 'selected' : ''}>주식</option>
           <option value="cash" ${m.type === 'cash' ? 'selected' : ''}>현금</option>
         </select>
@@ -44,6 +44,58 @@ document.addEventListener('input', (e) => {
     master[idx].price = parseFloat(e.target.value) || 0;
     renderAll();
   }
+});
+
+// ---- 종목명 입력 시 자동완성 제안 + 티커 자동 입력 ----
+let stockNameSuggestionMap = {};
+let stockNameSearchTimer = null;
+
+async function fetchStockNameSuggestions(q){
+  try {
+    const res = await fetch('/api/search?q=' + encodeURIComponent(q));
+    const json = await res.json();
+    return (json.items || []);
+  } catch (e) {
+    console.warn('종목명 자동완성 조회 오류:', e.message);
+    return [];
+  }
+}
+
+document.getElementById('newStockName').addEventListener('input', (e) => {
+  const nameInput = e.target;
+  const tickerInput = document.getElementById('newStockTicker');
+  const q = nameInput.value.trim();
+
+  clearTimeout(stockNameSearchTimer);
+  if (!q) {
+    stockNameSuggestionMap = {};
+    document.getElementById('newStockNameList').innerHTML = '';
+    return;
+  }
+
+  // 이미 받아온 제안 중 정확히 일치하는 종목이 있으면 티커를 바로 채운다.
+  if (stockNameSuggestionMap[q]) {
+    tickerInput.value = stockNameSuggestionMap[q];
+  }
+
+  stockNameSearchTimer = setTimeout(async () => {
+    const items = await fetchStockNameSuggestions(q);
+    stockNameSuggestionMap = {};
+    items.forEach(item => { stockNameSuggestionMap[item.name] = item.ticker; });
+
+    const datalist = document.getElementById('newStockNameList');
+    datalist.innerHTML = '';
+    items.forEach(item => {
+      const option = document.createElement('option');
+      option.value = item.name;
+      datalist.appendChild(option);
+    });
+
+    // 응답이 도착한 시점에도 입력값이 그대로 완전히 일치하면 티커를 채운다.
+    if (stockNameSuggestionMap[nameInput.value.trim()]) {
+      tickerInput.value = stockNameSuggestionMap[nameInput.value.trim()];
+    }
+  }, 250);
 });
 
 document.getElementById('addStockBtn').addEventListener('click', () => {
