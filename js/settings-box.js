@@ -247,8 +247,9 @@ document.getElementById('importFileInput').addEventListener('change', (e) => {
 });
 
 document.getElementById('resetAllBtn').addEventListener('click', () => {
-  if (!confirm('모든 증권사·계좌를 삭제할까요? 안에 있는 종목도 모두 함께 삭제됩니다.')) return;
+  if (!confirm('모든 증권사·계좌와 종목 마스터를 삭제할까요? 안에 있는 종목도 모두 함께 삭제됩니다.')) return;
   groups = [];
+  master = [];
   renderAll();
 });
 
