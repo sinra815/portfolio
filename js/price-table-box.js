@@ -6,6 +6,25 @@
 const MASTER_NAME_MIN_W = 105;  // 기존 고정 폭 (짧은 이름만 있을 때의 하한)
 const MASTER_NAME_MAX_W = 360;  // 비정상적으로 긴 이름이 표를 망가뜨리지 않도록 상한
 
+// 글자 폭 측정용 숨은 엘리먼트. 표 안의 span 을 직접 재면 두 가지가 어긋난다.
+//  - scrollWidth: 컬럼이 넓어지면 글자 폭이 아니라 span 폭을 돌려줘서 렌더링마다 컬럼이 늘어난다.
+//  - Range: 이름이 줄바꿈되면 가장 긴 줄만 재므로, 한 줄에 필요한 폭을 알 수 없다.
+// 화면 밖에 nowrap 으로 두고 같은 폰트로 재면 컬럼 폭·줄바꿈과 무관하게 항상 같은 값이 나온다.
+let masterNameMeter = null;
+function measureNameWidth(text, fontSource){
+  if (!masterNameMeter) {
+    masterNameMeter = document.createElement('span');
+    masterNameMeter.style.cssText =
+      'position:absolute; left:-9999px; top:0; white-space:pre; visibility:hidden;';
+    document.body.appendChild(masterNameMeter);
+  }
+  const cs = getComputedStyle(fontSource);
+  ['fontStyle', 'fontVariant', 'fontWeight', 'fontSize', 'fontFamily', 'letterSpacing']
+    .forEach(p => { masterNameMeter.style[p] = cs[p]; });
+  masterNameMeter.textContent = text;
+  return masterNameMeter.getBoundingClientRect().width;
+}
+
 function fitMasterNameColumn(){
   const table = document.getElementById('priceBody').closest('table');
   if (!table) return;
@@ -18,13 +37,9 @@ function fitMasterNameColumn(){
   const spans = table.querySelectorAll('.stock-name-edit');
   let nameW = MASTER_NAME_MIN_W;
   if (spans.length > 0) {
-    // 글자 폭은 Range 로 잰다. span.scrollWidth 를 쓰면 컬럼이 넓어질 때 그 값도 같이
-    // 커져서, 렌더링마다 컬럼이 조금씩 늘어나는 피드백 루프가 생긴다.
     let textW = 0;
     spans.forEach(el => {
-      const range = document.createRange();
-      range.selectNodeContents(el);
-      textW = Math.max(textW, range.getBoundingClientRect().width);
+      textW = Math.max(textW, measureNameWidth(el.textContent, el));
     });
     // 글자 외에 셀이 쓰는 폭(패딩 + 정렬·삭제 버튼 + 간격). 버튼 크기가 고정이라 일정하다.
     const td = spans[0].closest('td');

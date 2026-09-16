@@ -55,7 +55,10 @@ tr.group-first td.grp-cell-broker{background:#c3cee0;}
 tr.group-first td:not(.grp-cell-broker){border-top:2px solid var(--border-strong);}
 .group-name-edit{cursor:pointer; border-bottom:1px dashed var(--border-strong);}
 .group-name-edit:hover{color:var(--accent);}
-.stock-name-edit{cursor:pointer; border-bottom:1px dashed transparent;}
+/* 계산한 컬럼 폭이 실제 기기·폰트에서 조금 모자라더라도 이름이 끊기지 않도록,
+   한 줄에 못 들어가면 잘리는 대신 줄바꿈한다 (td 의 nowrap 을 이 칸에서만 해제). */
+.stock-name-edit{cursor:pointer; border-bottom:1px dashed transparent;
+  white-space:normal; overflow-wrap:anywhere;}
 .stock-name-edit:hover{color:var(--accent); border-bottom-color:var(--border-strong);}
 .ticker-edit{border-bottom:1px dashed transparent;}
 .ticker-edit:hover{color:var(--accent); border-bottom-color:var(--border-strong);}
