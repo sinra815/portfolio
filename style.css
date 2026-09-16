@@ -57,6 +57,8 @@ tr.group-first td:not(.grp-cell-broker){border-top:2px solid var(--border-strong
 .group-name-edit:hover{color:var(--accent);}
 .stock-name-edit{cursor:pointer; border-bottom:1px dashed transparent;}
 .stock-name-edit:hover{color:var(--accent); border-bottom-color:var(--border-strong);}
+.ticker-edit{border-bottom:1px dashed transparent;}
+.ticker-edit:hover{color:var(--accent); border-bottom-color:var(--border-strong);}
 tr.total-row td{background:var(--total-bg); font-weight:700;}
 tr.subtotal-row td{background:#eef3fb; font-weight:700; color:#334155;}
 tr.subtotal-row:hover td{background:#eef3fb;}

@@ -24,7 +24,7 @@ function renderPriceTable(){
         </span>
         <button type="button" class="remove-stock-btn" data-idx="${idx}" title="종목 삭제" style="flex:0 0 auto; width:20px; height:22px; padding:0; border:1px solid var(--border-strong); border-radius:4px; background:#fff; color:var(--down); cursor:pointer; font-size:12px; line-height:1;">×</button>
       </div></td>
-      <td style="text-align:left;"><span class="ticker-edit" data-idx="${idx}" title="클릭하여 티커 변경" style="cursor:pointer; color:var(--muted);">${m.ticker || '-'}</span></td>
+      <td style="text-align:left; padding:0;"><span class="ticker-edit" data-idx="${idx}" title="클릭하여 티커 변경" style="display:block; width:100%; height:100%; box-sizing:border-box; padding:5px 8px; cursor:pointer; color:var(--muted);">${m.ticker || '-'}</span></td>
       <td style="text-align:left;">
         <select class="stock-type-select" data-idx="${idx}" style="width:100%; min-width:72px; box-sizing:border-box; padding:4px 18px 4px 6px; border:1px solid var(--border-strong); border-radius:4px; font-size:12.5px; font-family:inherit; background:#fff;">
           <option value="stock" ${(m.type || 'stock') === 'stock' ? 'selected' : ''}>주식</option>
@@ -98,7 +98,7 @@ document.getElementById('newStockName').addEventListener('input', (e) => {
   }, 250);
 });
 
-document.getElementById('addStockBtn').addEventListener('click', (e) => {
+document.getElementById('addStockBtn').addEventListener('click', async (e) => {
   const nameInput = document.getElementById('newStockName');
   const tickerInput = document.getElementById('newStockTicker');
   const priceInput = document.getElementById('newStockPrice');
@@ -106,7 +106,21 @@ document.getElementById('addStockBtn').addEventListener('click', (e) => {
   const name = nameInput.value.trim();
   if (!name) { nameInput.focus(); return; }
   if (master.some(m => m.name === name)) { showFieldStatus(e.currentTarget, '이미 등록된 종목명입니다.', 'error'); return; }
-  master.push({ name, ticker: tickerInput.value.trim(), price: parseFloat(priceInput.value) || 0, type: typeInput.value });
+
+  let ticker = tickerInput.value.trim();
+  // 자동완성에서 종목명을 고른 직후 바로 추가하면 티커 조회(디바운스)가 끝나기 전이라 비어 있을 수 있으므로,
+  // 티커가 비어 있으면 추가 직전에 한 번 더 정확히 조회해서 채운다.
+  if (!ticker) {
+    if (stockNameSuggestionMap[name]) {
+      ticker = stockNameSuggestionMap[name];
+    } else {
+      const items = await fetchStockNameSuggestions(name);
+      const matched = items.find(item => item.name === name);
+      if (matched) ticker = matched.ticker;
+    }
+  }
+
+  master.push({ name, ticker, price: parseFloat(priceInput.value) || 0, type: typeInput.value });
   nameInput.value = '';
   tickerInput.value = '';
   priceInput.value = '0';
