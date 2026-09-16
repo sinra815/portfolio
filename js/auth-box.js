@@ -1,4 +1,5 @@
-// ==== 로그인 / ID 생성 게이트 (화면 진입 시 ID·비밀번호 확인) ====
+// ==== 로그인 / ID 생성 게이트 (화면 진입 시 ID·비밀번호 확인, 로그아웃 전까지 로그인 유지) ====
+const AUTH_STORAGE_KEY = 'investRebalanceAuthId';
 let currentUserId = null;
 
 const authOverlay = document.getElementById('authOverlay');
@@ -14,6 +15,8 @@ const authNewPasswordConfirmInput = document.getElementById('authNewPasswordConf
 const authRegisterError = document.getElementById('authRegisterError');
 const authRegisterHint = document.getElementById('authRegisterHint');
 const authRegisterBtn = document.getElementById('authRegisterBtn');
+const currentUserIdLabel = document.getElementById('currentUserIdLabel');
+const logoutBtn = document.getElementById('logoutBtn');
 
 function showLoginView(){
   authRegisterView.style.display = 'none';
@@ -36,9 +39,30 @@ function showRegisterView(prefillId){
 
 function completeLogin(id){
   currentUserId = id;
+  try { localStorage.setItem(AUTH_STORAGE_KEY, id); } catch (e) {}
+  currentUserIdLabel.textContent = id;
   authOverlay.classList.remove('open');
   if (typeof refreshSaveBadge === 'function') refreshSaveBadge();
 }
+
+function logout(){
+  if (!confirm('로그아웃 하시겠습니까?')) return;
+  try { localStorage.removeItem(AUTH_STORAGE_KEY); } catch (e) {}
+  currentUserId = null;
+  currentUserIdLabel.textContent = '';
+  showLoginView();
+  authOverlay.classList.add('open');
+}
+
+// 새로고침해도 로그아웃 전까지는 다시 로그인하지 않도록, 저장된 ID가 있으면 바로 복원한다.
+try {
+  const savedId = localStorage.getItem(AUTH_STORAGE_KEY);
+  if (savedId) {
+    currentUserId = savedId;
+    currentUserIdLabel.textContent = savedId;
+    authOverlay.classList.remove('open');
+  }
+} catch (e) {}
 
 async function attemptLogin(){
   const id = authIdInput.value.trim();
@@ -118,6 +142,7 @@ async function attemptRegister(){
 authLoginBtn.addEventListener('click', attemptLogin);
 authRegisterBtn.addEventListener('click', attemptRegister);
 document.getElementById('authBackToLoginBtn').addEventListener('click', showLoginView);
+logoutBtn.addEventListener('click', logout);
 
 authPasswordInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') attemptLogin(); });
 authIdInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') authPasswordInput.focus(); });
