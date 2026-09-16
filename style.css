@@ -120,7 +120,8 @@ input.cell-input:focus{outline:2px solid var(--accent); outline-offset:0;}
 
 .price-table{width:100%; min-width:460px; table-layout:fixed; border-collapse:collapse; font-size:12.5px;}
 /* 종목 마스터 표는 티커 컬럼이 넓어 최소 폭도 그만큼 크다.
-   (min-width 를 올리지 않으면 width:auto 인 종목명 컬럼이 그만큼 찌그러진다) */
+   종목 컬럼 폭과 이 표의 최소 폭은 렌더링 때 fitMasterNameColumn() 이 가장 긴 종목명에
+   맞춰 다시 계산한다. 아래 값은 그 전까지 쓰이는 초기값이다. */
 .price-table.master-table{min-width:502px;}
 .price-table th{background:var(--header); color:var(--header-text); font-weight:600; padding:6px 8px; border:1px solid var(--border); text-align:center;}
 .price-table td{padding:5px 8px; border:1px solid var(--border); text-align:left;}

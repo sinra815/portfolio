@@ -1,5 +1,42 @@
 // ==== "📌 종목 마스터" 박스 ====
 
+// 종목 컬럼은 등록된 종목명 중 가장 긴 것에 맞춰 폭을 넓힌다.
+// 이름 칸에는 정렬·삭제 버튼이 함께 들어가서, 고정 폭으로 두면 글자에 남는 공간이
+// 절반도 되지 않아 "KODEX 레버리지" 같은 이름이 잘린다.
+const MASTER_NAME_MIN_W = 105;  // 기존 고정 폭 (짧은 이름만 있을 때의 하한)
+const MASTER_NAME_MAX_W = 360;  // 비정상적으로 긴 이름이 표를 망가뜨리지 않도록 상한
+
+function fitMasterNameColumn(){
+  const table = document.getElementById('priceBody').closest('table');
+  if (!table) return;
+  const cols = table.querySelectorAll('colgroup col');
+  const nameCol = cols[0];
+  // 종목 컬럼을 제외한 나머지는 colgroup 에 고정 폭으로 적혀 있다.
+  const othersW = Array.from(cols).slice(1)
+    .reduce((s, c) => s + (parseFloat(c.style.width) || 0), 0);
+
+  const spans = table.querySelectorAll('.stock-name-edit');
+  let nameW = MASTER_NAME_MIN_W;
+  if (spans.length > 0) {
+    // 글자 폭은 Range 로 잰다. span.scrollWidth 를 쓰면 컬럼이 넓어질 때 그 값도 같이
+    // 커져서, 렌더링마다 컬럼이 조금씩 늘어나는 피드백 루프가 생긴다.
+    let textW = 0;
+    spans.forEach(el => {
+      const range = document.createRange();
+      range.selectNodeContents(el);
+      textW = Math.max(textW, range.getBoundingClientRect().width);
+    });
+    // 글자 외에 셀이 쓰는 폭(패딩 + 정렬·삭제 버튼 + 간격). 버튼 크기가 고정이라 일정하다.
+    const td = spans[0].closest('td');
+    const overhead = td.getBoundingClientRect().width - spans[0].getBoundingClientRect().width;
+    const want = Math.ceil(textW + overhead) + 2; // 소수점 반올림 여유
+    nameW = Math.max(MASTER_NAME_MIN_W, Math.min(MASTER_NAME_MAX_W, want));
+  }
+
+  nameCol.style.width = nameW + 'px';
+  table.style.minWidth = (nameW + othersW) + 'px';
+}
+
 function renderPriceTable(){
   master.sort((a, b) => ((a.type === 'cash') ? 1 : 0) - ((b.type === 'cash') ? 1 : 0));
 
@@ -36,6 +73,8 @@ function renderPriceTable(){
     `;
     tbody.appendChild(tr);
   });
+
+  fitMasterNameColumn();
 }
 
 document.addEventListener('input', (e) => {
