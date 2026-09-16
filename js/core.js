@@ -1,5 +1,8 @@
 // ==== 핵심 상태 · 계산 로직 (모든 박스가 공유) ====
 const STAGES = [0.5, 0.7, 0.8, 0.9, 1];
+// 현금처럼 "수량 1 = 1만원" 으로 쓰고 싶은 종목의 현재가. 평가금액 식이
+// 현재가 × 수량 ÷ 10000 이므로, 현재가를 10000원으로 두면 수량이 곧 만원 금액이 된다.
+const CASH_UNIT_PRICE = 10000;
 let totalMHidden = true; // 설정 박스의 "평가금액 합계" 숨기기 여부 (기본값: 숨김)
 
 const INITIAL_MASTER = [];
@@ -61,7 +64,6 @@ function getPrice(stockName){
 }
 
 function getRowType(r){
-  if (r.cash) return 'cash';
   const m = master.find(x => x.name === r.stock);
   return (m && m.type === 'cash') ? 'cash' : 'stock';
 }
@@ -76,17 +78,34 @@ function roundDown(value, digits){
   return Math.floor(value * f) / f;
 }
 
+// 예전 데이터 호환: '현금' 이라는 이름의 행만 cash:true 플래그를 달고 수량을 만원 금액으로
+// 그대로 썼다. 이제 모든 행이 같은 식을 쓰므로, 마스터 현재가를 10000원으로 맞춰 두면
+// 수량이 그대로 만원 금액이 되어 이전과 똑같은 평가금액이 나온다.
+// renderAll() 에서 매번 호출한다. 플래그를 지우므로 두 번째부터는 아무것도 하지 않고,
+// 자동복원·서버 불러오기·File 가져오기 어느 경로로 들어온 데이터든 한 곳에서 처리된다.
+function migrateCashRows(){
+  groups.forEach(g => g.rows.forEach(r => {
+    if (!r.cash) return;
+    let m = master.find(x => x.name === r.stock);
+    if (!m) {
+      // 마스터에서 지워진 현금 행. 되살리지 않으면 현재가가 없어 평가금액이 0 이 된다.
+      m = { name: r.stock, ticker: '', price: CASH_UNIT_PRICE, type: 'cash' };
+      master.push(m);
+    }
+    // 예전에는 이 행의 마스터 현재가가 계산에 쓰이지 않았으므로 값이 무엇이든 덮어써야 한다.
+    m.price = CASH_UNIT_PRICE;
+    m.type = 'cash';
+    delete r.cash;
+  }));
+}
+
 function computeAll(){
   const stage = (parseFloat(document.getElementById('stagePercentInput').value) || 0) / 100;
   const threshold = (parseFloat(document.getElementById('overweightThreshold').value) || 0) / 100;
 
   groups.forEach(g => {
     g.rows.forEach(r => {
-      if (r.cash) {
-        r.M = Number(r.qty) || 0;
-      } else {
-        r.M = (getPrice(r.stock) * (Number(r.qty) || 0)) / 10000;
-      }
+      r.M = (getPrice(r.stock) * (Number(r.qty) || 0)) / 10000;
     });
     g.D = g.rows.reduce((s, r) => s + r.M, 0);
   });
@@ -211,6 +230,7 @@ async function fetchPriceForTicker(ticker, opts){
 }
 
 function renderAll(){
+  migrateCashRows();
   groups.forEach((g,i)=> g.__idx = i);
   computeAll();
   renderMainTable();

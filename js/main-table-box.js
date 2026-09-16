@@ -41,8 +41,8 @@ function renderMainTable(){
         cells += `<td class="grp-cell grp-cell-account" rowspan="${groupRowspan}"><span class="group-name-edit" data-g="${g.__idx}" data-field="account" title="클릭하여 계좌명 변경">${g.account}</span></td>`;
         groupHeaderInserted = true;
       }
-      // '현금' 행도 다른 종목과 똑같이 다룬다. 이동은 핸들러가 같은 유형끼리만 교환하도록
-      // 막아주므로, 현금성 행들이 아래쪽에 뭉쳐 있어야 하는 "현금성자산" 병합 셀은 그대로 유지된다.
+      // 모든 행을 똑같이 다룬다. 이동은 핸들러가 같은 유형끼리만 교환하도록 막아주므로,
+      // 현금성 행들이 아래쪽에 뭉쳐 있어야 하는 "현금성자산" 병합 셀은 그대로 유지된다.
       const canMoveUp = idx > 0 && getRowType(g.rows[idx - 1]) === getRowType(r);
       const canMoveDown = idx < g.rows.length - 1 && getRowType(g.rows[idx + 1]) === getRowType(r);
       const stockExists = master.some(m => m.name === r.stock);
@@ -74,7 +74,7 @@ function renderMainTable(){
       cells += `<td>${fmt(r.G)}</td>`;
 
       cells += `<td><div class="stepper">
-        <input type="text" class="cell-input qty-input numpad-trigger" data-label="${r.cash ? '현금(만원)' : '수량(주식수)'}" data-g="${g.__idx}" data-r="${idx}" value="${r.qty}" readonly>
+        <input type="text" class="cell-input qty-input numpad-trigger" data-label="${r.stock} 수량" data-g="${g.__idx}" data-r="${idx}" value="${r.qty}" readonly>
         <span class="spin-btns">
           <button type="button" class="step-btn step-up" data-field="qty" data-g="${g.__idx}" data-r="${idx}" data-step="1">▲</button>
           <button type="button" class="step-btn step-down" data-field="qty" data-g="${g.__idx}" data-r="${idx}" data-step="1">▼</button>
@@ -246,26 +246,17 @@ document.addEventListener('click', (e) => {
   const stockName = select ? select.value : null;
   if (!stockName) { showFieldStatus(btn, '추가할 종목을 선택해주세요.', 'error'); return; }
   const rows = groups[g].rows;
-  if (stockName === '현금') {
-    if (rows.some(r => r.cash)) {
-      showFieldStatus(btn, '이 계좌에는 이미 "현금" 항목이 있습니다.', 'error');
-      return;
-    }
-    rows.push({ stock:'현금', weight:null, qty:0, cash:true });
+  if (rows.some(r => r.stock === stockName)) {
+    showFieldStatus(btn, `"${stockName}"은(는) 이미 이 계좌에 등록되어 있습니다.`, 'error');
+    return;
+  }
+  const newRow = { stock: stockName, weight: 0, qty: 0 };
+  const masterItem = master.find(m => m.name === stockName);
+  if (masterItem && masterItem.type === 'cash') {
+    rows.push(newRow);  // 현금성 종목은 항상 아래쪽에 모아둔다
   } else {
-    if (rows.some(r => r.stock === stockName)) {
-      showFieldStatus(btn, `"${stockName}"은(는) 이미 이 계좌에 등록되어 있습니다.`, 'error');
-      return;
-    }
-    const newRow = { stock: stockName, weight: 0, qty: 0 };
-    const masterItem = master.find(m => m.name === stockName);
-    if (masterItem && masterItem.type === 'cash') {
-      const cashStructIdx = rows.findIndex(r => r.cash);
-      if (cashStructIdx === -1) rows.push(newRow); else rows.splice(cashStructIdx, 0, newRow);
-    } else {
-      const firstCashTypeIdx = rows.findIndex(r => getRowType(r) === 'cash');
-      if (firstCashTypeIdx === -1) rows.push(newRow); else rows.splice(firstCashTypeIdx, 0, newRow);
-    }
+    const firstCashTypeIdx = rows.findIndex(r => getRowType(r) === 'cash');
+    if (firstCashTypeIdx === -1) rows.push(newRow); else rows.splice(firstCashTypeIdx, 0, newRow);
   }
   renderAll();
 });

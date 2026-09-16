@@ -49,7 +49,7 @@ function renderStockSummary(){
 
   rows.forEach(([name, entry]) => {
     const m = master.find(x => x.name === name);
-    const type = name === '현금' ? '현금' : (m ? ((m.type || 'stock') === 'cash' ? '현금' : '주식') : '-');
+    const type = m ? ((m.type || 'stock') === 'cash' ? '현금' : '주식') : '-';
     const pct = grandTotal > 0 ? (entry.total / grandTotal * 100) : 0;
     const tr = document.createElement('tr');
     tr.innerHTML = `
