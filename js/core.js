@@ -5,7 +5,9 @@ let totalMHidden = true; // 설정 박스의 "평가금액 합계" 숨기기 여
 const INITIAL_MASTER = [];
 const INITIAL_GROUPS = [];
 
-const STORAGE_KEY = 'investRebalanceState_v1';
+// 예전 버전이 "저장" 버튼으로 기록했던 localStorage 키. 저장은 서버 API(/api/save)로 옮겨졌고
+// 이 키에 새로 쓰는 코드는 없지만, 그때 저장해둔 데이터를 복원하기 위한 폴백으로 읽기만 유지한다.
+const LEGACY_STORAGE_KEY = 'investRebalanceState_v1';
 const AUTOSAVE_KEY = 'investRebalanceAutosave_v1';
 
 function buildStateSnapshot(){
@@ -17,15 +19,11 @@ function buildStateSnapshot(){
   };
 }
 
-function loadState(){
+function loadLegacyState(){
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(LEGACY_STORAGE_KEY);
     return raw ? JSON.parse(raw) : null;
   } catch(e) { return null; }
-}
-
-function saveState(){
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(buildStateSnapshot())); } catch(e) {}
 }
 
 function loadAutosave(){
@@ -40,8 +38,7 @@ function autosaveWorkingState(){
 }
 
 const __autosaved = loadAutosave();
-const __saved = loadState();
-const __restore = __autosaved || __saved;
+const __restore = __autosaved || loadLegacyState();
 let master = (__restore && __restore.master) ? __restore.master : JSON.parse(JSON.stringify(INITIAL_MASTER));
 let groups = (__restore && __restore.groups) ? __restore.groups : JSON.parse(JSON.stringify(INITIAL_GROUPS));
 

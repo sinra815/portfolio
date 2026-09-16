@@ -253,6 +253,23 @@ document.getElementById('resetAllBtn').addEventListener('click', () => {
   renderAll();
 });
 
+// ==== 저장 버튼의 초록 배지: 서버(/api/save)에 저장된 데이터가 있는지를 나타낸다 ====
+function setSaveBadge(visible){
+  const badge = document.getElementById('saveBadge');
+  if (badge) badge.style.display = visible ? 'block' : 'none';
+}
+
+async function refreshSaveBadge(){
+  try {
+    const res = await fetch('/api/load?existsOnly=1');
+    if (!res.ok) return;
+    const json = await res.json();
+    setSaveBadge(!!json.exists);
+  } catch (e) {
+    // 오프라인이거나 API가 없는 정적 호스팅에서는 배지를 건드리지 않는다.
+  }
+}
+
 document.getElementById('saveBtn').addEventListener('click', () => {
   const btn = document.getElementById('saveBtn');
   const original = btn.textContent;
@@ -264,7 +281,7 @@ document.getElementById('saveBtn').addEventListener('click', () => {
     body: JSON.stringify(buildStateSnapshot()),
   }).then((res) => {
     if (!res.ok) throw new Error('save failed');
-    document.getElementById('saveBadge').style.display = 'block';
+    setSaveBadge(true);
     showFieldStatus(btn, '저장되었습니다.');
   }).catch(() => {
     showFieldStatus(btn, '저장 실패 - 네트워크 상태를 확인해주세요.', 'error');
@@ -283,7 +300,12 @@ document.getElementById('loadBtn').addEventListener('click', () => {
     if (!res.ok) throw new Error('load failed');
     return res.json();
   }).then((json) => {
-    if (!json.data) { showFieldStatus(btn, '서버에 저장된 데이터가 없습니다.', 'error'); return; }
+    if (!json.data) {
+      setSaveBadge(false);
+      showFieldStatus(btn, '서버에 저장된 데이터가 없습니다.', 'error');
+      return;
+    }
+    setSaveBadge(true);
     if (!confirm('서버에 저장된 데이터를 불러올까요? 현재 화면의 변경 사항은 사라집니다.')) return;
     const saved = json.data;
     master = saved.master || master;
