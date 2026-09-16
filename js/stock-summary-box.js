@@ -27,7 +27,7 @@ function renderStockSummary(){
     tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--muted);">계좌별 리밸런싱 현황에 종목을 추가하면 여기에 요약이 표시됩니다.</td></tr>`;
     chartEl.style.background = '#eef1f6';
     legendEl.innerHTML = `<span style="color:var(--muted);">데이터 없음</span>`;
-    resizePieChartToTable();
+    fitSummaryLayout();
     return;
   }
 
@@ -53,7 +53,7 @@ function renderStockSummary(){
     const pct = grandTotal > 0 ? (entry.total / grandTotal * 100) : 0;
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td>${name}</td>
+      <td><span class="summary-name">${name}</span></td>
       <td class="num">${type}</td>
       <td class="num">${entry.accounts.size}</td>
       <td class="num">${fmt(entry.total)}</td>
@@ -62,6 +62,15 @@ function renderStockSummary(){
     tbody.appendChild(tr);
   });
 
+  fitSummaryLayout();
+}
+
+// 종목이 없는 경로와 있는 경로가 똑같이 거쳐야 하는 마무리 처리.
+// 파이 차트는 표 높이에 맞추므로, 컬럼 폭(→ 줄바꿈 → 높이) 을 먼저 확정해야 한다.
+function fitSummaryLayout(){
+  fitNameColumn(document.getElementById('stockSummaryTable'),
+                document.querySelectorAll('#stockSummaryBody .summary-name'),
+                NAME_COL_MIN_W, NAME_COL_MAX_W);
   resizePieChartToTable();
 }
 

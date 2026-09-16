@@ -1,55 +1,12 @@
 // ==== "📌 종목 마스터" 박스 ====
 
-// 종목 컬럼은 등록된 종목명 중 가장 긴 것에 맞춰 폭을 넓힌다.
-// 이름 칸에는 정렬·삭제 버튼이 함께 들어가서, 고정 폭으로 두면 글자에 남는 공간이
-// 절반도 되지 않아 "KODEX 레버리지" 같은 이름이 잘린다.
-const MASTER_NAME_MIN_W = 105;  // 기존 고정 폭 (짧은 이름만 있을 때의 하한)
-const MASTER_NAME_MAX_W = 360;  // 비정상적으로 긴 이름이 표를 망가뜨리지 않도록 상한
-
-// 글자 폭 측정용 숨은 엘리먼트. 표 안의 span 을 직접 재면 두 가지가 어긋난다.
-//  - scrollWidth: 컬럼이 넓어지면 글자 폭이 아니라 span 폭을 돌려줘서 렌더링마다 컬럼이 늘어난다.
-//  - Range: 이름이 줄바꿈되면 가장 긴 줄만 재므로, 한 줄에 필요한 폭을 알 수 없다.
-// 화면 밖에 nowrap 으로 두고 같은 폰트로 재면 컬럼 폭·줄바꿈과 무관하게 항상 같은 값이 나온다.
-let masterNameMeter = null;
-function measureNameWidth(text, fontSource){
-  if (!masterNameMeter) {
-    masterNameMeter = document.createElement('span');
-    masterNameMeter.style.cssText =
-      'position:absolute; left:-9999px; top:0; white-space:pre; visibility:hidden;';
-    document.body.appendChild(masterNameMeter);
-  }
-  const cs = getComputedStyle(fontSource);
-  ['fontStyle', 'fontVariant', 'fontWeight', 'fontSize', 'fontFamily', 'letterSpacing']
-    .forEach(p => { masterNameMeter.style[p] = cs[p]; });
-  masterNameMeter.textContent = text;
-  return masterNameMeter.getBoundingClientRect().width;
-}
-
+// 종목 컬럼은 등록된 종목명 중 가장 긴 것에 맞춰 폭을 넓힌다. 이름 칸에는 정렬·삭제 버튼이
+// 함께 들어가서, 고정 폭으로 두면 글자에 남는 공간이 절반도 되지 않는다.
 function fitMasterNameColumn(){
   const table = document.getElementById('priceBody').closest('table');
   if (!table) return;
-  const cols = table.querySelectorAll('colgroup col');
-  const nameCol = cols[0];
-  // 종목 컬럼을 제외한 나머지는 colgroup 에 고정 폭으로 적혀 있다.
-  const othersW = Array.from(cols).slice(1)
-    .reduce((s, c) => s + (parseFloat(c.style.width) || 0), 0);
-
-  const spans = table.querySelectorAll('.stock-name-edit');
-  let nameW = MASTER_NAME_MIN_W;
-  if (spans.length > 0) {
-    let textW = 0;
-    spans.forEach(el => {
-      textW = Math.max(textW, measureNameWidth(el.textContent, el));
-    });
-    // 글자 외에 셀이 쓰는 폭(패딩 + 정렬·삭제 버튼 + 간격). 버튼 크기가 고정이라 일정하다.
-    const td = spans[0].closest('td');
-    const overhead = td.getBoundingClientRect().width - spans[0].getBoundingClientRect().width;
-    const want = Math.ceil(textW + overhead) + 2; // 소수점 반올림 여유
-    nameW = Math.max(MASTER_NAME_MIN_W, Math.min(MASTER_NAME_MAX_W, want));
-  }
-
-  nameCol.style.width = nameW + 'px';
-  table.style.minWidth = (nameW + othersW) + 'px';
+  fitNameColumn(table, table.querySelectorAll('.stock-name-edit'),
+                NAME_COL_MIN_W, NAME_COL_MAX_W);
 }
 
 function renderPriceTable(){

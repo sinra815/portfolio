@@ -130,6 +130,9 @@ input.cell-input:focus{outline:2px solid var(--accent); outline-offset:0;}
 .price-table td{padding:5px 8px; border:1px solid var(--border); text-align:left;}
 .price-table td:first-child{background:#eef1f6; font-weight:700; color:#111827;}
 .price-table td.num{text-align:right;}
+/* 요약 표의 종목명. display:block 으로 셀 폭을 채워야 fitNameColumn() 이 재는
+   "셀 폭 - 이름 폭" 여유분이 일정해진다. 폭이 모자라면 옆 셀을 침범하는 대신 줄바꿈한다. */
+.summary-name{display:block; white-space:normal; overflow-wrap:anywhere;}
 
 .suggest-dropdown{position:fixed; z-index:1000; margin-top:2px; background:#fff; border:1px solid var(--border-strong); border-radius:4px; box-shadow:0 4px 10px rgba(0,0,0,0.12); max-height:220px; overflow-y:auto;}
 .suggest-item{padding:8px 10px; font-size:12.5px; cursor:pointer; white-space:normal; word-break:break-word; line-height:1.4;}

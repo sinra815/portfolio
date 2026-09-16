@@ -229,6 +229,55 @@ async function fetchPriceForTicker(ticker, opts){
   }
 }
 
+// ==== 종목명 컬럼 폭 맞추기 (종목 마스터 / 종목별 평가금액 요약 두 표가 공유) ====
+// 두 표 모두 table-layout:fixed 라 컬럼 폭을 직접 정해줘야 하고, 종목명 컬럼만 width:auto 로
+// 남는 공간을 받는다. 그대로 두면 긴 이름이 잘리거나 옆 셀을 침범한다.
+const NAME_COL_MIN_W = 105;  // 짧은 이름만 있을 때의 하한
+const NAME_COL_MAX_W = 360;  // 비정상적으로 긴 이름이 표를 망가뜨리지 않도록 상한
+
+// 글자 폭 측정용 숨은 엘리먼트. 표 안의 엘리먼트를 직접 재면 두 가지가 어긋난다.
+//  - scrollWidth: 컬럼이 넓어지면 글자 폭이 아니라 엘리먼트 폭을 돌려줘서 렌더링마다 컬럼이 늘어난다.
+//  - Range: 이름이 줄바꿈되면 가장 긴 줄만 재므로, 한 줄에 필요한 폭을 알 수 없다.
+// 화면 밖에 nowrap 으로 두고 같은 폰트로 재면 컬럼 폭·줄바꿈과 무관하게 항상 같은 값이 나온다.
+let nameMeter = null;
+function measureNameWidth(text, fontSource){
+  if (!nameMeter) {
+    nameMeter = document.createElement('span');
+    nameMeter.style.cssText =
+      'position:absolute; left:-9999px; top:0; white-space:pre; visibility:hidden;';
+    document.body.appendChild(nameMeter);
+  }
+  const cs = getComputedStyle(fontSource);
+  ['fontStyle', 'fontVariant', 'fontWeight', 'fontSize', 'fontFamily', 'letterSpacing']
+    .forEach(p => { nameMeter.style[p] = cs[p]; });
+  nameMeter.textContent = text;
+  return nameMeter.getBoundingClientRect().width;
+}
+
+// nameEls 는 각 행의 종목명을 담은 엘리먼트들. 셀 전체 폭을 차지해야(flex:1 또는 display:block)
+// "셀 폭 - 이름 엘리먼트 폭" 이 패딩·버튼 같은 고정 여유분으로 일정하게 나온다.
+function fitNameColumn(table, nameEls, minW, maxW){
+  if (!table) return;
+  const cols = table.querySelectorAll('colgroup col');
+  if (cols.length === 0) return;
+  // 종목명 컬럼을 제외한 나머지는 colgroup 에 고정 폭으로 적혀 있다.
+  const othersW = Array.from(cols).slice(1)
+    .reduce((s, c) => s + (parseFloat(c.style.width) || 0), 0);
+
+  let nameW = minW;
+  if (nameEls.length > 0) {
+    let textW = 0;
+    nameEls.forEach(el => { textW = Math.max(textW, measureNameWidth(el.textContent, el)); });
+    const td = nameEls[0].closest('td');
+    const overhead = td.getBoundingClientRect().width - nameEls[0].getBoundingClientRect().width;
+    const want = Math.ceil(textW + overhead) + 2; // 소수점 반올림 여유
+    nameW = Math.max(minW, Math.min(maxW, want));
+  }
+
+  cols[0].style.width = nameW + 'px';
+  table.style.minWidth = (nameW + othersW) + 'px';
+}
+
 function renderAll(){
   migrateCashRows();
   groups.forEach((g,i)=> g.__idx = i);
