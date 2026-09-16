@@ -118,7 +118,7 @@ input.cell-input:focus{outline:2px solid var(--accent); outline-offset:0;}
 .price-cols{display:grid; grid-template-columns:1.3fr 1fr; gap:20px;}
 @media (max-width:820px){.price-cols{grid-template-columns:1fr;}}
 
-.price-table{width:100%; min-width:0; table-layout:fixed; border-collapse:collapse; font-size:12.5px;}
+.price-table{width:100%; min-width:460px; table-layout:fixed; border-collapse:collapse; font-size:12.5px;}
 .price-table th{background:var(--header); color:var(--header-text); font-weight:600; padding:6px 8px; border:1px solid var(--border); text-align:center;}
 .price-table td{padding:5px 8px; border:1px solid var(--border); text-align:left;}
 .price-table td:first-child{background:#eef1f6; font-weight:700; color:#111827;}

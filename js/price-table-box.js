@@ -78,9 +78,11 @@ function hideStockNameSuggestions(){
   stockNameDropdown.innerHTML = '';
 }
 
-// 드롭다운이 열린 상태로 스크롤/리사이즈가 발생하면 위치가 어긋나므로 그냥 닫는다.
-document.addEventListener('scroll', () => { if (!stockNameDropdown.hidden) hideStockNameSuggestions(); }, true);
-window.addEventListener('resize', hideStockNameSuggestions);
+// 드롭다운이 열린 상태로 스크롤/리사이즈가 발생하면 위치를 다시 계산한다.
+// (모바일에서는 입력창 포커스만으로도 가상 키보드 때문에 화면이 자동으로 스크롤되므로,
+//  그냥 닫아버리면 타이핑 직후 뜬 드롭다운이 바로 사라지는 문제가 있어 위치 추적으로 대응한다.)
+document.addEventListener('scroll', () => { if (!stockNameDropdown.hidden) positionStockNameDropdown(); }, true);
+window.addEventListener('resize', () => { if (!stockNameDropdown.hidden) positionStockNameDropdown(); });
 
 function selectStockNameSuggestion(name){
   const nameInput = document.getElementById('newStockName');
