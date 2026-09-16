@@ -5,7 +5,8 @@ const redis = new Redis({
   token: process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN,
 });
 
-const KEY = 'rebalancer:data';
+const userKey = (id) => `rebalancer:user:${id}`;
+const dataKey = (id) => `rebalancer:user:${id}:data`;
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -13,8 +14,15 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'POST 요청만 지원합니다.' });
   }
   try {
-    const payload = req.body || {};
-    await redis.set(KEY, payload);
+    const { id, ...payload } = req.body || {};
+    if (!id) {
+      return res.status(400).json({ error: 'ID가 필요합니다.' });
+    }
+    const user = await redis.get(userKey(id));
+    if (!user) {
+      return res.status(401).json({ error: '로그인이 필요합니다.' });
+    }
+    await redis.set(dataKey(id), payload);
     return res.status(200).json({ ok: true, savedAt: new Date().toISOString() });
   } catch (err) {
     return res.status(500).json({ error: '저장 중 오류가 발생했습니다.', detail: String(err) });
