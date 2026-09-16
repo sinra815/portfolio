@@ -125,7 +125,7 @@ input.cell-input:focus{outline:2px solid var(--accent); outline-offset:0;}
 .price-table td.num{text-align:right;}
 
 .suggest-dropdown{position:fixed; z-index:1000; margin-top:2px; background:#fff; border:1px solid var(--border-strong); border-radius:4px; box-shadow:0 4px 10px rgba(0,0,0,0.12); max-height:220px; overflow-y:auto;}
-.suggest-item{padding:8px 10px; font-size:12.5px; cursor:pointer; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+.suggest-item{padding:8px 10px; font-size:12.5px; cursor:pointer; white-space:normal; word-break:break-word; line-height:1.4;}
 .suggest-item:hover, .suggest-item.active{background:var(--group-bg);}
 
 .stage-summary{width:100%; min-width:0; border-collapse:collapse; font-size:12.5px; margin-top:6px;}
