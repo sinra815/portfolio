@@ -67,7 +67,16 @@ function renderStockSummary(){
 
 // 종목이 없는 경로와 있는 경로가 똑같이 거쳐야 하는 마무리 처리.
 function fitSummaryLayout(){
-  fitNameColumn(document.getElementById('stockSummaryTable'),
-                document.querySelectorAll('#stockSummaryBody .summary-name'),
+  const table = document.getElementById('stockSummaryTable');
+  fitNameColumn(table, document.querySelectorAll('#stockSummaryBody .summary-name'),
                 NAME_COL_MIN_W, NAME_COL_MAX_W);
+
+  const headerCells = table.querySelectorAll('thead th');
+  const bodyRows = Array.from(document.querySelectorAll('#stockSummaryBody tr'))
+    .filter(r => r.children.length > 1); // "데이터 없음" 안내 행(colspan) 제외
+  [1, 2, 3, 4].forEach(colIdx => {
+    const cellEls = bodyRows.map(r => r.children[colIdx]).filter(Boolean);
+    fitSimpleColumnWidth(table, colIdx, headerCells[colIdx], cellEls, 36, 220);
+  });
+  syncTableMinWidth(table);
 }

@@ -278,6 +278,52 @@ function fitNameColumn(table, nameEls, minW, maxW){
   table.style.minWidth = (nameW + othersW) + 'px';
 }
 
+// ==== 나머지 컬럼(숫자·티커·유형 등 단순 텍스트) 폭 맞추기 ====
+// el 이 td/th 자신이면 자신의 padding·border 로, el 이 셀 안의 별도 엘리먼트(버튼과 함께 있는
+// 이름 칸처럼)면 "셀 폭 - 엘리먼트 폭" 실측치로 여유분을 구한다.
+function measureCellOverhead(el){
+  const cell = el.closest('td, th');
+  if (cell && cell !== el) {
+    return cell.getBoundingClientRect().width - el.getBoundingClientRect().width;
+  }
+  const cs = getComputedStyle(el);
+  return (parseFloat(cs.paddingLeft) || 0) + (parseFloat(cs.paddingRight) || 0)
+       + (parseFloat(cs.borderLeftWidth) || 0) + (parseFloat(cs.borderRightWidth) || 0);
+}
+
+// 헤더에 <br> 로 줄바꿈이 들어간 경우, textContent 로 이어붙여 재면 실제보다 훨씬 넓게
+// 나온다. <br> 기준으로 줄을 나눠 가장 넓은 한 줄만 기준으로 삼는다.
+function measureHeaderTextWidth(th){
+  let maxW = 0, current = '';
+  const flush = () => { if (current.trim()) maxW = Math.max(maxW, measureNameWidth(current.trim(), th)); current = ''; };
+  th.childNodes.forEach(node => {
+    if (node.nodeType === 1 && node.tagName === 'BR') flush();
+    else current += node.textContent || '';
+  });
+  flush();
+  return maxW;
+}
+
+// headerEl(th)과 cellEls(그 컬럼의 각 행 엘리먼트) 중 가장 넓게 필요한 폭에 맞춘다.
+function fitSimpleColumnWidth(table, colIndex, headerEl, cellEls, minW, maxW){
+  if (!table) return;
+  const cols = table.querySelectorAll('colgroup col');
+  if (!cols[colIndex]) return;
+  const measure = (el) => Math.ceil(measureNameWidth(el.textContent, el) + measureCellOverhead(el)) + 2;
+  let want = minW;
+  if (headerEl) want = Math.max(want, Math.ceil(measureHeaderTextWidth(headerEl) + measureCellOverhead(headerEl)) + 2);
+  cellEls.forEach(el => { want = Math.max(want, measure(el)); });
+  cols[colIndex].style.width = Math.max(minW, Math.min(maxW, want)) + 'px';
+}
+
+// 컬럼들을 다 맞춘 뒤, 표 전체 min-width 를 실제 컬럼 폭 합계로 다시 맞춘다.
+function syncTableMinWidth(table){
+  if (!table) return;
+  const cols = table.querySelectorAll('colgroup col');
+  const total = Array.from(cols).reduce((s, c) => s + (parseFloat(c.style.width) || 0), 0);
+  if (total > 0) table.style.minWidth = total + 'px';
+}
+
 function renderAll(){
   migrateCashRows();
   groups.forEach((g,i)=> g.__idx = i);

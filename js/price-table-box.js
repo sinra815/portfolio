@@ -7,6 +7,15 @@ function fitMasterNameColumn(){
   if (!table) return;
   fitNameColumn(table, table.querySelectorAll('.stock-name-edit'),
                 NAME_COL_MIN_W, NAME_COL_MAX_W);
+
+  // 티커·보유 계좌 수는 단순 텍스트라 내용에 맞춰 폭을 줄인다.
+  // 유형(select)·현재가(입력창+버튼)는 컨트롤 자체 크기가 필요해 고정 폭을 유지한다.
+  const headerCells = table.querySelectorAll('thead th');
+  const bodyRows = Array.from(document.getElementById('priceBody').querySelectorAll('tr'))
+    .filter(r => r.children.length > 1); // 구분선 행(colspan) 제외
+  fitSimpleColumnWidth(table, 1, headerCells[1], bodyRows.map(r => r.querySelector('.ticker-edit')).filter(Boolean), 50, 160);
+  fitSimpleColumnWidth(table, 3, headerCells[3], bodyRows.map(r => r.children[3]).filter(Boolean), 36, 120);
+  syncTableMinWidth(table);
 }
 
 function renderPriceTable(){

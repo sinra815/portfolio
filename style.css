@@ -38,7 +38,7 @@ h1{font-size:20px; margin:0 0 4px;}
 .swatch.unused{background:repeating-linear-gradient(45deg, #eceef1, #eceef1 3px, #f6f7f9 3px, #f6f7f9 6px);}
 
 .table-scroll{overflow-x:auto; -webkit-overflow-scrolling:touch; border:1px solid var(--border); border-radius:10px;}
-table{border-collapse:collapse; width:100%; min-width:1400px; font-size:12.5px;}
+table{border-collapse:collapse; width:100%; font-size:12.5px;}
 thead th{
   background:var(--header); color:var(--header-text); font-weight:600;
   padding:8px 6px; text-align:center; border:1px solid #3d4759;
