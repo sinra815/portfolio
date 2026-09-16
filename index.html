@@ -8,6 +8,28 @@
 </head>
 <body>
 
+<div class="auth-overlay open" id="authOverlay">
+  <div class="auth-box">
+    <div id="authLoginView">
+      <h2>🔒 로그인</h2>
+      <input type="text" id="authIdInput" placeholder="ID" autocomplete="username">
+      <input type="password" id="authPasswordInput" placeholder="비밀번호" autocomplete="current-password">
+      <div class="auth-error" id="authLoginError"></div>
+      <button type="button" class="primary" id="authLoginBtn">로그인</button>
+    </div>
+    <div id="authRegisterView" style="display:none;">
+      <h2>🆕 ID 생성</h2>
+      <div class="auth-hint" id="authRegisterHint"></div>
+      <input type="text" id="authNewIdInput" placeholder="ID (영문/숫자/밑줄 2~20자)" autocomplete="username">
+      <input type="password" id="authNewPasswordInput" placeholder="비밀번호 (4자 이상)" autocomplete="new-password">
+      <input type="password" id="authNewPasswordConfirmInput" placeholder="비밀번호 확인" autocomplete="new-password">
+      <div class="auth-error" id="authRegisterError"></div>
+      <button type="button" class="primary" id="authRegisterBtn">ID 생성하고 시작하기</button>
+      <button type="button" class="link" id="authBackToLoginBtn">← 로그인으로 돌아가기</button>
+    </div>
+  </div>
+</div>
+
 <h1>투자 관리</h1>
 <p class="sub">증권사/계좌별 목표 비중과 단계별(분할매수) 목표가 대비 현재 평가금액을 비교해 확대/축소 여부를 판단합니다. 주황색 배경 셀은 직접 입력하는 값입니다.</p>
 
@@ -210,6 +232,7 @@
 
 <script src="js/core.js"></script>
 <script src="js/numpad.js"></script>
+<script src="js/auth-box.js"></script>
 <script src="js/settings-box.js"></script>
 <script src="js/stock-summary-box.js"></script>
 <script src="js/main-table-box.js"></script>

@@ -260,11 +260,16 @@ function setSaveBadge(visible){
 }
 
 async function refreshSaveBadge(){
+  if (!currentUserId) return;
   try {
-    const res = await fetch('/api/load?existsOnly=1');
+    const res = await fetch('/api/load', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: currentUserId }),
+    });
     if (!res.ok) return;
     const json = await res.json();
-    setSaveBadge(!!json.exists);
+    setSaveBadge(!!json.data);
   } catch (e) {
     // 오프라인이거나 API가 없는 정적 호스팅에서는 배지를 건드리지 않는다.
   }
@@ -272,19 +277,21 @@ async function refreshSaveBadge(){
 
 document.getElementById('saveBtn').addEventListener('click', () => {
   const btn = document.getElementById('saveBtn');
+  if (!currentUserId) { showFieldStatus(btn, '로그인이 필요합니다.', 'error'); return; }
   const original = btn.textContent;
   btn.textContent = '저장 중...';
   btn.disabled = true;
   fetch('/api/save', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(buildStateSnapshot()),
-  }).then((res) => {
-    if (!res.ok) throw new Error('save failed');
+    body: JSON.stringify({ ...buildStateSnapshot(), id: currentUserId }),
+  }).then(async (res) => {
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(json.error || '저장 실패 - 네트워크 상태를 확인해주세요.');
     setSaveBadge(true);
     showFieldStatus(btn, '저장되었습니다.');
-  }).catch(() => {
-    showFieldStatus(btn, '저장 실패 - 네트워크 상태를 확인해주세요.', 'error');
+  }).catch((err) => {
+    showFieldStatus(btn, err.message || '저장 실패 - 네트워크 상태를 확인해주세요.', 'error');
   }).finally(() => {
     btn.textContent = original;
     btn.disabled = false;
@@ -293,12 +300,18 @@ document.getElementById('saveBtn').addEventListener('click', () => {
 
 document.getElementById('loadBtn').addEventListener('click', () => {
   const btn = document.getElementById('loadBtn');
+  if (!currentUserId) { showFieldStatus(btn, '로그인이 필요합니다.', 'error'); return; }
   const original = btn.textContent;
   btn.textContent = '불러오는 중...';
   btn.disabled = true;
-  fetch('/api/load').then((res) => {
-    if (!res.ok) throw new Error('load failed');
-    return res.json();
+  fetch('/api/load', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id: currentUserId }),
+  }).then(async (res) => {
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(json.error || '불러오기 실패 - 네트워크 상태를 확인해주세요.');
+    return json;
   }).then((json) => {
     if (!json.data) {
       setSaveBadge(false);
@@ -314,8 +327,8 @@ document.getElementById('loadBtn').addEventListener('click', () => {
     if (saved.threshold !== undefined) document.getElementById('overweightThreshold').value = saved.threshold;
     renderAll();
     showFieldStatus(btn, '불러왔습니다.');
-  }).catch(() => {
-    showFieldStatus(btn, '불러오기 실패 - 네트워크 상태를 확인해주세요.', 'error');
+  }).catch((err) => {
+    showFieldStatus(btn, err.message || '불러오기 실패 - 네트워크 상태를 확인해주세요.', 'error');
   }).finally(() => {
     btn.textContent = original;
     btn.disabled = false;
