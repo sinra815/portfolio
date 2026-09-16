@@ -47,7 +47,7 @@ function renderMainTable(){
       const canMoveDown = idx < g.rows.length - 1 && getRowType(g.rows[idx + 1]) === getRowType(r);
       const stockExists = master.some(m => m.name === r.stock);
       const stockLabel = stockExists ? r.stock : `${r.stock} <span style="color:var(--down); font-size:11px;">(삭제됨)</span>`;
-      cells += `<td class="label sticky-col"><div style="display:flex; align-items:center; gap:4px;">
+      cells += `<td class="label"><div style="display:flex; align-items:center; gap:4px;">
         <span style="flex:1; min-width:0;">${stockLabel}</span>
         <span class="spin-btns">
           <button type="button" class="reorder-btn row-up" data-g="${g.__idx}" data-r="${idx}" title="위로 이동" ${canMoveUp ? '' : 'disabled'}>▲</button>
@@ -142,7 +142,7 @@ function renderMainTable(){
           <button type="button" class="remove-group-btn" data-g="${g.__idx}" title="이 계좌(그룹) 삭제" style="padding:1px 6px; border-radius:4px; border:1px solid var(--border-strong); background:#fff; color:var(--down); cursor:pointer; font-size:11px; line-height:1.4;">그룹삭제</button>
         </div>
       </td>
-      <td class="sticky-col">-</td>
+      <td>-</td>
       <td>-</td>
       <td>${fmt(sumM)}</td>
       <td>-</td>
@@ -178,7 +178,7 @@ function renderMainTable(){
   tfoot.innerHTML = `
     <tr class="total-row">
       <td colspan="2" class="center">합계</td>
-      <td class="label sticky-col">전체</td>
+      <td class="label">전체</td>
       <td>-</td>
       <td>-</td>
       <td>-</td>
