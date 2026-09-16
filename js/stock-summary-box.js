@@ -66,21 +66,8 @@ function renderStockSummary(){
 }
 
 // 종목이 없는 경로와 있는 경로가 똑같이 거쳐야 하는 마무리 처리.
-// 파이 차트는 표 높이에 맞추므로, 컬럼 폭(→ 줄바꿈 → 높이) 을 먼저 확정해야 한다.
 function fitSummaryLayout(){
   fitNameColumn(document.getElementById('stockSummaryTable'),
                 document.querySelectorAll('#stockSummaryBody .summary-name'),
                 NAME_COL_MIN_W, NAME_COL_MAX_W);
-  resizePieChartToTable();
-}
-
-// 원형 차트 크기를 오른쪽 표의 실제 높이에 비례해서 맞춤
-function resizePieChartToTable(){
-  const table = document.getElementById('stockSummaryTable');
-  const chartEl = document.getElementById('stockPieChart');
-  if (!table || !chartEl) return;
-  const h = table.getBoundingClientRect().height;
-  const size = Math.max(100, Math.min(320, Math.round(h * 0.8)));
-  chartEl.style.width = size + 'px';
-  chartEl.style.height = size + 'px';
 }
