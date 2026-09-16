@@ -1,5 +1,20 @@
 // ==== "📊 계좌별 리밸런싱 현황" 박스: 메인 테이블 렌더링 + 조작 ====
 
+// 박스 안 스크롤에서의 헤더 고정: CSS position:sticky는 overflow:auto 박스 안에서
+// 모바일 브라우저(특히 iOS Safari)가 신뢰성 있게 지원하지 않아, 스크롤에 맞춰
+// 헤더 셀을 직접 translateY로 밀어주는 방식으로 대체한다.
+(function setupMainTableHeaderPin(){
+  const wrap = document.getElementById('mainTable').closest('.table-scroll');
+  if (!wrap) return;
+  const syncHeaderOffset = () => {
+    const y = wrap.scrollTop;
+    document.querySelectorAll('#mainTable thead th').forEach(th => {
+      th.style.transform = y > 0 ? `translateY(${y}px)` : '';
+    });
+  };
+  wrap.addEventListener('scroll', syncHeaderOffset, { passive: true });
+})();
+
 function renderMainTable(){
   const tbody = document.getElementById('mainBody');
   tbody.innerHTML = '';
