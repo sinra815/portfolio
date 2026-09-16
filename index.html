@@ -136,8 +136,8 @@
           <tbody id="priceBody"></tbody>
           <tfoot>
             <tr>
-              <td><input type="text" id="newStockName" placeholder="새 종목명" list="newStockNameList" autocomplete="off" style="width:100%; box-sizing:border-box; padding:4px 6px; border:1px solid var(--border-strong); border-radius:4px; font-size:12.5px; font-family:inherit;">
-                <datalist id="newStockNameList"></datalist>
+              <td style="position:relative;"><input type="text" id="newStockName" placeholder="새 종목명" autocomplete="off" style="width:100%; box-sizing:border-box; padding:4px 6px; border:1px solid var(--border-strong); border-radius:4px; font-size:12.5px; font-family:inherit;">
+                <div id="newStockNameList" class="suggest-dropdown" hidden></div>
               </td>
               <td style="text-align:left;"><input type="text" id="newStockTicker" placeholder="티커" style="width:100%; box-sizing:border-box; padding:4px 6px; border:1px solid var(--border-strong); border-radius:4px; font-size:12.5px; font-family:inherit;"></td>
               <td style="text-align:left;">

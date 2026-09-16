@@ -61,6 +61,20 @@ async function fetchStockNameSuggestions(q){
   }
 }
 
+function hideStockNameSuggestions(){
+  const dropdown = document.getElementById('newStockNameList');
+  dropdown.hidden = true;
+  dropdown.innerHTML = '';
+}
+
+function selectStockNameSuggestion(name){
+  const nameInput = document.getElementById('newStockName');
+  const tickerInput = document.getElementById('newStockTicker');
+  nameInput.value = name;
+  if (stockNameSuggestionMap[name]) tickerInput.value = stockNameSuggestionMap[name];
+  hideStockNameSuggestions();
+}
+
 document.getElementById('newStockName').addEventListener('input', (e) => {
   const nameInput = e.target;
   const tickerInput = document.getElementById('newStockTicker');
@@ -69,7 +83,7 @@ document.getElementById('newStockName').addEventListener('input', (e) => {
   clearTimeout(stockNameSearchTimer);
   if (!q) {
     stockNameSuggestionMap = {};
-    document.getElementById('newStockNameList').innerHTML = '';
+    hideStockNameSuggestions();
     return;
   }
 
@@ -80,22 +94,45 @@ document.getElementById('newStockName').addEventListener('input', (e) => {
 
   stockNameSearchTimer = setTimeout(async () => {
     const items = await fetchStockNameSuggestions(q);
+    // 응답이 도착하기 전에 입력값이 바뀌었으면(이미 다른 검색이 진행 중이면) 이 결과는 버린다.
+    if (nameInput.value.trim() !== q) return;
+
     stockNameSuggestionMap = {};
     items.forEach(item => { stockNameSuggestionMap[item.name] = item.ticker; });
 
-    const datalist = document.getElementById('newStockNameList');
-    datalist.innerHTML = '';
+    const dropdown = document.getElementById('newStockNameList');
+    dropdown.innerHTML = '';
     items.forEach(item => {
-      const option = document.createElement('option');
-      option.value = item.name;
-      datalist.appendChild(option);
+      const div = document.createElement('div');
+      div.className = 'suggest-item';
+      div.textContent = item.name;
+      div.dataset.name = item.name;
+      dropdown.appendChild(div);
     });
+    dropdown.hidden = items.length === 0;
 
     // 응답이 도착한 시점에도 입력값이 그대로 완전히 일치하면 티커를 채운다.
     if (stockNameSuggestionMap[nameInput.value.trim()]) {
       tickerInput.value = stockNameSuggestionMap[nameInput.value.trim()];
     }
   }, 250);
+});
+
+// 모바일 브라우저에서는 mousedown 시점에 입력창의 blur(→드롭다운 숨김)가 click보다 먼저 발생해
+// 탭이 무시될 수 있으므로, mousedown 단계에서 기본 동작(포커스 이동)을 막아 blur 자체를 방지한다.
+document.addEventListener('mousedown', (e) => {
+  if (e.target.closest('#newStockNameList')) e.preventDefault();
+});
+
+document.addEventListener('click', (e) => {
+  const item = e.target.closest('.suggest-item');
+  if (!item) return;
+  selectStockNameSuggestion(item.dataset.name);
+});
+
+document.getElementById('newStockName').addEventListener('blur', () => {
+  // mousedown 방어가 통하지 않는 경우를 대비한 안전장치(클릭 처리 시간을 확보하기 위해 지연)
+  setTimeout(hideStockNameSuggestions, 150);
 });
 
 document.getElementById('addStockBtn').addEventListener('click', async (e) => {
