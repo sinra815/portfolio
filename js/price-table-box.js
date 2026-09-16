@@ -265,7 +265,7 @@ document.addEventListener('click', (e) => {
   if (!btn) return;
   const idx = +btn.dataset.idx;
   const removedName = master[idx].name;
-  const usedCount = groups.reduce((s,g) => s + g.rows.filter(r => !r.cash && r.stock === removedName).length, 0);
+  const usedCount = groups.reduce((s,g) => s + g.rows.filter(r => r.stock === removedName).length, 0);
   if (usedCount > 0 && !confirm(`"${removedName}"을(를) 사용 중인 계좌 항목이 ${usedCount}개 있습니다. 삭제하면 해당 항목에 "(삭제됨)" 표시가 붙습니다. 계속할까요?`)) return;
   master.splice(idx, 1);
   renderAll();
@@ -296,7 +296,7 @@ document.addEventListener('click', (e) => {
     return;
   }
   master[idx].name = trimmed;
-  groups.forEach(g => g.rows.forEach(r => { if (!r.cash && r.stock === oldName) r.stock = trimmed; }));
+  groups.forEach(g => g.rows.forEach(r => { if (r.stock === oldName) r.stock = trimmed; }));
   renderAll();
 });
 

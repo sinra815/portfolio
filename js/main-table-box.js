@@ -41,29 +41,20 @@ function renderMainTable(){
         cells += `<td class="grp-cell grp-cell-account" rowspan="${groupRowspan}"><span class="group-name-edit" data-g="${g.__idx}" data-field="account" title="클릭하여 계좌명 변경">${g.account}</span></td>`;
         groupHeaderInserted = true;
       }
-      if (r.cash) {
-        cells += `<td class="label"><div style="display:flex; align-items:center; gap:4px;">
-          <span style="flex:1; min-width:0;">${r.stock}</span>
-          <span class="spin-btns">
-            <button type="button" class="reorder-btn" disabled title="현금은 이동할 수 없습니다">▲</button>
-            <button type="button" class="reorder-btn" disabled title="현금은 이동할 수 없습니다">▼</button>
-          </span>
-          <button type="button" class="row-delete-btn" data-g="${g.__idx}" data-r="${idx}" title="이 항목 삭제" style="flex:0 0 auto; width:20px; height:22px; padding:0; border:1px solid var(--border-strong); border-radius:4px; background:#fff; color:var(--down); cursor:pointer; font-size:12px; line-height:1;">×</button>
-        </div></td>`;
-      } else {
-        const canMoveUp = idx > 0 && getRowType(g.rows[idx - 1]) === getRowType(r);
-        const canMoveDown = idx < g.rows.length - 1 && getRowType(g.rows[idx + 1]) === getRowType(r);
-        const stockExists = master.some(m => m.name === r.stock);
-        const stockLabel = stockExists ? r.stock : `${r.stock} <span style="color:var(--down); font-size:11px;">(삭제됨)</span>`;
-        cells += `<td class="label"><div style="display:flex; align-items:center; gap:4px;">
-          <span style="flex:1; min-width:0;">${stockLabel}</span>
-          <span class="spin-btns">
-            <button type="button" class="reorder-btn row-up" data-g="${g.__idx}" data-r="${idx}" title="위로 이동" ${canMoveUp ? '' : 'disabled'}>▲</button>
-            <button type="button" class="reorder-btn row-down" data-g="${g.__idx}" data-r="${idx}" title="아래로 이동" ${canMoveDown ? '' : 'disabled'}>▼</button>
-          </span>
-          <button type="button" class="row-delete-btn" data-g="${g.__idx}" data-r="${idx}" title="이 항목 삭제" style="flex:0 0 auto; width:20px; height:22px; padding:0; border:1px solid var(--border-strong); border-radius:4px; background:#fff; color:var(--down); cursor:pointer; font-size:12px; line-height:1;">×</button>
-        </div></td>`;
-      }
+      // '현금' 행도 다른 종목과 똑같이 다룬다. 이동은 핸들러가 같은 유형끼리만 교환하도록
+      // 막아주므로, 현금성 행들이 아래쪽에 뭉쳐 있어야 하는 "현금성자산" 병합 셀은 그대로 유지된다.
+      const canMoveUp = idx > 0 && getRowType(g.rows[idx - 1]) === getRowType(r);
+      const canMoveDown = idx < g.rows.length - 1 && getRowType(g.rows[idx + 1]) === getRowType(r);
+      const stockExists = master.some(m => m.name === r.stock);
+      const stockLabel = stockExists ? r.stock : `${r.stock} <span style="color:var(--down); font-size:11px;">(삭제됨)</span>`;
+      cells += `<td class="label"><div style="display:flex; align-items:center; gap:4px;">
+        <span style="flex:1; min-width:0;">${stockLabel}</span>
+        <span class="spin-btns">
+          <button type="button" class="reorder-btn row-up" data-g="${g.__idx}" data-r="${idx}" title="위로 이동" ${canMoveUp ? '' : 'disabled'}>▲</button>
+          <button type="button" class="reorder-btn row-down" data-g="${g.__idx}" data-r="${idx}" title="아래로 이동" ${canMoveDown ? '' : 'disabled'}>▼</button>
+        </span>
+        <button type="button" class="row-delete-btn" data-g="${g.__idx}" data-r="${idx}" title="이 항목 삭제" style="flex:0 0 auto; width:20px; height:22px; padding:0; border:1px solid var(--border-strong); border-radius:4px; background:#fff; color:var(--down); cursor:pointer; font-size:12px; line-height:1;">×</button>
+      </div></td>`;
 
       if (r.weight === null) {
         cells += `<td><div class="stepper">
@@ -262,7 +253,7 @@ document.addEventListener('click', (e) => {
     }
     rows.push({ stock:'현금', weight:null, qty:0, cash:true });
   } else {
-    if (rows.some(r => !r.cash && r.stock === stockName)) {
+    if (rows.some(r => r.stock === stockName)) {
       showFieldStatus(btn, `"${stockName}"은(는) 이미 이 계좌에 등록되어 있습니다.`, 'error');
       return;
     }
