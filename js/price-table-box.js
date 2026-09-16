@@ -61,11 +61,26 @@ async function fetchStockNameSuggestions(q){
   }
 }
 
-function hideStockNameSuggestions(){
-  const dropdown = document.getElementById('newStockNameList');
-  dropdown.hidden = true;
-  dropdown.innerHTML = '';
+// 드롭다운은 "종목 마스터" 표의 가로 스크롤 컨테이너(.table-scroll, overflow-x:auto) 안에 있으면
+// 세로로도 함께 잘려서 화면에 보이지 않으므로, body로 옮기고 position:fixed로 화면 좌표를 직접 계산해 띄운다.
+const stockNameDropdown = document.getElementById('newStockNameList');
+document.body.appendChild(stockNameDropdown);
+
+function positionStockNameDropdown(){
+  const rect = document.getElementById('newStockName').getBoundingClientRect();
+  stockNameDropdown.style.left = rect.left + 'px';
+  stockNameDropdown.style.top = rect.bottom + 'px';
+  stockNameDropdown.style.width = rect.width + 'px';
 }
+
+function hideStockNameSuggestions(){
+  stockNameDropdown.hidden = true;
+  stockNameDropdown.innerHTML = '';
+}
+
+// 드롭다운이 열린 상태로 스크롤/리사이즈가 발생하면 위치가 어긋나므로 그냥 닫는다.
+document.addEventListener('scroll', () => { if (!stockNameDropdown.hidden) hideStockNameSuggestions(); }, true);
+window.addEventListener('resize', hideStockNameSuggestions);
 
 function selectStockNameSuggestion(name){
   const nameInput = document.getElementById('newStockName');
@@ -100,16 +115,16 @@ document.getElementById('newStockName').addEventListener('input', (e) => {
     stockNameSuggestionMap = {};
     items.forEach(item => { stockNameSuggestionMap[item.name] = item.ticker; });
 
-    const dropdown = document.getElementById('newStockNameList');
-    dropdown.innerHTML = '';
+    stockNameDropdown.innerHTML = '';
     items.forEach(item => {
       const div = document.createElement('div');
       div.className = 'suggest-item';
       div.textContent = item.name;
       div.dataset.name = item.name;
-      dropdown.appendChild(div);
+      stockNameDropdown.appendChild(div);
     });
-    dropdown.hidden = items.length === 0;
+    if (items.length > 0) positionStockNameDropdown();
+    stockNameDropdown.hidden = items.length === 0;
 
     // 응답이 도착한 시점에도 입력값이 그대로 완전히 일치하면 티커를 채운다.
     if (stockNameSuggestionMap[nameInput.value.trim()]) {

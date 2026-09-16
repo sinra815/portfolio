@@ -124,7 +124,7 @@ input.cell-input:focus{outline:2px solid var(--accent); outline-offset:0;}
 .price-table td:first-child{background:#eef1f6; font-weight:700; color:#111827;}
 .price-table td.num{text-align:right;}
 
-.suggest-dropdown{position:absolute; left:0; right:0; top:100%; z-index:20; margin-top:2px; background:#fff; border:1px solid var(--border-strong); border-radius:4px; box-shadow:0 4px 10px rgba(0,0,0,0.12); max-height:220px; overflow-y:auto;}
+.suggest-dropdown{position:fixed; z-index:1000; margin-top:2px; background:#fff; border:1px solid var(--border-strong); border-radius:4px; box-shadow:0 4px 10px rgba(0,0,0,0.12); max-height:220px; overflow-y:auto;}
 .suggest-item{padding:8px 10px; font-size:12.5px; cursor:pointer; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
 .suggest-item:hover, .suggest-item.active{background:var(--group-bg);}
 
