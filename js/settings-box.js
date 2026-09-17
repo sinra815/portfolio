@@ -6,6 +6,14 @@ function buildExportFilename(){
   return `투자_${ts.getFullYear()}${pad(ts.getMonth()+1)}${pad(ts.getDate())}${pad(ts.getHours())}${pad(ts.getMinutes())}${pad(ts.getSeconds())}.json`;
 }
 
+// File System Access API(showDirectoryPicker/showSaveFilePicker/removeEntry)는 모바일에서
+// 지원되지 않거나(iOS Safari) 최근에서야 부분적으로 지원되기 시작해 아직 불안정하다(Android
+// 일부 브라우저 — 폴더 지정까지는 되는데 저장/삭제 단계에서 오류가 나는 사례). 모바일에서는
+// 이 API들을 아예 시도하지 않고 표준 다운로드/파일 선택 방식으로만 동작시킨다.
+const IS_MOBILE = /Android|iPhone|iPad|iPod|Mobi/i.test(navigator.userAgent);
+const SUPPORTS_FS_ACCESS = !IS_MOBILE && !!window.showDirectoryPicker;
+const SUPPORTS_SAVE_PICKER = !IS_MOBILE && !!window.showSaveFilePicker;
+
 const IDB_NAME = 'investRebalanceDB';
 const IDB_STORE = 'handles';
 let workDirHandle = null;
@@ -48,7 +56,7 @@ function updateWorkDirStatus(){
 }
 
 async function restoreWorkDirHandle(){
-  if (!window.showDirectoryPicker) return;
+  if (!SUPPORTS_FS_ACCESS) return;
   const stored = await idbGet('workDirHandle');
   if (!stored) return;
   try {
@@ -72,8 +80,8 @@ function getCurrentFolderHint(){
 
 async function chooseWorkDir(anchor){
   const btn = anchor || document.getElementById('chooseWorkDirBtn');
-  if (!window.showDirectoryPicker) {
-    showFieldStatus(btn, '이 브라우저는 폴더를 직접 지정하는 기능을 지원하지 않습니다. Chrome이나 Edge 최신 버전에서 사용해주세요.', 'error');
+  if (!SUPPORTS_FS_ACCESS) {
+    showFieldStatus(btn, '이 브라우저는 폴더를 직접 지정하는 기능을 지원하지 않습니다. 데스크톱 Chrome이나 Edge 최신 버전에서 사용해주세요.', 'error');
     return null;
   }
   try {
@@ -89,7 +97,7 @@ async function chooseWorkDir(anchor){
 }
 
 async function ensureWorkDir(anchor){
-  if (!window.showDirectoryPicker) return null;
+  if (!SUPPORTS_FS_ACCESS) return null;
   if (workDirHandle) {
     try {
       const perm = await workDirHandle.queryPermission({ mode: 'readwrite' });
@@ -119,7 +127,7 @@ async function exportToFile(anchor){
   const jsonStr = JSON.stringify(buildStateSnapshot(), null, 2);
   const defaultName = buildExportFilename();
 
-  if (window.showSaveFilePicker) {
+  if (SUPPORTS_SAVE_PICKER) {
     try {
       const opts = {
         suggestedName: defaultName,
@@ -138,21 +146,33 @@ async function exportToFile(anchor){
     }
   }
 
-  let filename = prompt('저장할 파일명을 입력하세요.', defaultName);
-  if (filename === null) return;
-  filename = filename.trim();
-  if (!filename) { showFieldStatus(btn, '파일명을 입력해주세요.', 'error'); return; }
-  if (!filename.toLowerCase().endsWith('.json')) filename += '.json';
+  // 표준 다운로드 방식(모바일 포함 모든 브라우저의 최종 대체 경로) — 예외가 나도 화면에 메시지 없이
+  // 조용히 실패하는 일이 없도록 전체를 감싼다.
+  try {
+    let filename = defaultName;
+    try {
+      const typed = prompt('저장할 파일명을 입력하세요.', defaultName);
+      if (typed === null) return; // 사용자가 취소
+      filename = typed.trim() || defaultName;
+    } catch (e) {
+      // 일부 모바일 브라우저(특히 인앱 웹뷰)는 prompt() 자체를 지원하지 않는다 — 그런 경우
+      // 이름을 묻지 않고 기본 파일명으로 바로 진행한다.
+    }
+    if (!filename.toLowerCase().endsWith('.json')) filename += '.json';
 
-  const blob = new Blob([jsonStr], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+    const blob = new Blob([jsonStr], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showFieldStatus(btn, `다운로드했습니다. (${filename})`);
+  } catch (e) {
+    showFieldStatus(btn, '파일을 저장하는 중 오류가 발생했습니다: ' + e.message, 'error');
+  }
 }
 document.getElementById('exportBtn').addEventListener('click', (e) => exportToFile(e.currentTarget));
 
