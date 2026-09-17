@@ -1,5 +1,5 @@
 import { Redis } from '@upstash/redis';
-import { verifyAdmin, ADMIN_ID } from '../lib/admin.js';
+import { verifyAdmin } from '../lib/admin.js';
 
 const redis = new Redis({
   url: process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL,
@@ -19,9 +19,6 @@ export default async function handler(req, res) {
     if (!check.ok) return res.status(check.status).json({ error: check.error });
 
     if (!targetId) return res.status(400).json({ error: '대상 ID가 필요합니다.' });
-    if (targetId === ADMIN_ID) {
-      return res.status(400).json({ error: '이 계정의 관리자 권한은 바꿀 수 없습니다.' });
-    }
     if (targetId === adminId) {
       return res.status(400).json({ error: '자기 자신의 관리자 권한은 바꿀 수 없습니다.' });
     }
