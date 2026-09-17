@@ -16,6 +16,7 @@
       <input type="password" id="authPasswordInput" placeholder="비밀번호" autocomplete="current-password">
       <div class="auth-error" id="authLoginError"></div>
       <button type="button" class="primary" id="authLoginBtn">로그인</button>
+      <button type="button" class="link" id="continueAsGuestBtn">로그인 없이 계속하기</button>
     </div>
     <div id="authRegisterView" style="display:none;">
       <h2>🆕 ID 생성</h2>
@@ -54,10 +55,10 @@
       <label>&nbsp;</label>
       <div style="display:flex; gap:8px; flex-wrap:wrap;">
         <div style="position:relative; display:inline-block;">
-          <button id="saveBtn" style="padding:7px 14px;border-radius:6px;border:1px solid var(--accent);background:var(--accent);color:#fff;cursor:pointer;white-space:nowrap;">저장</button>
+          <button id="saveBtn" disabled title="로그인 후 사용할 수 있습니다." style="padding:7px 14px;border-radius:6px;border:1px solid var(--accent);background:var(--accent);color:#fff;cursor:pointer;white-space:nowrap;">저장</button>
           <span id="saveBadge" title="저장된 데이터가 있습니다" style="display:none; position:absolute; top:-4px; right:-4px; width:11px; height:11px; border-radius:50%; background:#16a34a; border:2px solid #fff;"></span>
         </div>
-        <button id="loadBtn" style="padding:7px 14px;border-radius:6px;border:1px solid var(--border-strong);background:#fff;cursor:pointer;white-space:nowrap;">불러오기</button>
+        <button id="loadBtn" disabled title="로그인 후 사용할 수 있습니다." style="padding:7px 14px;border-radius:6px;border:1px solid var(--border-strong);background:#fff;cursor:pointer;white-space:nowrap;">불러오기</button>
         <button id="exportBtn" style="padding:7px 14px;border-radius:6px;border:1px solid var(--border-strong);background:#fff;cursor:pointer;white-space:nowrap;">⬇ File Export</button>
         <button id="importBtn" style="padding:7px 14px;border-radius:6px;border:1px solid var(--border-strong);background:#fff;cursor:pointer;white-space:nowrap;">⬆ File Import</button>
         <input type="file" id="importFileInput" accept="application/json,.json" style="display:none;">

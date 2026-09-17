@@ -17,6 +17,19 @@ const authRegisterHint = document.getElementById('authRegisterHint');
 const authRegisterBtn = document.getElementById('authRegisterBtn');
 const currentUserIdLabel = document.getElementById('currentUserIdLabel');
 const logoutBtn = document.getElementById('logoutBtn');
+const continueAsGuestBtn = document.getElementById('continueAsGuestBtn');
+const saveBtnEl = document.getElementById('saveBtn');
+const loadBtnEl = document.getElementById('loadBtn');
+
+let isGuestMode = false;
+
+// 로그인 상태에 맞춰 저장/불러오기 버튼과 계정 영역 표시를 갱신한다.
+// 게스트로 들어온 경우 서버 저장/불러오기는 계정이 없어 사용할 수 없다.
+function setAccountUI(loggedIn){
+  saveBtnEl.disabled = !loggedIn;
+  loadBtnEl.disabled = !loggedIn;
+  logoutBtn.textContent = loggedIn ? '로그아웃' : '로그인';
+}
 
 function showLoginView(){
   authRegisterView.style.display = 'none';
@@ -39,17 +52,37 @@ function showRegisterView(prefillId){
 
 function completeLogin(id){
   currentUserId = id;
+  isGuestMode = false;
   try { localStorage.setItem(AUTH_STORAGE_KEY, id); } catch (e) {}
   currentUserIdLabel.textContent = id;
+  setAccountUI(true);
   authOverlay.classList.remove('open');
   if (typeof refreshSaveBadge === 'function') refreshSaveBadge();
 }
 
+function continueAsGuest(){
+  currentUserId = null;
+  isGuestMode = true;
+  currentUserIdLabel.textContent = '게스트 (서버 저장 불가)';
+  setAccountUI(false);
+  authOverlay.classList.remove('open');
+}
+
 function logout(){
+  if (isGuestMode) {
+    // 게스트는 로그아웃할 계정이 없으니 바로 로그인 화면으로 되돌아간다.
+    isGuestMode = false;
+    currentUserIdLabel.textContent = '';
+    setAccountUI(false);
+    showLoginView();
+    authOverlay.classList.add('open');
+    return;
+  }
   if (!confirm('로그아웃 하시겠습니까?')) return;
   try { localStorage.removeItem(AUTH_STORAGE_KEY); } catch (e) {}
   currentUserId = null;
   currentUserIdLabel.textContent = '';
+  setAccountUI(false);
   showLoginView();
   authOverlay.classList.add('open');
 }
@@ -60,6 +93,7 @@ try {
   if (savedId) {
     currentUserId = savedId;
     currentUserIdLabel.textContent = savedId;
+    setAccountUI(true);
     authOverlay.classList.remove('open');
   }
 } catch (e) {}
@@ -143,6 +177,7 @@ authLoginBtn.addEventListener('click', attemptLogin);
 authRegisterBtn.addEventListener('click', attemptRegister);
 document.getElementById('authBackToLoginBtn').addEventListener('click', showLoginView);
 logoutBtn.addEventListener('click', logout);
+continueAsGuestBtn.addEventListener('click', continueAsGuest);
 
 authPasswordInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') attemptLogin(); });
 authIdInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') authPasswordInput.focus(); });
