@@ -18,6 +18,14 @@ function fitMasterNameColumn(){
   syncTableMinWidth(table);
 }
 
+// 전일대비 등락률(부호 있는 %) 셀 HTML. 아직 조회한 적 없는 종목(changePercent 없음)은 "-".
+function formatChangePercent(cp){
+  if (cp === undefined || cp === null || isNaN(cp)) return `<span style="color:var(--muted);">-</span>`;
+  const cls = cp > 0 ? 'remark-up' : (cp < 0 ? 'remark-down' : '');
+  const sign = cp > 0 ? '+' : (cp < 0 ? '-' : '');
+  return `<span class="${cls}">${sign}${fmtTrim(Math.abs(cp), 2)}%</span>`;
+}
+
 function renderPriceTable(){
   master.sort((a, b) => ((a.type === 'cash') ? 1 : 0) - ((b.type === 'cash') ? 1 : 0));
 
@@ -26,7 +34,7 @@ function renderPriceTable(){
   master.forEach((m, idx) => {
     if (idx > 0 && m.type === 'cash' && master[idx - 1].type !== 'cash') {
       const divider = document.createElement('tr');
-      divider.innerHTML = `<td colspan="5" style="padding:0; height:2px; background:var(--border-strong); border:none;"></td>`;
+      divider.innerHTML = `<td colspan="6" style="padding:0; height:2px; background:var(--border-strong); border:none;"></td>`;
       tbody.appendChild(divider);
     }
     const count = groups.reduce((s,g) => s + g.rows.filter(r => r.stock === m.name && (Number(r.qty)||0) > 0).length, 0);
@@ -51,6 +59,7 @@ function renderPriceTable(){
       </td>
       <td class="num">${count}</td>
       <td class="num"><input type="text" class="cell-input wide price-input numpad-trigger" data-label="${m.name} 현재가(원)" data-idx="${idx}" value="${m.price}" readonly></td>
+      <td class="num">${formatChangePercent(m.changePercent)}</td>
     `;
     tbody.appendChild(tr);
   });
@@ -210,8 +219,8 @@ async function refreshAllPrices(btn){
     let ok = 0;
     for (let i = 0; i < targets.length; i++) {
       btn.textContent = `불러오는 중... (${i + 1}/${targets.length})`;
-      const price = await fetchPriceForTicker(targets[i].ticker, { silent: true });
-      if (price !== null) { targets[i].price = price; ok++; }
+      const result = await fetchPriceForTicker(targets[i].ticker, { silent: true });
+      if (result !== null) { targets[i].price = result.price; targets[i].changePercent = result.changePercent; ok++; }
     }
     renderAll();
     showFieldStatus(btn, `${targets.length}개 중 ${ok}개 종목의 금액을 불러왔습니다.`);
