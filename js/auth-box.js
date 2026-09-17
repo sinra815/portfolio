@@ -11,7 +11,6 @@ const authLoginError = document.getElementById('authLoginError');
 const authLoginBtn = document.getElementById('authLoginBtn');
 const authNewIdInput = document.getElementById('authNewIdInput');
 const authNewPasswordInput = document.getElementById('authNewPasswordInput');
-const authNewPasswordConfirmInput = document.getElementById('authNewPasswordConfirmInput');
 const authRegisterError = document.getElementById('authRegisterError');
 const authRegisterHint = document.getElementById('authRegisterHint');
 const authRegisterBtn = document.getElementById('authRegisterBtn');
@@ -53,8 +52,7 @@ function showRegisterView(prefillId){
   authRegisterHint.textContent = prefillId ? `"${prefillId}" ID가 없습니다. 새로 만드시겠어요?` : '';
   authNewIdInput.value = prefillId || '';
   authNewPasswordInput.value = '';
-  authNewPasswordConfirmInput.value = '';
-  authNewPasswordInput.focus();
+  (prefillId ? authNewPasswordInput : authNewIdInput).focus();
 }
 
 function completeLogin(id){
@@ -166,7 +164,6 @@ async function attemptLogin(){
 async function attemptRegister(){
   const id = authNewIdInput.value.trim();
   const password = authNewPasswordInput.value;
-  const passwordConfirm = authNewPasswordConfirmInput.value;
   authRegisterError.textContent = '';
   if (!/^[a-zA-Z0-9_]{2,20}$/.test(id)) {
     authRegisterError.textContent = 'ID는 영문/숫자/밑줄 2~20자로 입력해주세요.';
@@ -174,10 +171,6 @@ async function attemptRegister(){
   }
   if (password.length < 4) {
     authRegisterError.textContent = '비밀번호는 4자 이상이어야 합니다.';
-    return;
-  }
-  if (password !== passwordConfirm) {
-    authRegisterError.textContent = '비밀번호가 서로 다릅니다.';
     return;
   }
   const original = authRegisterBtn.textContent;
@@ -204,6 +197,7 @@ async function attemptRegister(){
 }
 
 authLoginBtn.addEventListener('click', attemptLogin);
+document.getElementById('goToRegisterBtn').addEventListener('click', () => showRegisterView());
 authRegisterBtn.addEventListener('click', attemptRegister);
 document.getElementById('authBackToLoginBtn').addEventListener('click', showLoginView);
 logoutBtn.addEventListener('click', logout);
@@ -212,5 +206,4 @@ continueAsGuestBtn.addEventListener('click', continueAsGuest);
 authPasswordInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') attemptLogin(); });
 authIdInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') authPasswordInput.focus(); });
 authNewIdInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') authNewPasswordInput.focus(); });
-authNewPasswordInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') authNewPasswordConfirmInput.focus(); });
-authNewPasswordConfirmInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') attemptRegister(); });
+authNewPasswordInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') attemptRegister(); });
