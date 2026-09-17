@@ -1,5 +1,6 @@
 import { Redis } from '@upstash/redis';
 import crypto from 'crypto';
+import { isUserAdmin, hasOtherAdmin } from '../lib/admin.js';
 
 const redis = new Redis({
   url: process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL,
@@ -27,6 +28,9 @@ export default async function handler(req, res) {
     const hash = crypto.createHash('sha256').update(password).digest('hex');
     if (hash !== user.passwordHash) {
       return res.status(401).json({ error: '비밀번호가 일치하지 않습니다.' });
+    }
+    if (isUserAdmin(user, id) && !(await hasOtherAdmin(redis, id))) {
+      return res.status(400).json({ error: '다른 관리자 계정이 없어 이 계정을 삭제할 수 없습니다. 먼저 다른 계정에 관리자 권한을 넘겨주세요.' });
     }
     await redis.del(userKey(id));
     await redis.del(dataKey(id));

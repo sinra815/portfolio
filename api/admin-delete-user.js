@@ -1,5 +1,5 @@
 import { Redis } from '@upstash/redis';
-import { verifyAdmin } from '../lib/admin.js';
+import { verifyAdmin, isUserAdmin, hasOtherAdmin } from '../lib/admin.js';
 
 const redis = new Redis({
   url: process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL,
@@ -26,6 +26,9 @@ export default async function handler(req, res) {
     }
     const target = await redis.get(userKey(targetId));
     if (!target) return res.status(404).json({ error: '존재하지 않는 ID입니다.' });
+    if (isUserAdmin(target, targetId) && !(await hasOtherAdmin(redis, targetId))) {
+      return res.status(400).json({ error: '다른 관리자 계정이 없어 이 관리자 계정은 삭제할 수 없습니다.' });
+    }
 
     await redis.del(userKey(targetId));
     await redis.del(dataKey(targetId));
