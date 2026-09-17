@@ -58,6 +58,7 @@ function showRegisterView(prefillId){
 function completeLogin(id){
   currentUserId = id;
   isGuestMode = false;
+  serverLoadPending = true;
   try { localStorage.setItem(AUTH_STORAGE_KEY, id); } catch (e) {}
   currentUserIdLabel.textContent = id;
   setAccountUI(true);
@@ -114,6 +115,7 @@ try {
   const savedId = localStorage.getItem(AUTH_STORAGE_KEY);
   if (savedId) {
     currentUserId = savedId;
+    serverLoadPending = true;
     currentUserIdLabel.textContent = savedId;
     setAccountUI(true);
     authOverlay.classList.remove('open');
