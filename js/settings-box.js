@@ -356,6 +356,7 @@ async function autoLoadServerData(id){
     // 이제 서버 상태를 반영했으니(혹은 반영할 데이터가 없거나 조회에 실패했으니), 저장/불러오기
     // 버튼을 다시 눌러도 안전하다. 여기서 풀어주지 않으면 로그인 상태에서 계속 막혀 있게 된다.
     serverLoadPending = false;
+    setServerLoadingIndicator(false);
   }
 }
 
