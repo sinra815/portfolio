@@ -211,9 +211,23 @@ function renderFolderFileList(dir, files){
     delBtn.textContent = '삭제';
     delBtn.title = `"${f.name}" 파일 삭제`;
     delBtn.style.cssText = 'flex:0 0 auto; padding:8px 10px; border:1px solid var(--down); border-radius:6px; background:#fff; color:var(--down); cursor:pointer; font-size:12px; font-family:inherit;';
+    // confirm() 은 쓰지 않는다 — 크롬은 removeEntry() 에 "일시적 사용자 활성화"를 요구하는데,
+    // confirm() 같은 네이티브 대화상자를 띄우면 그 활성화가 소모되어 버려서, 클릭→confirm→
+    // removeEntry 순서로는 "The request is not allowed by the user agent..." 에러가 난다.
+    // 대신 "한 번 더 누르면 삭제" 방식으로, 두 번째 클릭 자체의 새 사용자 동작으로 바로 지운다.
     delBtn.addEventListener('click', async (ev) => {
       ev.stopPropagation();
-      if (!confirm(`"${f.name}" 파일을 삭제할까요? 되돌릴 수 없습니다.`)) return;
+      if (!delBtn.dataset.armed) {
+        delBtn.dataset.armed = '1';
+        delBtn.textContent = '정말 삭제?';
+        clearTimeout(delBtn._disarmTimer);
+        delBtn._disarmTimer = setTimeout(() => {
+          delete delBtn.dataset.armed;
+          delBtn.textContent = '삭제';
+        }, 3000);
+        return;
+      }
+      clearTimeout(delBtn._disarmTimer);
       try {
         await dir.removeEntry(f.name);
         files.splice(files.indexOf(f), 1);
