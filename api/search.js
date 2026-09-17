@@ -13,7 +13,11 @@ export default async function handler(req, res) {
       .slice(0, 10)
       .map(item => ({
         name: item.name,
-        ticker: item.reutersCode || item.code || '',
+        // 해외 종목은 reutersCode 에 거래소 접미사가 붙어 있다(예: 애플 "AAPL.O").
+        // 이 값을 그대로 저장하면 나중에 그 문자열로 다시 검색했을 때(현재가 조회) 네이버
+        // 자동완성이 찾지 못한다 - code 는 접미사 없는 원래 티커라 그대로 재검색할 수 있다.
+        // 국내 종목은 code 와 reutersCode 가 어차피 같다(둘 다 숫자 코드, 접미사 없음).
+        ticker: item.code || item.reutersCode || '',
         nationCode: item.nationCode || '',
       }));
     return res.status(200).json({ items });
