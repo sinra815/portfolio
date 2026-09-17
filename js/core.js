@@ -11,7 +11,10 @@ const INITIAL_GROUPS = [];
 // 예전 버전이 "저장" 버튼으로 기록했던 localStorage 키. 저장은 서버 API(/api/save)로 옮겨졌고
 // 이 키에 새로 쓰는 코드는 없지만, 그때 저장해둔 데이터를 복원하기 위한 폴백으로 읽기만 유지한다.
 const LEGACY_STORAGE_KEY = 'investRebalanceState_v1';
-const AUTOSAVE_KEY = 'investRebalanceAutosave_v1';
+// 로그인 없이(게스트로) 들어왔을 때 "저장"/"불러오기" 버튼이 쓰는 기기 저장 위치.
+// 로그인한 경우의 저장 위치(서버 /api/save)와 대응된다 — 둘 다 버튼을 눌러야만 기록되고,
+// 값을 바꿀 때마다 자동으로 저장되지는 않는다.
+const DEVICE_SAVE_KEY = 'investRebalanceAutosave_v1';
 
 function buildStateSnapshot(){
   return {
@@ -29,47 +32,32 @@ function loadLegacyState(){
   } catch(e) { return null; }
 }
 
-function loadAutosave(){
+function loadDeviceSave(){
   try {
-    const raw = localStorage.getItem(AUTOSAVE_KEY);
+    const raw = localStorage.getItem(DEVICE_SAVE_KEY);
     return raw ? JSON.parse(raw) : null;
   } catch(e) { return null; }
 }
 
-function autosaveWorkingState(){
-  try { localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(buildStateSnapshot())); } catch(e) {}
+function saveWorkingStateToDevice(){
+  try { localStorage.setItem(DEVICE_SAVE_KEY, JSON.stringify(buildStateSnapshot())); } catch(e) {}
 }
 
-// 로그인 상태가 바뀔 때(로그인 완료/로그아웃) 남아있는 기기 자동저장을 지운다.
-// 그대로 두면 다음에 로그인 없이(게스트로) 들어왔을 때 방금 전 계정의 데이터가 그대로 보인다.
-function clearAutosave(){
-  try { localStorage.removeItem(AUTOSAVE_KEY); } catch (e) {}
-}
-
-let serverAutosaveTimer = null;
 // 로그인 직후(새로고침으로 로그인이 복원된 경우 포함) 서버의 실제 데이터를 아직 받아오지 못한 동안
-// true. 이 사이에 renderAll() 이 호출돼도(빈 master/groups 상태로) 자동저장을 내보내면 안 된다 —
-// 그러면 아직 도착하지 않은 진짜 저장 데이터를 빈 상태로 덮어써버린다. auth-box.js 가 로그인 시점에
-// true 로 켜고, autoLoadServerData() 가 끝나면(성공/실패 무관) false 로 되돌린다.
+// true. 이 사이에 "저장" 버튼을 누르면 아직 도착하지 않은 진짜 서버 데이터를 빈 상태로 덮어쓸 수
+// 있어, 그 동안은 저장/불러오기 버튼 클릭을 잠깐 막는다. auth-box.js 가 로그인 시점에 true 로
+// 켜고, autoLoadServerData() 가 끝나면(성공/실패 무관) false 로 되돌린다.
 let serverLoadPending = false;
-// 로그인 상태에서는 기기 자동저장 대신 서버로 자동 저장한다(디바운스: 연속 입력마다 요청하지 않음).
-function scheduleServerAutosave(){
-  if (!currentUserId || serverLoadPending) return;
-  clearTimeout(serverAutosaveTimer);
-  serverAutosaveTimer = setTimeout(() => {
-    if (typeof silentServerSave === 'function') silentServerSave();
-  }, 900);
-}
 
-// 로그인 유지 키(js/auth-box.js 와 공유). 로그인된 채로 새로고침한 경우에는 기기 자동저장이
-// 아니라 서버에 저장된 데이터를 보여줘야 하므로, 그 경우엔 자동저장 복원을 건너뛴다.
+// 로그인 유지 키(js/auth-box.js 와 공유). 로그인된 채로 새로고침한 경우에는 기기 저장이
+// 아니라 서버에 저장된 데이터를 보여줘야 하므로, 그 경우엔 기기 저장 복원을 건너뛴다.
 const AUTH_STORAGE_KEY = 'investRebalanceAuthId';
 function hasPersistedLogin(){
   try { return !!localStorage.getItem(AUTH_STORAGE_KEY); } catch (e) { return false; }
 }
 
-const __autosaved = hasPersistedLogin() ? null : loadAutosave();
-const __restore = __autosaved || (hasPersistedLogin() ? null : loadLegacyState());
+const __deviceSaved = hasPersistedLogin() ? null : loadDeviceSave();
+const __restore = __deviceSaved || (hasPersistedLogin() ? null : loadLegacyState());
 let master = (__restore && __restore.master) ? __restore.master : JSON.parse(JSON.stringify(INITIAL_MASTER));
 let groups = (__restore && __restore.groups) ? __restore.groups : JSON.parse(JSON.stringify(INITIAL_GROUPS));
 
@@ -360,11 +348,4 @@ function renderAll(){
   renderStockSummary();
   renderPriceTable();
   renderStageSummary();
-  // 로그인 상태면 서버에, 아니면(게스트/로그인 전) 기기에만 자동저장한다 — 섞이면 다른 계정 데이터가
-  // 로컬에 남아 다음에 로그인 없이 들어왔을 때 그대로 보이는 문제가 생긴다.
-  if (currentUserId) {
-    scheduleServerAutosave();
-  } else {
-    autosaveWorkingState();
-  }
 }
