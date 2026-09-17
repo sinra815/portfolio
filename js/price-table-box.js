@@ -202,7 +202,7 @@ document.getElementById('addStockBtn').addEventListener('click', async (e) => {
   renderAll();
 });
 
-// "종목 마스터"의 금액 불러오기 버튼과 설정 박스의 시가 새로고침 버튼이 공유하는 동작.
+// "종목 마스터"의 금액 불러오기 버튼과 설정 박스의 금액 새로고침 버튼이 공유하는 동작.
 async function refreshAllPrices(btn){
   const targets = master.filter(m => (m.ticker || '').trim());
   if (targets.length === 0) { showFieldStatus(btn, '티커가 입력된 종목이 없습니다.', 'error'); return; }
