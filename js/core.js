@@ -47,9 +47,14 @@ function clearAutosave(){
 }
 
 let serverAutosaveTimer = null;
+// 로그인 직후(새로고침으로 로그인이 복원된 경우 포함) 서버의 실제 데이터를 아직 받아오지 못한 동안
+// true. 이 사이에 renderAll() 이 호출돼도(빈 master/groups 상태로) 자동저장을 내보내면 안 된다 —
+// 그러면 아직 도착하지 않은 진짜 저장 데이터를 빈 상태로 덮어써버린다. auth-box.js 가 로그인 시점에
+// true 로 켜고, autoLoadServerData() 가 끝나면(성공/실패 무관) false 로 되돌린다.
+let serverLoadPending = false;
 // 로그인 상태에서는 기기 자동저장 대신 서버로 자동 저장한다(디바운스: 연속 입력마다 요청하지 않음).
 function scheduleServerAutosave(){
-  if (!currentUserId) return;
+  if (!currentUserId || serverLoadPending) return;
   clearTimeout(serverAutosaveTimer);
   serverAutosaveTimer = setTimeout(() => {
     if (typeof silentServerSave === 'function') silentServerSave();
