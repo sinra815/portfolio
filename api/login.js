@@ -7,6 +7,7 @@ const redis = new Redis({
 });
 
 const userKey = (id) => `rebalancer:user:${id}`;
+const USERS_SET_KEY = 'rebalancer:users';
 const MAX_ATTEMPTS = 5;
 const LOCK_MS = 10 * 60 * 1000;
 
@@ -27,6 +28,10 @@ export default async function handler(req, res) {
       return res.status(200).json({ exists: false });
     }
 
+    if (user.suspended) {
+      return res.status(403).json({ error: '이 계정은 사용이 중지되었습니다.', exists: true });
+    }
+
     const now = Date.now();
     if (user.lockedUntil && now < user.lockedUntil) {
       const remainMin = Math.ceil((user.lockedUntil - now) / 60000);
@@ -39,6 +44,8 @@ export default async function handler(req, res) {
     const passwordHash = crypto.createHash('sha256').update(password).digest('hex');
     if (passwordHash === user.passwordHash) {
       await redis.set(userKey(id), { ...user, failedAttempts: 0, lockedUntil: null });
+      // register.js 배포 전에 만들어진 계정은 목록 집합에 없을 수 있어, 로그인 때 채워 넣는다.
+      await redis.sadd(USERS_SET_KEY, id);
       return res.status(200).json({ ok: true, exists: true, id });
     }
 

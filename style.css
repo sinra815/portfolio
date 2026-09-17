@@ -205,6 +205,28 @@ input.cell-input:focus{outline:2px solid var(--accent); outline-offset:0;}
 .auth-error{color:var(--down); font-size:12px; min-height:16px; margin:-2px 0 8px; text-align:left;}
 .auth-hint{font-size:12px; color:var(--muted); margin-bottom:14px; line-height:1.5;}
 
+/* 비밀번호 변경 / 계정 삭제 / 관리자 패널 등 numpad-box 를 재사용하는 모달의 입력창 */
+.modal-input{
+  width:100%; box-sizing:border-box; padding:10px 12px; margin-bottom:10px;
+  border:1px solid var(--border-strong); border-radius:8px; font-size:14px; font-family:inherit;
+}
+.modal-input:focus{outline:2px solid var(--accent); outline-offset:0;}
+
+.admin-user-row{
+  display:flex; align-items:center; justify-content:space-between; gap:8px;
+  padding:8px 4px; border-bottom:1px solid var(--border); font-size:13px;
+}
+.admin-user-row:last-child{border-bottom:none;}
+.admin-user-id{font-weight:700; margin-right:8px;}
+.admin-user-status{font-size:11px; padding:2px 7px; border-radius:10px; font-weight:600;}
+.admin-user-status.active{background:#d6f0dd; color:#166534;}
+.admin-user-status.suspended{background:#fbdada; color:#991b1b;}
+.admin-user-row button{
+  padding:5px 10px; border-radius:6px; border:1px solid var(--border-strong);
+  background:#fff; cursor:pointer; font-size:11.5px; font-family:inherit; white-space:nowrap;
+}
+.admin-user-row button.danger{color:var(--down); border-color:var(--down);}
+
 .field-status{
   position:fixed; padding:6px 10px; border-radius:6px; max-width:260px;
   background:#1f2430; color:#fff; font-size:11.5px; font-weight:600; line-height:1.4;

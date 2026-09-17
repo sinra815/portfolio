@@ -64,6 +64,9 @@
         <input type="file" id="importFileInput" accept="application/json,.json" style="display:none;">
         <button id="resetAllBtn" style="padding:7px 14px;border-radius:6px;border:1px solid var(--down);background:#fff;color:var(--down);cursor:pointer;white-space:nowrap;">초기화</button>
         <button id="refreshPricesBtn" style="padding:7px 14px;border-radius:6px;border:1px solid var(--border-strong);background:#fff;cursor:pointer;white-space:nowrap;">시가 새로고침</button>
+        <button id="changePasswordBtn" disabled title="로그인 후 사용할 수 있습니다." style="padding:7px 14px;border-radius:6px;border:1px solid var(--border-strong);background:#fff;cursor:pointer;white-space:nowrap;">비밀번호 변경</button>
+        <button id="deleteAccountBtn" disabled title="로그인 후 사용할 수 있습니다." style="padding:7px 14px;border-radius:6px;border:1px solid var(--down);background:#fff;color:var(--down);cursor:pointer;white-space:nowrap;">계정 삭제</button>
+        <button id="adminPanelBtn" style="display:none;padding:7px 14px;border-radius:6px;border:1px solid #7c3aed;background:#7c3aed;color:#fff;cursor:pointer;white-space:nowrap;">🛠 관리자</button>
       </div>
       <div style="margin-top:6px; display:flex; align-items:center; gap:8px; font-size:11.5px; color:var(--muted);">
         <button id="chooseWorkDirBtn" style="padding:2px 8px; border-radius:4px; border:1px solid var(--border-strong); background:#fff; cursor:pointer; font-size:11px;">폴더 지정</button>
@@ -239,9 +242,56 @@
   </div>
 </div>
 
+<div class="numpad-overlay" id="changePasswordOverlay">
+  <div class="numpad-box" style="width:300px;">
+    <div class="numpad-label">비밀번호 변경</div>
+    <input type="password" id="currentPasswordInput" class="modal-input" placeholder="현재 비밀번호" autocomplete="current-password">
+    <input type="password" id="newPasswordInput" class="modal-input" placeholder="새 비밀번호 (4자 이상)" autocomplete="new-password">
+    <input type="password" id="newPasswordConfirmInput" class="modal-input" placeholder="새 비밀번호 확인" autocomplete="new-password">
+    <div class="auth-error" id="changePasswordError"></div>
+    <div class="numpad-actions">
+      <button type="button" id="changePasswordCancelBtn">취소</button>
+      <button type="button" id="changePasswordSubmitBtn" class="primary">변경</button>
+    </div>
+  </div>
+</div>
+
+<div class="numpad-overlay" id="deleteAccountOverlay">
+  <div class="numpad-box" style="width:300px;">
+    <div class="numpad-label">계정 삭제</div>
+    <p style="font-size:12px; color:var(--down); margin:0 0 10px; line-height:1.5;">삭제하면 서버에 저장된 데이터도 함께 삭제되며 되돌릴 수 없습니다.</p>
+    <input type="password" id="deleteAccountPasswordInput" class="modal-input" placeholder="비밀번호 확인" autocomplete="current-password">
+    <div class="auth-error" id="deleteAccountError"></div>
+    <div class="numpad-actions">
+      <button type="button" id="deleteAccountCancelBtn">취소</button>
+      <button type="button" id="deleteAccountSubmitBtn" class="danger">삭제</button>
+    </div>
+  </div>
+</div>
+
+<div class="numpad-overlay" id="adminOverlay">
+  <div class="numpad-box" id="adminAuthView" style="width:300px;">
+    <div class="numpad-label">관리자 인증</div>
+    <input type="password" id="adminPasswordInput" class="modal-input" placeholder="관리자 비밀번호" autocomplete="current-password">
+    <div class="auth-error" id="adminAuthError"></div>
+    <div class="numpad-actions">
+      <button type="button" id="adminAuthCancelBtn">취소</button>
+      <button type="button" id="adminAuthSubmitBtn" class="primary">확인</button>
+    </div>
+  </div>
+  <div class="numpad-box" id="adminPanelView" style="display:none; width:520px; max-width:90vw;">
+    <div class="numpad-label">계정 관리</div>
+    <div id="adminUserList" style="max-height:360px; overflow-y:auto; margin-bottom:12px;"></div>
+    <div class="numpad-actions" style="grid-template-columns:1fr;">
+      <button type="button" id="adminPanelCloseBtn">닫기</button>
+    </div>
+  </div>
+</div>
+
 <script src="js/core.js"></script>
 <script src="js/numpad.js"></script>
 <script src="js/auth-box.js"></script>
+<script src="js/account-box.js"></script>
 <script src="js/settings-box.js"></script>
 <script src="js/stock-summary-box.js"></script>
 <script src="js/main-table-box.js"></script>

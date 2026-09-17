@@ -22,6 +22,9 @@ export default async function handler(req, res) {
     if (!user) {
       return res.status(401).json({ error: '로그인이 필요합니다.' });
     }
+    if (user.suspended) {
+      return res.status(403).json({ error: '이 계정은 사용이 중지되었습니다.' });
+    }
     await redis.set(dataKey(id), payload);
     return res.status(200).json({ ok: true, savedAt: new Date().toISOString() });
   } catch (err) {

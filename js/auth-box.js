@@ -20,15 +20,20 @@ const logoutBtn = document.getElementById('logoutBtn');
 const continueAsGuestBtn = document.getElementById('continueAsGuestBtn');
 const saveBtnEl = document.getElementById('saveBtn');
 const loadBtnEl = document.getElementById('loadBtn');
+const changePasswordBtnEl = document.getElementById('changePasswordBtn');
+const deleteAccountBtnEl = document.getElementById('deleteAccountBtn');
 
 let isGuestMode = false;
 
-// 로그인 상태에 맞춰 저장/불러오기 버튼과 계정 영역 표시를 갱신한다.
-// 게스트로 들어온 경우 서버 저장/불러오기는 계정이 없어 사용할 수 없다.
+// 로그인 상태에 맞춰 저장/불러오기·계정 버튼과 계정 영역 표시를 갱신한다.
+// 게스트로 들어온 경우 서버 저장/불러오기·비밀번호 변경·계정 삭제는 계정이 없어 사용할 수 없다.
 function setAccountUI(loggedIn){
   saveBtnEl.disabled = !loggedIn;
   loadBtnEl.disabled = !loggedIn;
+  changePasswordBtnEl.disabled = !loggedIn;
+  deleteAccountBtnEl.disabled = !loggedIn;
   logoutBtn.textContent = loggedIn ? '로그아웃' : '로그인';
+  if (typeof showAdminButtonIfAdmin === 'function') showAdminButtonIfAdmin();
 }
 
 function showLoginView(){
@@ -73,17 +78,9 @@ function continueAsGuest(){
   authOverlay.classList.remove('open');
 }
 
-function logout(){
-  if (isGuestMode) {
-    // 게스트는 로그아웃할 계정이 없으니 바로 로그인 화면으로 되돌아간다.
-    isGuestMode = false;
-    currentUserIdLabel.textContent = '';
-    setAccountUI(false);
-    showLoginView();
-    authOverlay.classList.add('open');
-    return;
-  }
-  if (!confirm('로그아웃 하시겠습니까?')) return;
+// 실제로 계정을 벗어나는 처리. 확인창 없이 바로 실행하므로, 로그아웃 버튼(logout())과
+// 계정 삭제 직후(account-box.js) 둘 다 확인은 각자 하고 나서 이 함수를 부른다.
+function performLogout(){
   try { localStorage.removeItem(AUTH_STORAGE_KEY); } catch (e) {}
   currentUserId = null;
   currentUserIdLabel.textContent = '';
@@ -96,6 +93,20 @@ function logout(){
   setAccountUI(false);
   showLoginView();
   authOverlay.classList.add('open');
+}
+
+function logout(){
+  if (isGuestMode) {
+    // 게스트는 로그아웃할 계정이 없으니 바로 로그인 화면으로 되돌아간다.
+    isGuestMode = false;
+    currentUserIdLabel.textContent = '';
+    setAccountUI(false);
+    showLoginView();
+    authOverlay.classList.add('open');
+    return;
+  }
+  if (!confirm('로그아웃 하시겠습니까?')) return;
+  performLogout();
 }
 
 // 새로고침해도 로그아웃 전까지는 다시 로그인하지 않도록, 저장된 ID가 있으면 바로 복원한다.

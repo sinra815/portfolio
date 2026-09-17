@@ -8,6 +8,7 @@ const redis = new Redis({
 
 const ID_PATTERN = /^[a-zA-Z0-9_]{2,20}$/;
 const userKey = (id) => `rebalancer:user:${id}`;
+const USERS_SET_KEY = 'rebalancer:users';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -28,7 +29,8 @@ export default async function handler(req, res) {
       return res.status(409).json({ error: '이미 사용 중인 ID입니다.' });
     }
     const passwordHash = crypto.createHash('sha256').update(password).digest('hex');
-    await redis.set(userKey(id), { passwordHash, failedAttempts: 0, lockedUntil: null });
+    await redis.set(userKey(id), { passwordHash, failedAttempts: 0, lockedUntil: null, suspended: false });
+    await redis.sadd(USERS_SET_KEY, id);
     return res.status(200).json({ ok: true, id });
   } catch (err) {
     return res.status(500).json({ error: 'ID 생성 중 오류가 발생했습니다.', detail: String(err) });
