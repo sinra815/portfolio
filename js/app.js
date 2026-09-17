@@ -4,4 +4,3 @@ if (__restore) {
   if (__restore.threshold !== undefined) document.getElementById('overweightThreshold').value = __restore.threshold;
 }
 renderAll();
-refreshSaveBadge();

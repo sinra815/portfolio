@@ -40,8 +40,15 @@ function autosaveWorkingState(){
   try { localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(buildStateSnapshot())); } catch(e) {}
 }
 
-const __autosaved = loadAutosave();
-const __restore = __autosaved || loadLegacyState();
+// 로그인 유지 키(js/auth-box.js 와 공유). 로그인된 채로 새로고침한 경우에는 기기 자동저장이
+// 아니라 서버에 저장된 데이터를 보여줘야 하므로, 그 경우엔 자동저장 복원을 건너뛴다.
+const AUTH_STORAGE_KEY = 'investRebalanceAuthId';
+function hasPersistedLogin(){
+  try { return !!localStorage.getItem(AUTH_STORAGE_KEY); } catch (e) { return false; }
+}
+
+const __autosaved = hasPersistedLogin() ? null : loadAutosave();
+const __restore = __autosaved || (hasPersistedLogin() ? null : loadLegacyState());
 let master = (__restore && __restore.master) ? __restore.master : JSON.parse(JSON.stringify(INITIAL_MASTER));
 let groups = (__restore && __restore.groups) ? __restore.groups : JSON.parse(JSON.stringify(INITIAL_GROUPS));
 

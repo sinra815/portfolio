@@ -259,22 +259,6 @@ function setSaveBadge(visible){
   if (badge) badge.style.display = visible ? 'block' : 'none';
 }
 
-async function refreshSaveBadge(){
-  if (!currentUserId) return;
-  try {
-    const res = await fetch('/api/load', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: currentUserId }),
-    });
-    if (!res.ok) return;
-    const json = await res.json();
-    setSaveBadge(!!json.data);
-  } catch (e) {
-    // 오프라인이거나 API가 없는 정적 호스팅에서는 배지를 건드리지 않는다.
-  }
-}
-
 document.getElementById('saveBtn').addEventListener('click', () => {
   const btn = document.getElementById('saveBtn');
   if (!currentUserId) { showFieldStatus(btn, '로그인이 필요합니다.', 'error'); return; }
@@ -298,34 +282,56 @@ document.getElementById('saveBtn').addEventListener('click', () => {
   });
 });
 
+// id 로 서버에 저장된 데이터를 가져온다. 데이터가 없으면 null.
+async function fetchServerData(id){
+  const res = await fetch('/api/load', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id }),
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(json.error || '불러오기 실패 - 네트워크 상태를 확인해주세요.');
+  return json.data;
+}
+
+// 서버에서 받은 데이터를 화면에 그대로 반영한다 (기기 자동저장 값을 덮어씀).
+function applyServerData(saved){
+  master = saved.master || master;
+  groups = saved.groups || groups;
+  if (saved.stage !== undefined) document.getElementById('stagePercentInput').value = saved.stage;
+  if (saved.threshold !== undefined) document.getElementById('overweightThreshold').value = saved.threshold;
+  renderAll();
+}
+
+// 로그인 직후 자동으로 호출: 기기에 저장된 값이 아니라 서버에 저장된 값을 보여준다.
+// 서버에 아직 저장된 데이터가 없는 ID(새 계정 등)는 조용히 넘어간다.
+async function autoLoadServerData(id){
+  try {
+    const data = await fetchServerData(id);
+    if (data) {
+      applyServerData(data);
+      setSaveBadge(true);
+    }
+  } catch (e) {
+    console.warn('서버 데이터 자동 불러오기 실패:', e.message);
+  }
+}
+
 document.getElementById('loadBtn').addEventListener('click', () => {
   const btn = document.getElementById('loadBtn');
   if (!currentUserId) { showFieldStatus(btn, '로그인이 필요합니다.', 'error'); return; }
   const original = btn.textContent;
   btn.textContent = '불러오는 중...';
   btn.disabled = true;
-  fetch('/api/load', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ id: currentUserId }),
-  }).then(async (res) => {
-    const json = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(json.error || '불러오기 실패 - 네트워크 상태를 확인해주세요.');
-    return json;
-  }).then((json) => {
-    if (!json.data) {
+  fetchServerData(currentUserId).then((data) => {
+    if (!data) {
       setSaveBadge(false);
       showFieldStatus(btn, '서버에 저장된 데이터가 없습니다.', 'error');
       return;
     }
     setSaveBadge(true);
     if (!confirm('서버에 저장된 데이터를 불러올까요? 현재 화면의 변경 사항은 사라집니다.')) return;
-    const saved = json.data;
-    master = saved.master || master;
-    groups = saved.groups || groups;
-    if (saved.stage !== undefined) document.getElementById('stagePercentInput').value = saved.stage;
-    if (saved.threshold !== undefined) document.getElementById('overweightThreshold').value = saved.threshold;
-    renderAll();
+    applyServerData(data);
     showFieldStatus(btn, '불러왔습니다.');
   }).catch((err) => {
     showFieldStatus(btn, err.message || '불러오기 실패 - 네트워크 상태를 확인해주세요.', 'error');

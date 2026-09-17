@@ -1,5 +1,5 @@
 // ==== 로그인 / ID 생성 게이트 (화면 진입 시 ID·비밀번호 확인, 로그아웃 전까지 로그인 유지) ====
-const AUTH_STORAGE_KEY = 'investRebalanceAuthId';
+// AUTH_STORAGE_KEY 는 js/core.js 에서 선언한다 (자동저장 복원 여부를 거기서도 판단해야 해서).
 let currentUserId = null;
 
 const authOverlay = document.getElementById('authOverlay');
@@ -57,7 +57,8 @@ function completeLogin(id){
   currentUserIdLabel.textContent = id;
   setAccountUI(true);
   authOverlay.classList.remove('open');
-  if (typeof refreshSaveBadge === 'function') refreshSaveBadge();
+  // 기기에 자동저장된 값이 아니라, 이 ID로 서버에 저장된 값을 보여준다.
+  if (typeof autoLoadServerData === 'function') autoLoadServerData(id);
 }
 
 function continueAsGuest(){
@@ -95,6 +96,11 @@ try {
     currentUserIdLabel.textContent = savedId;
     setAccountUI(true);
     authOverlay.classList.remove('open');
+    // 이 시점에는 뒤에 오는 <script>(settings-box.js)가 아직 로드되지 않았을 수 있어,
+    // 모든 스크립트가 실행된 뒤로 미룬다.
+    setTimeout(() => {
+      if (typeof autoLoadServerData === 'function') autoLoadServerData(savedId);
+    }, 0);
   }
 } catch (e) {}
 
