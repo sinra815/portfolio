@@ -1,6 +1,11 @@
 // ==== 로그인 / ID 생성 게이트 (화면 진입 시 ID·비밀번호 확인, 로그아웃 전까지 로그인 유지) ====
 // AUTH_STORAGE_KEY 는 js/core.js 에서 선언한다 (자동저장 복원 여부를 거기서도 판단해야 해서).
 let currentUserId = null;
+// 로그인한 계정이 관리자인지(고정 계정 sinra815 이거나, 다른 관리자가 권한을 부여한 계정).
+// 실제 관리자 기능 사용 가능 여부는 서버가 매 요청마다 다시 검증하므로, 이 값은 "🛠 관리자"
+// 버튼을 보여줄지 정하는 용도일 뿐이다.
+let currentUserIsAdmin = false;
+const AUTH_ADMIN_STORAGE_KEY = 'investRebalanceAuthIsAdmin';
 
 const authOverlay = document.getElementById('authOverlay');
 const authLoginView = document.getElementById('authLoginView');
@@ -55,11 +60,15 @@ function showRegisterView(prefillId){
   (prefillId ? authNewPasswordInput : authNewIdInput).focus();
 }
 
-function completeLogin(id){
+function completeLogin(id, isAdmin){
   currentUserId = id;
+  currentUserIsAdmin = !!isAdmin;
   isGuestMode = false;
   serverLoadPending = true;
-  try { localStorage.setItem(AUTH_STORAGE_KEY, id); } catch (e) {}
+  try {
+    localStorage.setItem(AUTH_STORAGE_KEY, id);
+    localStorage.setItem(AUTH_ADMIN_STORAGE_KEY, currentUserIsAdmin ? '1' : '');
+  } catch (e) {}
   currentUserIdLabel.textContent = id;
   setAccountUI(true);
   authOverlay.classList.remove('open');
@@ -69,6 +78,7 @@ function completeLogin(id){
 
 function continueAsGuest(){
   currentUserId = null;
+  currentUserIsAdmin = false;
   isGuestMode = true;
   // 직전에 로그인 복원(새로고침 등)으로 서버 데이터를 기다리던 중이었다면, 게스트로 전환하는
   // 순간 그 대기는 더 이상 의미가 없다 — 풀어주지 않으면 저장/불러오기 버튼이 계속 막힌다.
@@ -87,8 +97,12 @@ function continueAsGuest(){
 // 실제로 계정을 벗어나는 처리. 확인창 없이 바로 실행하므로, 로그아웃 버튼(logout())과
 // 계정 삭제 직후(account-box.js) 둘 다 확인은 각자 하고 나서 이 함수를 부른다.
 function performLogout(){
-  try { localStorage.removeItem(AUTH_STORAGE_KEY); } catch (e) {}
+  try {
+    localStorage.removeItem(AUTH_STORAGE_KEY);
+    localStorage.removeItem(AUTH_ADMIN_STORAGE_KEY);
+  } catch (e) {}
   currentUserId = null;
+  currentUserIsAdmin = false;
   // 서버 데이터 대기 중이었다면 로그아웃하는 순간 더 이상 의미가 없다 — 다음 로그인/게스트
   // 진입 때 저장/불러오기가 계속 막혀버리지 않도록 여기서도 풀어준다.
   serverLoadPending = false;
@@ -122,6 +136,7 @@ try {
   const savedId = localStorage.getItem(AUTH_STORAGE_KEY);
   if (savedId) {
     currentUserId = savedId;
+    currentUserIsAdmin = !!localStorage.getItem(AUTH_ADMIN_STORAGE_KEY);
     serverLoadPending = true;
     currentUserIdLabel.textContent = savedId;
     setAccountUI(true);
@@ -160,7 +175,7 @@ async function attemptLogin(){
       authLoginError.textContent = json.error || '로그인에 실패했습니다.';
       return;
     }
-    completeLogin(id);
+    completeLogin(id, json.isAdmin);
   } catch (e) {
     authLoginError.textContent = '로그인 중 오류가 발생했습니다: ' + e.message;
   } finally {
@@ -195,7 +210,7 @@ async function attemptRegister(){
       authRegisterError.textContent = json.error || 'ID 생성에 실패했습니다.';
       return;
     }
-    completeLogin(id);
+    completeLogin(id, false); // 새로 만든 계정은 관리자가 아니다
   } catch (e) {
     authRegisterError.textContent = 'ID 생성 중 오류가 발생했습니다: ' + e.message;
   } finally {
