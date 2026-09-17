@@ -314,6 +314,10 @@ async function autoLoadServerData(id){
     }
   } catch (e) {
     console.warn('서버 데이터 자동 불러오기 실패:', e.message);
+  } finally {
+    // 이제 서버 상태를 반영했으니(혹은 반영할 데이터가 없거나 조회에 실패했으니), 이 시점부터의
+    // 편집은 다시 자동저장 대상이 된다. 여기서 풀어주지 않으면 로그인 상태에서 아무 것도 저장되지 않는다.
+    serverLoadPending = false;
   }
 }
 
