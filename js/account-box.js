@@ -6,6 +6,9 @@
 function showAdminButtonIfAdmin(){
   const adminBtn = document.getElementById('adminPanelBtn');
   if (adminBtn) adminBtn.style.display = currentUserIsAdmin ? 'inline-block' : 'none';
+  // 비밀번호 변경·계정 삭제는 계정이 있어야 의미가 있다 — 게스트(계정 자체가 없음)는 숨긴다.
+  const changePasswordBtn = document.getElementById('changePasswordBtn');
+  if (changePasswordBtn) changePasswordBtn.style.display = currentUserId ? '' : 'none';
   const deleteBtn = document.getElementById('deleteAccountBtn');
   if (deleteBtn) deleteBtn.style.display = currentUserId ? '' : 'none';
 }
