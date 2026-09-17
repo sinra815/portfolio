@@ -65,6 +65,7 @@ function completeLogin(id, isAdmin){
   currentUserIsAdmin = !!isAdmin;
   isGuestMode = false;
   serverLoadPending = true;
+  setServerLoadingIndicator(true);
   try {
     localStorage.setItem(AUTH_STORAGE_KEY, id);
     localStorage.setItem(AUTH_ADMIN_STORAGE_KEY, currentUserIsAdmin ? '1' : '');
@@ -83,6 +84,7 @@ function continueAsGuest(){
   // 직전에 로그인 복원(새로고침 등)으로 서버 데이터를 기다리던 중이었다면, 게스트로 전환하는
   // 순간 그 대기는 더 이상 의미가 없다 — 풀어주지 않으면 저장/불러오기 버튼이 계속 막힌다.
   serverLoadPending = false;
+  setServerLoadingIndicator(false);
   currentUserIdLabel.textContent = '게스트 (이 기기에 저장)';
   setAccountUI(false);
   // 이 기기에 저장해 둔 값을 불러와 보여준다 — ID로 로그인했을 때 서버 데이터를 자동으로
@@ -106,6 +108,7 @@ function performLogout(){
   // 서버 데이터 대기 중이었다면 로그아웃하는 순간 더 이상 의미가 없다 — 다음 로그인/게스트
   // 진입 때 저장/불러오기가 계속 막혀버리지 않도록 여기서도 풀어준다.
   serverLoadPending = false;
+  setServerLoadingIndicator(false);
   currentUserIdLabel.textContent = '';
   if (typeof setSaveBadge === 'function') setSaveBadge(false);
   // 화면(메모리)에 남은 방금 계정의 데이터가 다음 로그인/게스트 진입 때 그대로 보이지 않도록 비운다.
@@ -138,6 +141,7 @@ try {
     currentUserId = savedId;
     currentUserIsAdmin = !!localStorage.getItem(AUTH_ADMIN_STORAGE_KEY);
     serverLoadPending = true;
+    setServerLoadingIndicator(true);
     currentUserIdLabel.textContent = savedId;
     setAccountUI(true);
     authOverlay.classList.remove('open');
