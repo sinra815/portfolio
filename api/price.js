@@ -17,15 +17,27 @@ async function getExchangeRateToKrw(currencyCode){
   return rate / unitSize;
 }
 
+async function searchStock(query){
+  const searchRes = await fetch(`https://ac.stock.naver.com/ac?q=${encodeURIComponent(query)}&target=stock,itemAll`);
+  if (!searchRes.ok) throw new Error('search request failed');
+  const searchJson = await searchRes.json();
+  return searchJson.items && searchJson.items[0];
+}
+
 export default async function handler(req, res) {
   const query = (req.query.query || '').toString().trim();
   if (!query) return res.status(400).json({ error: '티커 또는 종목명을 입력해주세요.' });
 
   try {
-    const searchRes = await fetch(`https://ac.stock.naver.com/ac?q=${encodeURIComponent(query)}&target=stock,itemAll`);
-    if (!searchRes.ok) throw new Error('search request failed');
-    const searchJson = await searchRes.json();
-    const item = searchJson.items && searchJson.items[0];
+    let item = await searchStock(query);
+    // 예전에 저장된 해외 종목 티커는 거래소 접미사가 붙어 있을 수 있다(예: 애플 "AAPL.O").
+    // 네이버 자동완성은 이 접미사가 붙은 문자열로는 검색이 안 되므로, 접미사를 뗀 값으로 한 번
+    // 더 시도한다. (api/search.js 는 이제 접미사 없는 값을 저장하므로 새로 등록한 종목은
+    // 여기까지 오지 않는다.)
+    if (!item) {
+      const withoutSuffix = query.replace(/\.[A-Za-z]{1,3}$/, '');
+      if (withoutSuffix !== query) item = await searchStock(withoutSuffix);
+    }
     if (!item) return res.status(404).json({ error: `"${query}"에 해당하는 종목을 찾지 못했습니다.` });
 
     const code = item.reutersCode || item.code;
