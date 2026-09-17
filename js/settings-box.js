@@ -135,29 +135,8 @@ async function exportToFile(anchor){
   const jsonStr = JSON.stringify(buildStateSnapshot(), null, 2);
   const filename = buildExportFilename(); // 파일명은 항상 규칙대로 자동 생성 — 다시 물어보지 않는다.
 
-  // 1) 세이브 피커: 저장 위치를 직접 고를 수 있고, 같은 이름의 파일을 고르면 브라우저가 알아서
-  //    "덮어쓸까요?"를 물어봐 준다.
-  if (SUPPORTS_SAVE_PICKER) {
-    try {
-      const opts = {
-        suggestedName: filename,
-        types: [{ description: 'JSON 파일', accept: { 'application/json': ['.json'] } }],
-      };
-      if (workDirHandle) opts.startIn = workDirHandle;
-      const handle = await window.showSaveFilePicker(opts);
-      const writable = await handle.createWritable();
-      await writable.write(jsonStr);
-      await writable.close();
-      showFieldStatus(btn, `저장했습니다. (${handle.name})`);
-      return;
-    } catch (e) {
-      if (e && e.name === 'AbortError') return;
-      showFieldStatus(btn, '저장하는 중 오류가 발생해 다른 방법으로 저장합니다: ' + e.message, 'error');
-    }
-  }
-
-  // 2) 세이브 피커가 없거나 실패했지만 작업 폴더는 지정돼 있는 경우: 그 폴더에 직접 쓴다.
-  //    같은 이름의 파일이 이미 있으면 덮어쓸지 확인한다.
+  // 1) 작업 폴더가 지정돼 있으면 최우선으로 그 폴더에 바로 쓴다 — 이름/위치를 다시 묻지 않고,
+  //    같은 이름의 파일이 이미 있을 때만 덮어쓸지 확인한다.
   if (SUPPORTS_FS_ACCESS && workDirHandle) {
     try {
       if (await fileExistsInDir(workDirHandle, filename) && !confirm(`"${filename}" 파일이 이미 있습니다. 덮어쓸까요?`)) return;
@@ -169,6 +148,27 @@ async function exportToFile(anchor){
       return;
     } catch (e) {
       showFieldStatus(btn, '작업 폴더에 저장하는 중 오류가 발생해 다른 방법으로 저장합니다: ' + e.message, 'error');
+    }
+  }
+
+  // 2) 작업 폴더가 없는 경우에만 세이브 피커로 저장 위치를 고르게 한다(어디에 저장할지 정해둔
+  //    게 없으니 여기서는 물어보는 게 자연스럽다). 같은 이름의 파일을 고르면 브라우저가 알아서
+  //    "덮어쓸까요?"를 물어봐 준다.
+  if (SUPPORTS_SAVE_PICKER) {
+    try {
+      const opts = {
+        suggestedName: filename,
+        types: [{ description: 'JSON 파일', accept: { 'application/json': ['.json'] } }],
+      };
+      const handle = await window.showSaveFilePicker(opts);
+      const writable = await handle.createWritable();
+      await writable.write(jsonStr);
+      await writable.close();
+      showFieldStatus(btn, `저장했습니다. (${handle.name})`);
+      return;
+    } catch (e) {
+      if (e && e.name === 'AbortError') return;
+      showFieldStatus(btn, '저장하는 중 오류가 발생해 다른 방법으로 저장합니다: ' + e.message, 'error');
     }
   }
 
