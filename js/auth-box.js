@@ -25,11 +25,13 @@ const deleteAccountBtnEl = document.getElementById('deleteAccountBtn');
 
 let isGuestMode = false;
 
-// 로그인 상태에 맞춰 저장/불러오기·계정 버튼과 계정 영역 표시를 갱신한다.
-// 게스트로 들어온 경우 서버 저장/불러오기·비밀번호 변경·계정 삭제는 계정이 없어 사용할 수 없다.
+// 로그인 상태에 맞춰 계정 버튼과 계정 영역 표시를 갱신한다.
+// 게스트로 들어온 경우 계정이 없어 비밀번호 변경·계정 삭제만 사용할 수 없다(저장/불러오기는 가능).
 function setAccountUI(loggedIn){
-  saveBtnEl.disabled = !loggedIn;
-  loadBtnEl.disabled = !loggedIn;
+  // 저장/불러오기는 로그인 여부와 무관하게 항상 쓸 수 있다 — 로그인했으면 서버, 아니면(게스트)
+  // 이 기기에 저장/불러오기한다.
+  saveBtnEl.disabled = false;
+  loadBtnEl.disabled = false;
   changePasswordBtnEl.disabled = !loggedIn;
   deleteAccountBtnEl.disabled = !loggedIn;
   logoutBtn.textContent = loggedIn ? '로그아웃' : '로그인';
@@ -63,19 +65,19 @@ function completeLogin(id){
   currentUserIdLabel.textContent = id;
   setAccountUI(true);
   authOverlay.classList.remove('open');
-  // 지금부터는 서버가 기준이니, 남아있던 기기 자동저장은 지운다(다음에 로그인 없이 들어왔을 때
-  // 방금 로그인한 계정의 데이터가 그대로 남아 보이지 않도록).
-  if (typeof clearAutosave === 'function') clearAutosave();
-  // 기기에 자동저장된 값이 아니라, 이 ID로 서버에 저장된 값을 보여준다.
+  // 이 기기에 저장된 값이 아니라, 이 ID로 서버에 저장된 값을 보여준다.
   if (typeof autoLoadServerData === 'function') autoLoadServerData(id);
 }
 
 function continueAsGuest(){
   currentUserId = null;
   isGuestMode = true;
-  currentUserIdLabel.textContent = '게스트 (서버 저장 불가)';
+  currentUserIdLabel.textContent = '게스트 (이 기기에 저장)';
   setAccountUI(false);
-  if (typeof setSaveBadge === 'function') setSaveBadge(false);
+  // 이 기기에 이미 저장해 둔 데이터가 있으면 배지로 알려준다("불러오기" 대상 존재 여부).
+  if (typeof setSaveBadge === 'function') {
+    setSaveBadge(typeof loadDeviceSave === 'function' && !!loadDeviceSave());
+  }
   authOverlay.classList.remove('open');
 }
 
@@ -85,7 +87,6 @@ function performLogout(){
   try { localStorage.removeItem(AUTH_STORAGE_KEY); } catch (e) {}
   currentUserId = null;
   currentUserIdLabel.textContent = '';
-  if (typeof clearAutosave === 'function') clearAutosave();
   if (typeof setSaveBadge === 'function') setSaveBadge(false);
   // 화면(메모리)에 남은 방금 계정의 데이터가 다음 로그인/게스트 진입 때 그대로 보이지 않도록 비운다.
   master = [];
