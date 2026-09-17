@@ -4,13 +4,16 @@
 const ADMIN_ID = 'sinra815';
 
 function showAdminButtonIfAdmin(){
-  const isAdmin = currentUserId === ADMIN_ID;
+  const isRoot = currentUserId === ADMIN_ID;
+  // "🛠 관리자" 버튼은 고정 계정(sinra815)뿐 아니라, 다른 관리자가 권한을 부여한 계정에도 보인다.
+  const isAdminUser = isRoot || !!currentUserIsAdmin;
   const adminBtn = document.getElementById('adminPanelBtn');
-  if (adminBtn) adminBtn.style.display = isAdmin ? 'inline-block' : 'none';
+  if (adminBtn) adminBtn.style.display = isAdminUser ? 'inline-block' : 'none';
   // 계정 삭제는 지울 계정이 있는 일반 로그인 사용자에게만 의미가 있다 — 게스트(계정 자체가 없음)와
-  // 관리자(여기서 자기 계정을 지울 수 없다 — admin-delete-user.js 가 서버에서도 막는다) 는 숨긴다.
+  // 고정 관리자 계정(sinra815, 여기서 자기 계정을 지울 수 없다)은 숨긴다. 다른 계정이 관리자
+  // 권한을 받았더라도 그 계정 자체는 평범한 계정이라 계정 삭제는 그대로 쓸 수 있다.
   const deleteBtn = document.getElementById('deleteAccountBtn');
-  if (deleteBtn) deleteBtn.style.display = (currentUserId && !isAdmin) ? '' : 'none';
+  if (deleteBtn) deleteBtn.style.display = (currentUserId && !isRoot) ? '' : 'none';
 }
 // auth-box.js 의 로그인 유지 복원은 이 스크립트가 로드되기 전에 이미 실행됐을 수 있어
 // (그때는 이 함수가 아직 없어 setAccountUI 안의 typeof 가드가 조용히 넘어간다), 여기서
@@ -166,20 +169,26 @@ function renderAdminUserList(users){
     adminUserList.innerHTML = `<div style="color:var(--muted); padding:12px 0; text-align:center;">등록된 계정이 없습니다.</div>`;
     return;
   }
-  adminUserList.innerHTML = users.map(u => `
+  adminUserList.innerHTML = users.map(u => {
+    // 고정 관리자 계정(sinra815)과 지금 이 패널을 보고 있는 자기 자신은 여기서 건드릴 수 없다
+    // (관리자 권한 변경/정지/삭제 모두 서버에서도 같은 규칙을 강제한다).
+    const isLocked = u.id === ADMIN_ID || u.id === currentUserId;
+    return `
     <div class="admin-user-row">
       <div>
         <span class="admin-user-id">${u.id}</span>
         <span class="admin-user-status ${u.suspended ? 'suspended' : 'active'}">${u.suspended ? '정지됨' : '정상'}</span>
-        ${u.id === ADMIN_ID ? '<span style="color:var(--muted); font-size:11px; margin-left:6px;">(관리자)</span>' : ''}
+        ${u.isAdmin ? '<span class="admin-user-badge">관리자</span>' : ''}
       </div>
-      ${u.id === ADMIN_ID ? '' : `
+      ${isLocked ? '' : `
       <div style="display:flex; gap:6px;">
+        <button type="button" class="admin-toggle-admin-btn" data-id="${u.id}" data-admin="${u.isAdmin}">${u.isAdmin ? '관리자 해제' : '관리자로 지정'}</button>
         <button type="button" class="admin-suspend-btn" data-id="${u.id}" data-suspended="${u.suspended}">${u.suspended ? '정지 해제' : '사용중지'}</button>
         <button type="button" class="admin-delete-btn danger" data-id="${u.id}">삭제</button>
       </div>`}
     </div>
-  `).join('');
+  `;
+  }).join('');
 }
 
 async function loadAdminPanel(){
@@ -211,10 +220,30 @@ adminAuthSubmitBtn.addEventListener('click', submitAdminAuth);
 adminPasswordInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') submitAdminAuth(); });
 
 adminUserList.addEventListener('click', async (e) => {
+  const toggleAdminBtn = e.target.closest('.admin-toggle-admin-btn');
   const suspendBtn = e.target.closest('.admin-suspend-btn');
   const deleteBtn = e.target.closest('.admin-delete-btn');
-  if (!suspendBtn && !deleteBtn) return;
-  const id = (suspendBtn || deleteBtn).dataset.id;
+  if (!toggleAdminBtn && !suspendBtn && !deleteBtn) return;
+  const id = (toggleAdminBtn || suspendBtn || deleteBtn).dataset.id;
+
+  if (toggleAdminBtn) {
+    const nextIsAdmin = toggleAdminBtn.dataset.admin !== 'true';
+    const label = nextIsAdmin ? '관리자로 지정' : '관리자 권한 해제';
+    if (!confirm(`"${id}" 계정을 ${label}할까요?`)) return;
+    try {
+      const res = await fetch('/api/admin-set-admin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ adminId: currentUserId, adminPassword: adminPasswordCache, targetId: id, isAdmin: nextIsAdmin }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) { alert(json.error || '처리에 실패했습니다.'); return; }
+      renderAdminUserList(await fetchAdminUsers());
+    } catch (err) {
+      alert('처리 중 오류가 발생했습니다: ' + err.message);
+    }
+    return;
+  }
 
   if (suspendBtn) {
     const nextSuspended = suspendBtn.dataset.suspended !== 'true';
