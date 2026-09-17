@@ -58,27 +58,13 @@ async function restoreWorkDirHandle(){
   if (!SUPPORTS_FS_ACCESS) return;
   const stored = await idbGet('workDirHandle');
   if (!stored) return;
-  // 일부 브라우저(삼성 인터넷 등)는 showDirectoryPicker 는 지원하면서도 FileSystemHandle 의
-  // queryPermission/requestPermission 은 아직 구현하지 않았다 — 그런 브라우저에서 이 메서드를
-  // 호출하면 예외가 나서, 실제로는 정상적으로 저장돼 있던 폴더도 "지정 안 됨"으로 취급돼버린다.
-  // 메서드가 없으면 권한 확인 없이 그대로 신뢰한다(애초에 사용자가 직접 고른 폴더다).
-  if (typeof stored.queryPermission !== 'function') {
-    workDirHandle = stored;
-    updateWorkDirStatus();
-    return;
-  }
-  try {
-    const perm = await stored.queryPermission({ mode: 'readwrite' });
-    if (perm === 'granted') {
-      workDirHandle = stored;
-      updateWorkDirStatus();
-    }
-  } catch (e) {
-    // queryPermission 이 있는데도 호출 자체가 실패하는 경우도, 저장해 둔 핸들을 버리지 않고
-    // 그대로 쓴다 — 실제 쓰기 시점에 진짜 권한이 없으면 그때 오류로 드러난다.
-    workDirHandle = stored;
-    updateWorkDirStatus();
-  }
+  // queryPermission() 결과를 재확인하지 않고 그대로 신뢰한다 — 일부 브라우저(삼성 인터넷 등)는
+  // 이 API가 있어도 예외 없이 그냥 'granted' 가 아닌 값만 돌려줘서, 방금까지 정상 사용하던
+  // 폴더도 재확인 절차 때문에 "지정 안 됨"으로 취급돼버리는 문제가 있었다. 실제로 쓰기 권한이
+  // 없다면 그건 실제 쓰기 시점에 오류로 드러나고, exportToFile()/importFromFile() 이 잡아서
+  // 다음 방법으로 넘어간다.
+  workDirHandle = stored;
+  updateWorkDirStatus();
 }
 
 function getCurrentFolderHint(){
@@ -111,22 +97,12 @@ async function chooseWorkDir(anchor){
 
 async function ensureWorkDir(anchor){
   if (!SUPPORTS_FS_ACCESS) return null;
-  if (workDirHandle) {
-    // queryPermission/requestPermission 이 없는 브라우저(삼성 인터넷 등)에서는 이미 확보한
-    // 핸들을 권한 확인 없이 그대로 쓴다 — 없는 메서드를 호출하다 예외가 나서 "폴더가 지정되지
-    // 않았다"는 잘못된 안내로 빠지지 않도록 한다.
-    if (typeof workDirHandle.queryPermission !== 'function') return workDirHandle;
-    try {
-      const perm = await workDirHandle.queryPermission({ mode: 'readwrite' });
-      if (perm === 'granted') return workDirHandle;
-      const granted = await workDirHandle.requestPermission({ mode: 'readwrite' });
-      if (granted === 'granted') return workDirHandle;
-    } catch (e) {
-      // 권한 확인 자체가 실패해도 핸들을 버리지 않는다 — 실제 쓰기 시점에 권한이 없으면
-      // 그때 오류가 나고, exportToFile()/importFromFile() 이 그걸 잡아 다음 방법으로 넘어간다.
-      return workDirHandle;
-    }
-  }
+  // 이미 사용자가 직접 고른 폴더가 있으면 그대로 쓴다 — queryPermission/requestPermission 을
+  // 다시 확인하지 않는다. 이 API가 있어도 항상 'granted' 가 아닌 값만 돌려주는 브라우저(삼성
+  // 인터넷 등)가 있어서, 재확인 절차 자체가 방금까지 정상 지정돼 있던 폴더를 "지정 안 됨"으로
+  // 잘못 취급해버리는 원인이었다. 정말로 쓰기 권한이 없다면 실제 쓰기 시점에 오류로 드러나고,
+  // 그건 exportToFile()/importFromFile() 이 잡아서 다음 방법으로 넘어간다.
+  if (workDirHandle) return workDirHandle;
   const hint = getCurrentFolderHint();
   const hintMsg = hint ? `\n\n👉 이 파일은 "${hint}" 폴더 안에 있습니다. 다음 창에서 그 폴더를 선택해주세요.` : '';
   if (!confirm(`내보내기/가져오기에 항상 사용할 "작업 폴더"가 아직 지정되지 않았습니다.\n지금 폴더를 선택할까요?${hintMsg}`)) return null;
