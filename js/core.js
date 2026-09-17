@@ -87,6 +87,12 @@ function getPrice(stockName){
   return m ? Number(m.price) || 0 : 0;
 }
 
+// 전일대비 등락률(%, 부호 있음). 아직 "금액 새로고침"으로 조회한 적 없으면 undefined.
+function getChangePercent(stockName){
+  const m = master.find(x => x.name === stockName);
+  return m ? m.changePercent : undefined;
+}
+
 function getRowType(r){
   const m = master.find(x => x.name === r.stock);
   return (m && m.type === 'cash') ? 'cash' : 'stock';
@@ -130,6 +136,11 @@ function computeAll(){
   groups.forEach(g => {
     g.rows.forEach(r => {
       r.M = (getPrice(r.stock) * (Number(r.qty) || 0)) / 10000;
+      // 전일 평가금액 추정치: 현재가를 등락률로 역산한 전일 가격 기준. 등락률을 아직
+      // 조회한 적 없는 종목은 변동이 없다고 간주한다(전일=오늘, 증감 0으로 계산됨).
+      const cp = getChangePercent(r.stock);
+      const cpValid = typeof cp === 'number' && !isNaN(cp) && (1 + cp / 100) !== 0;
+      r.prevM = cpValid ? r.M / (1 + cp / 100) : r.M;
     });
     g.D = g.rows.reduce((s, r) => s + r.M, 0);
   });
@@ -232,6 +243,7 @@ async function withButtonLoading(btn, loadingText, task){
   }
 }
 
+// 현재가와 함께 전일대비 등락률(changePercent, 부호 있는 %)도 반환한다.
 async function fetchPriceForTicker(ticker, opts){
   const silent = opts && opts.silent;
   const anchor = opts && opts.anchor;
@@ -245,7 +257,7 @@ async function fetchPriceForTicker(ticker, opts){
       else console.warn(`[${query}] 현재가 조회 실패:`, json.error);
       return null;
     }
-    return json.price;
+    return { price: json.price, changePercent: json.changePercent };
   } catch (e) {
     if (!silent) showFieldStatus(anchor, '현재가를 불러오는 중 오류가 발생했습니다: ' + e.message, 'error');
     else console.warn(`[${query}] 현재가 조회 오류:`, e.message);
