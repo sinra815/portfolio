@@ -126,6 +126,7 @@ function renderMainTable(){
 
     const sumG = g.rows.reduce((s,r)=>s+r.G,0);
     const sumM = g.rows.reduce((s,r)=>s+r.M,0);
+    const sumPrevM = g.rows.reduce((s,r)=>s+r.prevM,0);
     const sumN = g.rows.reduce((s,r)=>s+r.N,0);
     const sumTarget = g.rows.reduce((s,r)=>s+r.targetPrice,0);
 
@@ -155,11 +156,25 @@ function renderMainTable(){
     grand.G += sumG;
     grand.T = (grand.T||0) + sumTarget;
     grand.M += sumM;
+    grand.prevM = (grand.prevM||0) + sumPrevM;
     grand.N += sumN;
   });
 
   const totalMEl = document.getElementById('settingsTotalM');
   if (totalMEl) totalMEl.textContent = totalMHidden ? '•••••• 만원' : `${fmt(grand.M)} 만원`;
+
+  const totalMChangeEl = document.getElementById('settingsTotalMChange');
+  if (totalMChangeEl) {
+    if (totalMHidden) {
+      totalMChangeEl.innerHTML = '&nbsp;';
+    } else {
+      const change = grand.M - grand.prevM;
+      const changePct = grand.prevM > 0 ? (change / grand.prevM * 100) : 0;
+      const cls = change > 0 ? 'remark-up' : (change < 0 ? 'remark-down' : '');
+      const sign = change > 0 ? '+' : (change < 0 ? '-' : '');
+      totalMChangeEl.innerHTML = `<span class="${cls}">전일대비 ${sign}${fmt(Math.abs(change))} 만원 (${sign}${fmtTrim(Math.abs(changePct), 2)}%)</span>`;
+    }
+  }
 
   const addGroupTr = document.createElement('tr');
   addGroupTr.innerHTML = `
