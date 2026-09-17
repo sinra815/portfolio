@@ -3,7 +3,7 @@
 function buildExportFilename(){
   const ts = new Date();
   const pad = (n) => String(n).padStart(2, '0');
-  return `투자_리밸런싱_데이터_${ts.getFullYear()}${pad(ts.getMonth()+1)}${pad(ts.getDate())}_${pad(ts.getHours())}${pad(ts.getMinutes())}.json`;
+  return `투자_${ts.getFullYear()}${pad(ts.getMonth()+1)}${pad(ts.getDate())}${pad(ts.getHours())}${pad(ts.getMinutes())}${pad(ts.getSeconds())}.json`;
 }
 
 const IDB_NAME = 'investRebalanceDB';
@@ -178,33 +178,61 @@ function applyImportedJson(text, anchor){
   showFieldStatus(btn, '가져오기가 완료되었습니다.');
 }
 
-function openFolderFileList(dir, files){
-  const overlay = document.getElementById('folderFileListOverlay');
+// files 배열을 직접 변형(삭제 시 splice)하면서 다시 그릴 수 있도록 렌더링만 분리했다.
+function renderFolderFileList(dir, files){
   const listEl = document.getElementById('folderFileListItems');
-  document.getElementById('folderFileListDirName').textContent = dir.name;
   listEl.innerHTML = '';
   if (files.length === 0) {
     listEl.innerHTML = `<div style="color:var(--muted); padding:8px 0;">이 폴더에 JSON 파일이 없습니다.</div>`;
-  } else {
-    files.forEach(f => {
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.textContent = f.name;
-      btn.style.cssText = 'display:block; width:100%; text-align:left; padding:8px 10px; margin-bottom:4px; border:1px solid var(--border-strong); border-radius:6px; background:#fff; cursor:pointer; font-size:12.5px; font-family:inherit;';
-      btn.addEventListener('click', async () => {
-        overlay.classList.remove('open');
-        const importBtn = document.getElementById('importBtn');
-        try {
-          const file = await f.handle.getFile();
-          const text = await file.text();
-          applyImportedJson(text, importBtn);
-        } catch (e) {
-          showFieldStatus(importBtn, '파일을 읽는 중 오류가 발생했습니다: ' + e.message, 'error');
-        }
-      });
-      listEl.appendChild(btn);
-    });
+    return;
   }
+  files.forEach(f => {
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex; align-items:center; gap:6px; margin-bottom:4px;';
+
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.textContent = f.name;
+    btn.style.cssText = 'flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; text-align:left; padding:8px 10px; border:1px solid var(--border-strong); border-radius:6px; background:#fff; cursor:pointer; font-size:12.5px; font-family:inherit;';
+    btn.addEventListener('click', async () => {
+      document.getElementById('folderFileListOverlay').classList.remove('open');
+      const importBtn = document.getElementById('importBtn');
+      try {
+        const file = await f.handle.getFile();
+        const text = await file.text();
+        applyImportedJson(text, importBtn);
+      } catch (e) {
+        showFieldStatus(importBtn, '파일을 읽는 중 오류가 발생했습니다: ' + e.message, 'error');
+      }
+    });
+
+    const delBtn = document.createElement('button');
+    delBtn.type = 'button';
+    delBtn.textContent = '삭제';
+    delBtn.title = `"${f.name}" 파일 삭제`;
+    delBtn.style.cssText = 'flex:0 0 auto; padding:8px 10px; border:1px solid var(--down); border-radius:6px; background:#fff; color:var(--down); cursor:pointer; font-size:12px; font-family:inherit;';
+    delBtn.addEventListener('click', async (ev) => {
+      ev.stopPropagation();
+      if (!confirm(`"${f.name}" 파일을 삭제할까요? 되돌릴 수 없습니다.`)) return;
+      try {
+        await dir.removeEntry(f.name);
+        files.splice(files.indexOf(f), 1);
+        renderFolderFileList(dir, files);
+      } catch (e) {
+        alert('파일을 삭제하는 중 오류가 발생했습니다: ' + e.message);
+      }
+    });
+
+    row.appendChild(btn);
+    row.appendChild(delBtn);
+    listEl.appendChild(row);
+  });
+}
+
+function openFolderFileList(dir, files){
+  const overlay = document.getElementById('folderFileListOverlay');
+  document.getElementById('folderFileListDirName').textContent = dir.name;
+  renderFolderFileList(dir, files);
   overlay.classList.add('open');
 }
 document.getElementById('folderFileListCancel').addEventListener('click', () => {
