@@ -202,8 +202,8 @@ document.getElementById('addStockBtn').addEventListener('click', async (e) => {
   renderAll();
 });
 
-document.getElementById('fetchAllPricesBtn').addEventListener('click', async (e) => {
-  const btn = e.currentTarget;
+// "종목 마스터"의 금액 불러오기 버튼과 설정 박스의 시가 새로고침 버튼이 공유하는 동작.
+async function refreshAllPrices(btn){
   const targets = master.filter(m => (m.ticker || '').trim());
   if (targets.length === 0) { showFieldStatus(btn, '티커가 입력된 종목이 없습니다.', 'error'); return; }
   await withButtonLoading(btn, `불러오는 중... (0/${targets.length})`, async () => {
@@ -216,7 +216,10 @@ document.getElementById('fetchAllPricesBtn').addEventListener('click', async (e)
     renderAll();
     showFieldStatus(btn, `${targets.length}개 중 ${ok}개 종목의 금액을 불러왔습니다.`);
   });
-});
+}
+
+document.getElementById('fetchAllPricesBtn').addEventListener('click', (e) => refreshAllPrices(e.currentTarget));
+document.getElementById('refreshPricesBtn').addEventListener('click', (e) => refreshAllPrices(e.currentTarget));
 
 document.addEventListener('change', (e) => {
   if (e.target.classList.contains('stock-type-select')) {
