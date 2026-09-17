@@ -29,7 +29,7 @@ export default async function handler(req, res) {
       return res.status(409).json({ error: '이미 사용 중인 ID입니다.' });
     }
     const passwordHash = crypto.createHash('sha256').update(password).digest('hex');
-    await redis.set(userKey(id), { passwordHash, failedAttempts: 0, lockedUntil: null, suspended: false });
+    await redis.set(userKey(id), { passwordHash, failedAttempts: 0, lockedUntil: null, suspended: false, isAdmin: false });
     await redis.sadd(USERS_SET_KEY, id);
     return res.status(200).json({ ok: true, id });
   } catch (err) {
