@@ -135,8 +135,11 @@ async function exportToFile(anchor){
   const jsonStr = JSON.stringify(buildStateSnapshot(), null, 2);
   const filename = buildExportFilename(); // 파일명은 항상 규칙대로 자동 생성 — 다시 물어보지 않는다.
 
-  // 1) 작업 폴더가 지정돼 있으면 최우선으로 그 폴더에 바로 쓴다 — 이름/위치를 다시 묻지 않고,
-  //    같은 이름의 파일이 이미 있을 때만 덮어쓸지 확인한다.
+  // 1) 작업 폴더가 지정돼 있으면 오직 그 폴더에만 써 본다 — 이름/위치를 다시 묻지 않고, 같은
+  //    이름의 파일이 이미 있을 때만 덮어쓸지 확인한다. 실패해도(일부 브라우저는 폴더 핸들
+  //    자체는 주면서 그 안에 파일을 쓰는 기능은 지원하지 않는다 — 삼성 인터넷 등) 다른 폴더
+  //    선택 대화상자를 새로 띄우지 않는다 — 이미 폴더를 지정해 둔 사용자에게 또 다른 위치를
+  //    고르라고 하면 안 되기 때문. 이 경우 조용히 표준 다운로드로 넘어간다.
   if (SUPPORTS_FS_ACCESS && workDirHandle) {
     try {
       if (await fileExistsInDir(workDirHandle, filename) && !confirm(`"${filename}" 파일이 이미 있습니다. 덮어쓸까요?`)) return;
@@ -146,15 +149,10 @@ async function exportToFile(anchor){
       await writable.close();
       showFieldStatus(btn, `저장했습니다. (${filename})`);
       return;
-    } catch (e) {
-      showFieldStatus(btn, '작업 폴더에 저장하는 중 오류가 발생해 다른 방법으로 저장합니다: ' + e.message, 'error');
-    }
-  }
-
-  // 2) 작업 폴더가 없는 경우에만 세이브 피커로 저장 위치를 고르게 한다(어디에 저장할지 정해둔
-  //    게 없으니 여기서는 물어보는 게 자연스럽다). 같은 이름의 파일을 고르면 브라우저가 알아서
-  //    "덮어쓸까요?"를 물어봐 준다.
-  if (SUPPORTS_SAVE_PICKER) {
+    } catch (e) {}
+  } else if (SUPPORTS_SAVE_PICKER) {
+    // 2) 작업 폴더가 아예 지정돼 있지 않을 때만 세이브 피커로 저장 위치를 고르게 한다 — 이
+    //    경우엔 애초에 정해둔 위치가 없으니 물어보는 게 자연스럽다.
     try {
       const opts = {
         suggestedName: filename,
