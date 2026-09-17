@@ -24,6 +24,9 @@ export default async function handler(req, res) {
     if (targetId === ADMIN_ID) {
       return res.status(400).json({ error: '관리자 계정은 여기서 삭제할 수 없습니다.' });
     }
+    if (targetId === adminId) {
+      return res.status(400).json({ error: '자기 자신은 여기서 삭제할 수 없습니다.' });
+    }
     const target = await redis.get(userKey(targetId));
     if (!target) return res.status(404).json({ error: '존재하지 않는 ID입니다.' });
 
