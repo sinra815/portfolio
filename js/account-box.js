@@ -1,19 +1,13 @@
 // ==== 계정 관리: 비밀번호 변경 / 계정 삭제 / 관리자 패널 ====
-// ADMIN_ID 는 여기선 "관리자" 버튼을 보여줄지 판단하는 용도일 뿐이다. 실제 권한은
-// 서버(api/admin-*.js)가 매 요청마다 비밀번호로 다시 확인하므로, 이 값만으로는 아무것도 못 한다.
-const ADMIN_ID = 'sinra815';
-
+// 관리자 여부(currentUserIsAdmin)는 로그인 응답이 알려준다 — 실제 권한은 서버(api/admin-*.js)가
+// 매 요청마다 비밀번호로 다시 확인하므로, 이 값은 "🛠 관리자" 버튼을 보여줄지 정하는 용도일 뿐이다.
+// 관리자 계정도 평범한 계정과 똑같이 취급한다 — 관리자 권한을 다른 사람에게 넘기거나, 자기
+// 계정을 스스로 삭제(설정 박스의 "계정 삭제")할 수 있다.
 function showAdminButtonIfAdmin(){
-  const isRoot = currentUserId === ADMIN_ID;
-  // "🛠 관리자" 버튼은 고정 계정(sinra815)뿐 아니라, 다른 관리자가 권한을 부여한 계정에도 보인다.
-  const isAdminUser = isRoot || !!currentUserIsAdmin;
   const adminBtn = document.getElementById('adminPanelBtn');
-  if (adminBtn) adminBtn.style.display = isAdminUser ? 'inline-block' : 'none';
-  // 계정 삭제는 지울 계정이 있는 일반 로그인 사용자에게만 의미가 있다 — 게스트(계정 자체가 없음)와
-  // 고정 관리자 계정(sinra815, 여기서 자기 계정을 지울 수 없다)은 숨긴다. 다른 계정이 관리자
-  // 권한을 받았더라도 그 계정 자체는 평범한 계정이라 계정 삭제는 그대로 쓸 수 있다.
+  if (adminBtn) adminBtn.style.display = currentUserIsAdmin ? 'inline-block' : 'none';
   const deleteBtn = document.getElementById('deleteAccountBtn');
-  if (deleteBtn) deleteBtn.style.display = (currentUserId && !isRoot) ? '' : 'none';
+  if (deleteBtn) deleteBtn.style.display = currentUserId ? '' : 'none';
 }
 // auth-box.js 의 로그인 유지 복원은 이 스크립트가 로드되기 전에 이미 실행됐을 수 있어
 // (그때는 이 함수가 아직 없어 setAccountUI 안의 typeof 가드가 조용히 넘어간다), 여기서
@@ -170,9 +164,9 @@ function renderAdminUserList(users){
     return;
   }
   adminUserList.innerHTML = users.map(u => {
-    // 고정 관리자 계정(sinra815)과 지금 이 패널을 보고 있는 자기 자신은 여기서 건드릴 수 없다
-    // (관리자 권한 변경/정지/삭제 모두 서버에서도 같은 규칙을 강제한다).
-    const isLocked = u.id === ADMIN_ID || u.id === currentUserId;
+    // 지금 이 패널을 보고 있는 자기 자신은 여기서 건드릴 수 없다(관리자 권한 변경/정지/삭제 모두
+    // 서버에서도 같은 규칙을 강제한다) — 그 외에는 관리자 계정도 예외 없이 다룰 수 있다.
+    const isLocked = u.id === currentUserId;
     return `
     <div class="admin-user-row">
       <div>
