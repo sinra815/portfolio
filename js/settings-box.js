@@ -3,16 +3,15 @@
 function buildExportFilename(){
   const ts = new Date();
   const pad = (n) => String(n).padStart(2, '0');
-  return `투자_${ts.getFullYear()}${pad(ts.getMonth()+1)}${pad(ts.getDate())}${pad(ts.getHours())}${pad(ts.getMinutes())}${pad(ts.getSeconds())}.json`;
+  return `투자_${ts.getFullYear()}${pad(ts.getMonth()+1)}${pad(ts.getDate())}${pad(ts.getHours())}${pad(ts.getMinutes())}.json`;
 }
 
-// File System Access API(showDirectoryPicker/showSaveFilePicker/removeEntry)는 모바일에서
-// 지원되지 않거나(iOS Safari) 최근에서야 부분적으로 지원되기 시작해 아직 불안정하다(Android
-// 일부 브라우저 — 폴더 지정까지는 되는데 저장/삭제 단계에서 오류가 나는 사례). 모바일에서는
-// 이 API들을 아예 시도하지 않고 표준 다운로드/파일 선택 방식으로만 동작시킨다.
-const IS_MOBILE = /Android|iPhone|iPad|iPod|Mobi/i.test(navigator.userAgent);
-const SUPPORTS_FS_ACCESS = !IS_MOBILE && !!window.showDirectoryPicker;
-const SUPPORTS_SAVE_PICKER = !IS_MOBILE && !!window.showSaveFilePicker;
+// 브라우저가 실제로 이 기능들을 제공하는지로만 판단한다 — User-Agent로 "모바일이니 꺼야 한다"고
+// 단정하지 않는다. 일부 모바일 브라우저는 showDirectoryPicker 는 되고 showSaveFilePicker 는
+// 안 되는 등 지원이 API별로 갈리므로, exportToFile() 은 되는 단계까지만 쓰고 안 되면 다음
+// 단계로 자연스럽게 넘어가도록 짜여 있다.
+const SUPPORTS_FS_ACCESS = !!window.showDirectoryPicker;
+const SUPPORTS_SAVE_PICKER = !!window.showSaveFilePicker;
 
 const IDB_NAME = 'investRebalanceDB';
 const IDB_STORE = 'handles';
@@ -120,17 +119,30 @@ document.getElementById('chooseWorkDirBtn').addEventListener('click', (e) => {
 });
 restoreWorkDirHandle();
 
+// 이미 같은 이름의 파일이 그 폴더에 있는지 확인한다(있으면 getFileHandle 이 성공, 없으면
+// NotFoundError 로 실패하는 걸 이용).
+async function fileExistsInDir(dir, filename){
+  try {
+    await dir.getFileHandle(filename, { create: false });
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
 async function exportToFile(anchor){
   const btn = anchor || document.getElementById('exportBtn');
   await ensureWorkDir(btn);
 
   const jsonStr = JSON.stringify(buildStateSnapshot(), null, 2);
-  const defaultName = buildExportFilename();
+  const filename = buildExportFilename(); // 파일명은 항상 규칙대로 자동 생성 — 다시 물어보지 않는다.
 
+  // 1) 세이브 피커: 저장 위치를 직접 고를 수 있고, 같은 이름의 파일을 고르면 브라우저가 알아서
+  //    "덮어쓸까요?"를 물어봐 준다.
   if (SUPPORTS_SAVE_PICKER) {
     try {
       const opts = {
-        suggestedName: defaultName,
+        suggestedName: filename,
         types: [{ description: 'JSON 파일', accept: { 'application/json': ['.json'] } }],
       };
       if (workDirHandle) opts.startIn = workDirHandle;
@@ -146,20 +158,25 @@ async function exportToFile(anchor){
     }
   }
 
-  // 표준 다운로드 방식(모바일 포함 모든 브라우저의 최종 대체 경로) — 예외가 나도 화면에 메시지 없이
-  // 조용히 실패하는 일이 없도록 전체를 감싼다.
-  try {
-    let filename = defaultName;
+  // 2) 세이브 피커가 없거나 실패했지만 작업 폴더는 지정돼 있는 경우: 그 폴더에 직접 쓴다.
+  //    같은 이름의 파일이 이미 있으면 덮어쓸지 확인한다.
+  if (SUPPORTS_FS_ACCESS && workDirHandle) {
     try {
-      const typed = prompt('저장할 파일명을 입력하세요.', defaultName);
-      if (typed === null) return; // 사용자가 취소
-      filename = typed.trim() || defaultName;
+      if (await fileExistsInDir(workDirHandle, filename) && !confirm(`"${filename}" 파일이 이미 있습니다. 덮어쓸까요?`)) return;
+      const fileHandle = await workDirHandle.getFileHandle(filename, { create: true });
+      const writable = await fileHandle.createWritable();
+      await writable.write(jsonStr);
+      await writable.close();
+      showFieldStatus(btn, `저장했습니다. (${filename})`);
+      return;
     } catch (e) {
-      // 일부 모바일 브라우저(특히 인앱 웹뷰)는 prompt() 자체를 지원하지 않는다 — 그런 경우
-      // 이름을 묻지 않고 기본 파일명으로 바로 진행한다.
+      showFieldStatus(btn, '작업 폴더에 저장하는 중 오류가 발생해 다른 방법으로 저장합니다: ' + e.message, 'error');
     }
-    if (!filename.toLowerCase().endsWith('.json')) filename += '.json';
+  }
 
+  // 3) 표준 다운로드(모든 브라우저의 최종 대체 경로). 이미 있는 파일과의 충돌 확인은 브라우저
+  //    다운로드 기능의 몫이라 여기선 할 수 없다 — 예외가 나도 조용히 실패하지 않도록만 감싼다.
+  try {
     const blob = new Blob([jsonStr], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
