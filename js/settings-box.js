@@ -295,7 +295,10 @@ document.getElementById('folderFileListBrowse').addEventListener('click', () => 
 async function importFromFile(anchor){
   const btn = anchor || document.getElementById('importBtn');
   const dir = await ensureWorkDir(btn);
-  if (dir) {
+  // 폴더는 지정돼 있어도 그 안의 파일 목록을 나열하는 기능(entries())은 지원하지 않는 브라우저가
+  // 있다(삼성 인터넷 등 — showDirectoryPicker/getFileHandle 은 되는데 entries() 는 없음). 그런
+  // 경우 매번 오류 메시지를 보여주는 대신 조용히 표준 파일 선택으로 넘어간다.
+  if (dir && typeof dir.entries === 'function') {
     try {
       const files = [];
       for await (const [name, handle] of dir.entries()) {
@@ -304,9 +307,7 @@ async function importFromFile(anchor){
       files.sort((a, b) => a.name.localeCompare(b.name));
       openFolderFileList(dir, files);
       return;
-    } catch (e) {
-      showFieldStatus(btn, '작업 폴더를 읽는 중 오류가 발생해 다른 방법으로 불러옵니다: ' + e.message, 'error');
-    }
+    } catch (e) {}
   }
   document.getElementById('importFileInput').click();
 }
