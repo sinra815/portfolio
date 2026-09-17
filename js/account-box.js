@@ -4,9 +4,13 @@
 const ADMIN_ID = 'sinra815';
 
 function showAdminButtonIfAdmin(){
+  const isAdmin = currentUserId === ADMIN_ID;
   const adminBtn = document.getElementById('adminPanelBtn');
-  if (!adminBtn) return;
-  adminBtn.style.display = (currentUserId === ADMIN_ID) ? 'inline-block' : 'none';
+  if (adminBtn) adminBtn.style.display = isAdmin ? 'inline-block' : 'none';
+  // 관리자 계정은 여기서(계정 삭제 버튼으로는) 자기 계정을 지울 수 없다 — admin-delete-user.js 도
+  // 서버에서 같은 규칙을 강제하지만, 버튼 자체를 숨겨 혼동을 줄인다.
+  const deleteBtn = document.getElementById('deleteAccountBtn');
+  if (deleteBtn) deleteBtn.style.display = isAdmin ? 'none' : '';
 }
 // auth-box.js 의 로그인 유지 복원은 이 스크립트가 로드되기 전에 이미 실행됐을 수 있어
 // (그때는 이 함수가 아직 없어 setAccountUI 안의 typeof 가드가 조용히 넘어간다), 여기서
