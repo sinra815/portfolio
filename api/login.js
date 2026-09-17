@@ -47,7 +47,7 @@ export default async function handler(req, res) {
       await redis.set(userKey(id), { ...user, failedAttempts: 0, lockedUntil: null });
       // register.js 배포 전에 만들어진 계정은 목록 집합에 없을 수 있어, 로그인 때 채워 넣는다.
       await redis.sadd(USERS_SET_KEY, id);
-      const isAdmin = id === ADMIN_ID || !!user.isAdmin;
+      const isAdmin = !!(user.isAdmin || (id === ADMIN_ID && user.isAdmin === undefined));
       return res.status(200).json({ ok: true, exists: true, id, isAdmin });
     }
 
