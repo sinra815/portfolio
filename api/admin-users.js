@@ -26,7 +26,7 @@ export default async function handler(req, res) {
         id,
         suspended: !!(u && u.suspended),
         lockedUntil: (u && u.lockedUntil) || null,
-        isAdmin: id === ADMIN_ID || !!(u && u.isAdmin),
+        isAdmin: !!(u && (u.isAdmin || (id === ADMIN_ID && u.isAdmin === undefined))),
       };
     }));
     users.sort((a, b) => a.id.localeCompare(b.id));
