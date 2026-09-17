@@ -61,7 +61,14 @@ export default async function handler(req, res) {
       price = Math.round(rawPrice * rate);
     }
 
-    return res.status(200).json({ price, name: item.name, code, nationCode: item.nationCode, currency: currencyCode || 'KRW', rawPrice });
+    // 전일대비 등락률(부호 있는 %). 네이버는 절대값(fluctuationsRatio)과 방향
+    // (compareToPreviousPrice.code: 1=상한 2=상승 3=보합 4=하한 5=하락)을 따로 준다.
+    // 통화 환산 없이 그대로 쓸 수 있다 — 원화로 환산해도 등락 "비율"은 원래 통화와 같다.
+    const dirCode = basicJson.compareToPreviousPrice && basicJson.compareToPreviousPrice.code;
+    const sign = (dirCode === '1' || dirCode === '2') ? 1 : (dirCode === '4' || dirCode === '5') ? -1 : 0;
+    const changePercent = sign * Math.abs(Number(basicJson.fluctuationsRatio) || 0);
+
+    return res.status(200).json({ price, name: item.name, code, nationCode: item.nationCode, currency: currencyCode || 'KRW', rawPrice, changePercent });
   } catch (err) {
     return res.status(500).json({ error: '현재가를 불러오는 중 오류가 발생했습니다.', detail: String(err) });
   }
