@@ -3,7 +3,7 @@
 function buildExportFilename(){
   const ts = new Date();
   const pad = (n) => String(n).padStart(2, '0');
-  return `투자_${ts.getFullYear()}${pad(ts.getMonth()+1)}${pad(ts.getDate())}${pad(ts.getHours())}${pad(ts.getMinutes())}.json`;
+  return `투자_${ts.getFullYear()}${pad(ts.getMonth()+1)}${pad(ts.getDate())}.json`;
 }
 
 // 모바일에서는 "작업 폴더 지정"(showDirectoryPicker 로 폴더를 고정해 두고 그 안을 직접
