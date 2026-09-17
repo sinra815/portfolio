@@ -49,6 +49,14 @@ function saveWorkingStateToDevice(){
 // 켜고, autoLoadServerData() 가 끝나면(성공/실패 무관) false 로 되돌린다.
 let serverLoadPending = false;
 
+// 서버에서 데이터를 불러오는 동안(위 serverLoadPending 과 같은 구간) 화면에 진행 표시를 보여준다.
+// Vercel 서버리스 콜드 스타트 등으로 첫 응답이 늦어질 때, 화면이 그냥 비어 보이는 대신
+// "불러오는 중"임을 알 수 있게 한다.
+function setServerLoadingIndicator(visible){
+  const el = document.getElementById('serverLoadingIndicator');
+  if (el) el.style.display = visible ? 'inline' : 'none';
+}
+
 // 로그인 유지 키(js/auth-box.js 와 공유). 로그인된 채로 새로고침한 경우에는 기기 저장이
 // 아니라 서버에 저장된 데이터를 보여줘야 하므로, 그 경우엔 기기 저장 복원을 건너뛴다.
 const AUTH_STORAGE_KEY = 'investRebalanceAuthId';
