@@ -57,6 +57,9 @@ function completeLogin(id){
   currentUserIdLabel.textContent = id;
   setAccountUI(true);
   authOverlay.classList.remove('open');
+  // 지금부터는 서버가 기준이니, 남아있던 기기 자동저장은 지운다(다음에 로그인 없이 들어왔을 때
+  // 방금 로그인한 계정의 데이터가 그대로 남아 보이지 않도록).
+  if (typeof clearAutosave === 'function') clearAutosave();
   // 기기에 자동저장된 값이 아니라, 이 ID로 서버에 저장된 값을 보여준다.
   if (typeof autoLoadServerData === 'function') autoLoadServerData(id);
 }
@@ -66,6 +69,7 @@ function continueAsGuest(){
   isGuestMode = true;
   currentUserIdLabel.textContent = '게스트 (서버 저장 불가)';
   setAccountUI(false);
+  if (typeof setSaveBadge === 'function') setSaveBadge(false);
   authOverlay.classList.remove('open');
 }
 
@@ -83,6 +87,12 @@ function logout(){
   try { localStorage.removeItem(AUTH_STORAGE_KEY); } catch (e) {}
   currentUserId = null;
   currentUserIdLabel.textContent = '';
+  if (typeof clearAutosave === 'function') clearAutosave();
+  if (typeof setSaveBadge === 'function') setSaveBadge(false);
+  // 화면(메모리)에 남은 방금 계정의 데이터가 다음 로그인/게스트 진입 때 그대로 보이지 않도록 비운다.
+  master = [];
+  groups = [];
+  renderAll();
   setAccountUI(false);
   showLoginView();
   authOverlay.classList.add('open');

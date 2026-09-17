@@ -40,6 +40,22 @@ function autosaveWorkingState(){
   try { localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(buildStateSnapshot())); } catch(e) {}
 }
 
+// 로그인 상태가 바뀔 때(로그인 완료/로그아웃) 남아있는 기기 자동저장을 지운다.
+// 그대로 두면 다음에 로그인 없이(게스트로) 들어왔을 때 방금 전 계정의 데이터가 그대로 보인다.
+function clearAutosave(){
+  try { localStorage.removeItem(AUTOSAVE_KEY); } catch (e) {}
+}
+
+let serverAutosaveTimer = null;
+// 로그인 상태에서는 기기 자동저장 대신 서버로 자동 저장한다(디바운스: 연속 입력마다 요청하지 않음).
+function scheduleServerAutosave(){
+  if (!currentUserId) return;
+  clearTimeout(serverAutosaveTimer);
+  serverAutosaveTimer = setTimeout(() => {
+    if (typeof silentServerSave === 'function') silentServerSave();
+  }, 900);
+}
+
 // 로그인 유지 키(js/auth-box.js 와 공유). 로그인된 채로 새로고침한 경우에는 기기 자동저장이
 // 아니라 서버에 저장된 데이터를 보여줘야 하므로, 그 경우엔 자동저장 복원을 건너뛴다.
 const AUTH_STORAGE_KEY = 'investRebalanceAuthId';
@@ -339,5 +355,11 @@ function renderAll(){
   renderStockSummary();
   renderPriceTable();
   renderStageSummary();
-  autosaveWorkingState();
+  // 로그인 상태면 서버에, 아니면(게스트/로그인 전) 기기에만 자동저장한다 — 섞이면 다른 계정 데이터가
+  // 로컬에 남아 다음에 로그인 없이 들어왔을 때 그대로 보이는 문제가 생긴다.
+  if (currentUserId) {
+    scheduleServerAutosave();
+  } else {
+    autosaveWorkingState();
+  }
 }

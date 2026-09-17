@@ -317,6 +317,22 @@ async function autoLoadServerData(id){
   }
 }
 
+// 로그인 상태에서 편집할 때마다(디바운스 후) 조용히 서버에 저장한다. 저장 버튼과 달리
+// 버튼 문구를 바꾸거나 토스트를 띄우지 않는다 — 저장 배지만 갱신한다.
+async function silentServerSave(){
+  if (!currentUserId) return;
+  try {
+    const res = await fetch('/api/save', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...buildStateSnapshot(), id: currentUserId }),
+    });
+    if (res.ok) setSaveBadge(true);
+  } catch (e) {
+    // 오프라인 등으로 실패해도 조용히 넘어간다 — 다음 변경 때 다시 시도된다.
+  }
+}
+
 document.getElementById('loadBtn').addEventListener('click', () => {
   const btn = document.getElementById('loadBtn');
   if (!currentUserId) { showFieldStatus(btn, '로그인이 필요합니다.', 'error'); return; }
