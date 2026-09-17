@@ -6,14 +6,17 @@ function buildExportFilename(){
   return `투자_${ts.getFullYear()}${pad(ts.getMonth()+1)}${pad(ts.getDate())}${pad(ts.getHours())}${pad(ts.getMinutes())}.json`;
 }
 
-// 모바일에서는 File System Access API 를 아예 쓰지 않는다. showDirectoryPicker 자체는 켜져
-// 있는 모바일 브라우저(삼성 인터넷 등)가 있지만, 그 폴더를 실제로 읽고 쓰는 하위 기능들
-// (getFileHandle/entries/removeEntry) 이 브라우저마다 들쭉날쭉하게 빠져 있어(실제로 확인된
-// 사례: 폴더 선택은 되는데 그 안에 파일을 쓰거나 목록을 나열하는 건 안 됨) 신뢰할 수 없다.
-// 모바일에서는 표준 다운로드(기기의 기본 다운로드 폴더로 저장)와 표준 파일 선택 창만 쓴다.
+// 모바일에서는 "작업 폴더 지정"(showDirectoryPicker 로 폴더를 고정해 두고 그 안을 직접
+// 읽고/쓰고/나열하는 기능) 자체를 아예 쓰지 않는다 — showDirectoryPicker 는 켜져 있는 모바일
+// 브라우저(삼성 인터넷 등)가 있지만, 그 폴더의 하위 기능들(getFileHandle/entries/removeEntry)
+// 이 브라우저마다 들쭉날쭉하게 빠져 있어(실제로 확인된 사례: 폴더 선택은 되는데 그 안에 파일을
+// 쓰거나 목록을 나열하는 건 안 됨) 신뢰할 수 없다.
+// showSaveFilePicker(다운로드할 때마다 저장 위치를 직접 고르는 대화상자)는 작업 폴더 지정과는
+// 별개의 API라 모바일 여부와 무관하게 지원 여부만 보고 그대로 쓴다 — 폴더를 미리 고정해두지
+// 않고 매번 위치를 고르는 방식이라 지원되는 경우가 많다.
 const IS_MOBILE = /Android|iPhone|iPad|iPod|Mobi/i.test(navigator.userAgent);
 const SUPPORTS_FS_ACCESS = !IS_MOBILE && !!window.showDirectoryPicker;
-const SUPPORTS_SAVE_PICKER = !IS_MOBILE && !!window.showSaveFilePicker;
+const SUPPORTS_SAVE_PICKER = !!window.showSaveFilePicker;
 
 const IDB_NAME = 'investRebalanceDB';
 const IDB_STORE = 'handles';
@@ -112,13 +115,15 @@ async function ensureWorkDir(anchor){
 }
 
 const chooseWorkDirBtnEl = document.getElementById('chooseWorkDirBtn');
+const workDirStatusEl = document.getElementById('workDirStatus');
 if (IS_MOBILE) {
-  // 모바일에서는 폴더 지정 자체를 쓰지 않는다(위 SUPPORTS_FS_ACCESS 주석 참고) — 버튼을 눌러도
-  // 아무 의미가 없으니 비활성화하고, 파일은 기기 기본 다운로드 폴더로 저장/거기서 불러온다는
-  // 것을 안내한다.
-  chooseWorkDirBtnEl.disabled = true;
-  chooseWorkDirBtnEl.title = '이 기기에서는 폴더 지정 기능을 지원하지 않습니다. 파일은 기기의 기본 다운로드 폴더에 저장되고, 불러오기도 표준 파일 선택 창을 사용합니다.';
-  document.getElementById('workDirStatus').textContent = '작업 폴더: 이 기기에서는 미지원(기본 다운로드 폴더 사용)';
+  // 모바일에서는 "작업 폴더 지정" 기능 자체를 화면에서 완전히 뺀다 — 버튼/상태 표시를 숨기고,
+  // showDirectoryPicker 관련 코드(chooseWorkDir/ensureWorkDir/restoreWorkDirHandle)는 아예
+  // 실행하지 않는다. 대신 다운로드/업로드는 매번 위치를 고르는 방식(showSaveFilePicker, 표준
+  // 파일 선택창)을 쓴다 — exportToFile()/importFromFile() 이 SUPPORTS_FS_ACCESS=false 일 때
+  // 이미 그렇게 동작한다.
+  chooseWorkDirBtnEl.style.display = 'none';
+  workDirStatusEl.style.display = 'none';
 } else {
   chooseWorkDirBtnEl.addEventListener('click', (e) => {
     const btn = e.currentTarget;
