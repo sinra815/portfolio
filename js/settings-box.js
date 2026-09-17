@@ -253,15 +253,23 @@ document.getElementById('resetAllBtn').addEventListener('click', () => {
   renderAll();
 });
 
-// ==== 저장 버튼의 초록 배지: 서버(/api/save)에 저장된 데이터가 있는지를 나타낸다 ====
+// ==== 저장 버튼의 초록 배지: 현재 위치(로그인=서버 / 게스트=이 기기)에 저장된 데이터가 있는지 ====
 function setSaveBadge(visible){
   const badge = document.getElementById('saveBadge');
   if (badge) badge.style.display = visible ? 'block' : 'none';
 }
 
+// "저장"·"불러오기"는 버튼을 눌렀을 때만 동작한다(자동저장 없음). 로그인 상태면 서버(/api/save,
+// /api/load)에, 로그인 없이(게스트) 들어온 경우엔 이 기기(localStorage)에 저장/불러오기한다.
 document.getElementById('saveBtn').addEventListener('click', () => {
   const btn = document.getElementById('saveBtn');
-  if (!currentUserId) { showFieldStatus(btn, '로그인이 필요합니다.', 'error'); return; }
+  if (serverLoadPending) { showFieldStatus(btn, '서버 데이터를 불러오는 중입니다. 잠시 후 다시 시도해주세요.', 'error'); return; }
+  if (!currentUserId) {
+    saveWorkingStateToDevice();
+    setSaveBadge(true);
+    showFieldStatus(btn, '이 기기에 저장되었습니다.');
+    return;
+  }
   const original = btn.textContent;
   btn.textContent = '저장 중...';
   btn.disabled = true;
@@ -294,8 +302,8 @@ async function fetchServerData(id){
   return json.data;
 }
 
-// 서버에서 받은 데이터를 화면에 그대로 반영한다 (기기 자동저장 값을 덮어씀).
-function applyServerData(saved){
+// 서버·기기 어느 쪽에서 불러온 데이터든 화면에 그대로 반영한다.
+function applyLoadedData(saved){
   master = saved.master || master;
   groups = saved.groups || groups;
   if (saved.stage !== undefined) document.getElementById('stagePercentInput').value = saved.stage;
@@ -303,43 +311,42 @@ function applyServerData(saved){
   renderAll();
 }
 
-// 로그인 직후 자동으로 호출: 기기에 저장된 값이 아니라 서버에 저장된 값을 보여준다.
-// 서버에 아직 저장된 데이터가 없는 ID(새 계정 등)는 조용히 넘어간다.
+// 로그인 직후 자동으로 호출: 이 기기에 저장된 값이 아니라 서버에 저장된 값을 보여준다.
+// 서버에 아직 저장된 데이터가 없는 ID(새 계정 등)는 배지만 끄고 조용히 넘어간다.
 async function autoLoadServerData(id){
   try {
     const data = await fetchServerData(id);
     if (data) {
-      applyServerData(data);
+      applyLoadedData(data);
       setSaveBadge(true);
+    } else {
+      setSaveBadge(false);
     }
   } catch (e) {
     console.warn('서버 데이터 자동 불러오기 실패:', e.message);
   } finally {
-    // 이제 서버 상태를 반영했으니(혹은 반영할 데이터가 없거나 조회에 실패했으니), 이 시점부터의
-    // 편집은 다시 자동저장 대상이 된다. 여기서 풀어주지 않으면 로그인 상태에서 아무 것도 저장되지 않는다.
+    // 이제 서버 상태를 반영했으니(혹은 반영할 데이터가 없거나 조회에 실패했으니), 저장/불러오기
+    // 버튼을 다시 눌러도 안전하다. 여기서 풀어주지 않으면 로그인 상태에서 계속 막혀 있게 된다.
     serverLoadPending = false;
-  }
-}
-
-// 로그인 상태에서 편집할 때마다(디바운스 후) 조용히 서버에 저장한다. 저장 버튼과 달리
-// 버튼 문구를 바꾸거나 토스트를 띄우지 않는다 — 저장 배지만 갱신한다.
-async function silentServerSave(){
-  if (!currentUserId) return;
-  try {
-    const res = await fetch('/api/save', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...buildStateSnapshot(), id: currentUserId }),
-    });
-    if (res.ok) setSaveBadge(true);
-  } catch (e) {
-    // 오프라인 등으로 실패해도 조용히 넘어간다 — 다음 변경 때 다시 시도된다.
   }
 }
 
 document.getElementById('loadBtn').addEventListener('click', () => {
   const btn = document.getElementById('loadBtn');
-  if (!currentUserId) { showFieldStatus(btn, '로그인이 필요합니다.', 'error'); return; }
+  if (serverLoadPending) { showFieldStatus(btn, '서버 데이터를 불러오는 중입니다. 잠시 후 다시 시도해주세요.', 'error'); return; }
+  if (!currentUserId) {
+    const data = loadDeviceSave();
+    if (!data) {
+      setSaveBadge(false);
+      showFieldStatus(btn, '이 기기에 저장된 데이터가 없습니다.', 'error');
+      return;
+    }
+    setSaveBadge(true);
+    if (!confirm('이 기기에 저장된 데이터를 불러올까요? 현재 화면의 변경 사항은 사라집니다.')) return;
+    applyLoadedData(data);
+    showFieldStatus(btn, '불러왔습니다.');
+    return;
+  }
   const original = btn.textContent;
   btn.textContent = '불러오는 중...';
   btn.disabled = true;
@@ -351,7 +358,7 @@ document.getElementById('loadBtn').addEventListener('click', () => {
     }
     setSaveBadge(true);
     if (!confirm('서버에 저장된 데이터를 불러올까요? 현재 화면의 변경 사항은 사라집니다.')) return;
-    applyServerData(data);
+    applyLoadedData(data);
     showFieldStatus(btn, '불러왔습니다.');
   }).catch((err) => {
     showFieldStatus(btn, err.message || '불러오기 실패 - 네트워크 상태를 확인해주세요.', 'error');
