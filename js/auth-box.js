@@ -6,6 +6,9 @@ let currentUserId = null;
 // 버튼을 보여줄지 정하는 용도일 뿐이다.
 let currentUserIsAdmin = false;
 const AUTH_ADMIN_STORAGE_KEY = 'investRebalanceAuthIsAdmin';
+// "아이디 저장" 체크박스 — 로그인 상태 유지(AUTH_STORAGE_KEY)와는 별개로, 로그인 화면에
+// ID 입력만 미리 채워두는 용도. 비밀번호는 저장하지 않는다.
+const REMEMBER_ID_STORAGE_KEY = 'investRebalanceRememberedId';
 
 const authOverlay = document.getElementById('authOverlay');
 const authLoginView = document.getElementById('authLoginView');
@@ -22,12 +25,22 @@ const authRegisterBtn = document.getElementById('authRegisterBtn');
 const currentUserIdLabel = document.getElementById('currentUserIdLabel');
 const logoutBtn = document.getElementById('logoutBtn');
 const continueAsGuestBtn = document.getElementById('continueAsGuestBtn');
+const rememberIdCheckbox = document.getElementById('rememberIdCheckbox');
 const saveBtnEl = document.getElementById('saveBtn');
 const loadBtnEl = document.getElementById('loadBtn');
 const changePasswordBtnEl = document.getElementById('changePasswordBtn');
 const deleteAccountBtnEl = document.getElementById('deleteAccountBtn');
 
 let isGuestMode = false;
+
+// 저장해 둔 ID가 있으면 로그인 화면에 미리 채워 넣고 체크박스도 켜둔다.
+try {
+  const rememberedId = localStorage.getItem(REMEMBER_ID_STORAGE_KEY);
+  if (rememberedId) {
+    authIdInput.value = rememberedId;
+    rememberIdCheckbox.checked = true;
+  }
+} catch (e) {}
 
 // 로그인 상태에 맞춰 계정 버튼과 계정 영역 표시를 갱신한다.
 // 게스트로 들어온 경우 계정이 없어 비밀번호 변경·계정 삭제만 사용할 수 없다(저장/불러오기는 가능).
@@ -179,6 +192,10 @@ async function attemptLogin(){
       authLoginError.textContent = json.error || '로그인에 실패했습니다.';
       return;
     }
+    try {
+      if (rememberIdCheckbox.checked) localStorage.setItem(REMEMBER_ID_STORAGE_KEY, id);
+      else localStorage.removeItem(REMEMBER_ID_STORAGE_KEY);
+    } catch (e) {}
     completeLogin(id, json.isAdmin);
   } catch (e) {
     authLoginError.textContent = '로그인 중 오류가 발생했습니다: ' + e.message;
