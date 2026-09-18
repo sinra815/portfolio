@@ -399,9 +399,14 @@ async function fetchServerData(id){
 function applyLoadedData(saved){
   master = saved.master || master;
   groups = saved.groups || groups;
+  kiwoomGroupNames = saved.kiwoomGroupNames || kiwoomGroupNames;
   if (saved.stage !== undefined) document.getElementById('stagePercentInput').value = saved.stage;
   if (saved.threshold !== undefined) document.getElementById('overweightThreshold').value = saved.threshold;
   renderAll();
+  // 불러온 이름을 계좌 잔고(키움) 표 제목에도 바로 반영 — 패널이 보이는 중이면 다시 가져와 그린다.
+  if (typeof loadKiwoomBalance === 'function' && typeof KIWOOM_OWNER_ID !== 'undefined' && currentUserId === KIWOOM_OWNER_ID) {
+    loadKiwoomBalance();
+  }
 }
 
 // 로그인 직후 자동으로 호출: 이 기기에 저장된 값이 아니라 서버에 저장된 값을 보여준다.
