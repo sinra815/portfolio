@@ -43,7 +43,9 @@ async function loadKiwoomBalance(){
       body: JSON.stringify({ id: currentUserId }),
     });
     const json = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(json.error || '계좌 잔고를 불러오지 못했습니다.');
+    // 서버는 사용자용 메시지(error)와 원인(detail)을 따로 내려주는데, detail 을 화면에
+    // 안 띄우면 "오류가 발생했습니다"만 보여서 뭐가 문제인지 알 방법이 없다.
+    if (!res.ok) throw new Error((json.error || '계좌 잔고를 불러오지 못했습니다.') + (json.detail ? ` (${json.detail})` : ''));
     renderKiwoomBalance(json);
     document.getElementById('kiwoomUpdatedAt').textContent = `${new Date().toLocaleTimeString('ko-KR')} 기준`;
   } catch (e) {
