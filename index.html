@@ -9,7 +9,7 @@
      그 파일들 중 하나라도 내용을 바꾸면, 여기와 아래 <script> 태그들의 ?v= 값을 전부 함께 올려야
      기존에 캐싱해 둔 브라우저가 새 파일을 다시 받는다. (index.html 자체는 캐싱하지 않으므로
      이 값이 바뀐 참조는 항상 즉시 반영된다.) -->
-<link rel="stylesheet" href="style.css?v=26">
+<link rel="stylesheet" href="style.css?v=27">
 </head>
 <body>
 
@@ -53,10 +53,10 @@
         <button type="button" id="logoutBtn" style="padding:5px 10px;border-radius:6px;border:1px solid var(--border-strong);background:#fff;cursor:pointer;font-size:12px;">로그아웃</button>
       </div>
       <div style="display:flex; gap:6px; flex-wrap:wrap; justify-content:flex-end;">
-        <button id="changePasswordBtn" disabled title="로그인 후 사용할 수 있습니다." style="padding:5px 10px;border-radius:6px;border:1px solid var(--accent);background:var(--accent);color:#fff;cursor:pointer;white-space:nowrap;font-size:12px;">비밀번호 변경</button>
-        <button id="resetAllBtn" style="padding:5px 10px;border-radius:6px;border:1px solid var(--down);background:#fff;color:var(--down);cursor:pointer;white-space:nowrap;font-size:12px;">초기화</button>
-        <button id="deleteAccountBtn" disabled title="로그인 후 사용할 수 있습니다." style="padding:5px 10px;border-radius:6px;border:1px solid var(--down);background:#fff;color:var(--down);cursor:pointer;white-space:nowrap;font-size:12px;">계정 삭제</button>
-        <button id="adminPanelBtn" style="display:none;padding:5px 10px;border-radius:6px;border:1px solid #7c3aed;background:#7c3aed;color:#fff;cursor:pointer;white-space:nowrap;font-size:12px;">🛠 관리자</button>
+        <button id="changePasswordBtn" disabled title="로그인 후 사용할 수 있습니다." style="padding:4px 8px;border-radius:5px;border:1px solid var(--border-strong);background:#fff;cursor:pointer;white-space:nowrap;font-size:11px;">비밀번호 변경</button>
+        <button id="resetAllBtn" style="padding:4px 8px;border-radius:5px;border:1px solid var(--down);background:#fff;color:var(--down);cursor:pointer;white-space:nowrap;font-size:11px;">초기화</button>
+        <button id="deleteAccountBtn" disabled title="로그인 후 사용할 수 있습니다." style="padding:4px 8px;border-radius:5px;border:1px solid var(--down);background:#fff;color:var(--down);cursor:pointer;white-space:nowrap;font-size:11px;">계정 삭제</button>
+        <button id="adminPanelBtn" style="display:none;padding:4px 8px;border-radius:5px;border:1px solid #7c3aed;background:#7c3aed;color:#fff;cursor:pointer;white-space:nowrap;font-size:11px;">🛠 관리자</button>
       </div>
     </div>
   </div>
@@ -82,7 +82,6 @@
         <button id="exportBtn" style="padding:7px 14px;border-radius:6px;border:1px solid var(--border-strong);background:#fff;cursor:pointer;white-space:nowrap;flex:0 0 auto;">⬇ File Download</button>
         <button id="importBtn" style="padding:7px 14px;border-radius:6px;border:1px solid var(--border-strong);background:#fff;cursor:pointer;white-space:nowrap;flex:0 0 auto;">⬆ File Upload</button>
         <input type="file" id="importFileInput" accept="application/json,.json" style="display:none;">
-        <button id="refreshPricesBtn" style="padding:7px 14px;border-radius:6px;border:1px solid var(--border-strong);background:#fff;cursor:pointer;white-space:nowrap;flex:0 0 auto;">금액 새로고침</button>
       </div>
       <div style="margin-top:6px; display:flex; align-items:center; gap:8px; font-size:11.5px; color:var(--muted);">
         <button id="chooseWorkDirBtn" style="padding:2px 8px; border-radius:4px; border:1px solid var(--border-strong); background:#fff; cursor:pointer; font-size:11px;">폴더 지정</button>
@@ -94,10 +93,10 @@
 
 <div class="panel" id="kiwoomPanel" style="display:none;">
   <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap;">
-    <h2 style="margin:0;">🏦 계좌 잔고 (키움)</h2>
+    <h2 style="margin:0;">🏦 My Data</h2>
     <div style="display:flex; align-items:center; gap:8px; font-size:11.5px; color:var(--muted);">
       <span id="kiwoomUpdatedAt"></span>
-      <button type="button" id="kiwoomRefreshBtn" style="padding:5px 10px; border-radius:5px; border:1px solid var(--border-strong); background:#fff; cursor:pointer; font-size:12px;">새로고침</button>
+      <button type="button" id="kiwoomRefreshBtn" style="padding:5px 10px; border-radius:5px; border:1px solid var(--border-strong); background:#fff; cursor:pointer; font-size:12px;">금액 새로고침</button>
     </div>
   </div>
   <p class="note" style="margin-top:6px;">키움증권 REST API로 조회한 실제 계좌 잔고입니다(읽기 전용, 로그인 시·새로고침 시에만 갱신). 증권사·계좌·계좌유형별로 표가 나뉘며, 표 제목을 클릭하면 이름을 바꿀 수 있습니다. 아래 리밸런싱 표(수동 입력)와는 별개입니다.</p>
@@ -167,68 +166,63 @@
   </p>
 </div>
 <div class="panel">
-  <div class="price-cols">
-    <div style="min-width:0;">
-      <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap;">
-        <h2 style="margin:0;">📌 종목 마스터</h2>
-        <button type="button" id="fetchAllPricesBtn" style="padding:5px 10px; border-radius:5px; border:1px solid var(--border-strong); background:#fff; cursor:pointer; font-size:12px; white-space:nowrap;">금액 불러오기</button>
-      </div>
-      <div class="table-scroll">
-        <table class="price-table master-table">
-          <colgroup>
-            <col style="width:auto;">
-            <col style="width:104px;">
-            <col style="width:96px;">
-            <col style="width:48px;">
-            <col style="width:148px;">
-            <col style="width:76px;">
-          </colgroup>
-          <thead><tr><th>종목</th><th>티커</th><th>유형</th><th>보유<br>계좌 수</th><th>현재가(원)</th><th>등락률</th></tr></thead>
-          <tbody id="priceBody"></tbody>
-          <tfoot>
-            <tr>
-              <td style="position:relative;"><input type="text" id="newStockName" placeholder="새 종목명" autocomplete="off" style="width:100%; box-sizing:border-box; padding:4px 6px; border:1px solid var(--border-strong); border-radius:4px; font-size:12.5px; font-family:inherit;">
-                <div id="newStockNameList" class="suggest-dropdown" hidden></div>
-              </td>
-              <td style="text-align:left;"><input type="text" id="newStockTicker" placeholder="티커" style="width:100%; box-sizing:border-box; padding:4px 6px; border:1px solid var(--border-strong); border-radius:4px; font-size:12.5px; font-family:inherit;"></td>
-              <td style="text-align:left;">
-                <select id="newStockType" style="width:100%; min-width:72px; box-sizing:border-box; padding:4px 18px 4px 6px; border:1px solid var(--border-strong); border-radius:4px; font-size:12.5px; font-family:inherit; background:#fff;">
-                  <option value="stock" selected>주식</option>
-                  <option value="cash">현금</option>
-                </select>
-              </td>
-              <td class="num">-</td>
-              <td class="num">
-                <div style="display:flex; align-items:center; justify-content:flex-end; gap:6px;">
-                  <input type="text" id="newStockPrice" class="cell-input wide numpad-trigger" data-label="새 종목 현재가(원)" value="0" readonly>
-                  <button type="button" id="addStockBtn" style="padding:4px 7px; border-radius:5px; border:1px solid var(--border-strong); background:#fff; cursor:pointer; font-size:11.5px; white-space:nowrap;">+추가</button>
-                </div>
-              </td>
-              <td class="num">-</td>
-            </tr>
-          </tfoot>
-        </table>
-      </div>
-    </div>
-    <div style="min-width:0;">
-      <h2>📈 단계별 미달성 금액 (요약)</h2>
-      <div class="table-scroll">
-        <table class="stage-summary" id="stageSummaryTable">
-          <thead><tr><th class="label">단계</th><th>50%</th><th>70%</th><th>80%</th><th>90%</th><th>100%</th></tr></thead>
-          <tbody>
-            <tr><td class="label">미달성 매수 필요 금액 (만원)</td>
-              <td id="shortfall-0.5"></td><td id="shortfall-0.7"></td><td id="shortfall-0.8"></td>
-              <td id="shortfall-0.9"></td><td id="shortfall-1"></td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-      <p class="note">현금성 종목을 제외한 실제 매수 대상 종목들만 집계합니다.</p>
-    </div>
+  <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap;">
+    <h2 style="margin:0;">📌 종목 마스터</h2>
+    <button type="button" id="fetchAllPricesBtn" style="padding:5px 10px; border-radius:5px; border:1px solid var(--border-strong); background:#fff; cursor:pointer; font-size:12px; white-space:nowrap;">금액 불러오기</button>
+  </div>
+  <div class="table-scroll">
+    <table class="price-table master-table">
+      <colgroup>
+        <col style="width:auto;">
+        <col style="width:104px;">
+        <col style="width:96px;">
+        <col style="width:48px;">
+        <col style="width:148px;">
+        <col style="width:76px;">
+      </colgroup>
+      <thead><tr><th>종목</th><th>티커</th><th>유형</th><th>보유<br>계좌 수</th><th>현재가(원)</th><th>등락률</th></tr></thead>
+      <tbody id="priceBody"></tbody>
+      <tfoot>
+        <tr>
+          <td style="position:relative;"><input type="text" id="newStockName" placeholder="새 종목명" autocomplete="off" style="width:100%; box-sizing:border-box; padding:4px 6px; border:1px solid var(--border-strong); border-radius:4px; font-size:12.5px; font-family:inherit;">
+            <div id="newStockNameList" class="suggest-dropdown" hidden></div>
+          </td>
+          <td style="text-align:left;"><input type="text" id="newStockTicker" placeholder="티커" style="width:100%; box-sizing:border-box; padding:4px 6px; border:1px solid var(--border-strong); border-radius:4px; font-size:12.5px; font-family:inherit;"></td>
+          <td style="text-align:left;">
+            <select id="newStockType" style="width:100%; min-width:72px; box-sizing:border-box; padding:4px 18px 4px 6px; border:1px solid var(--border-strong); border-radius:4px; font-size:12.5px; font-family:inherit; background:#fff;">
+              <option value="stock" selected>주식</option>
+              <option value="cash">현금</option>
+            </select>
+          </td>
+          <td class="num">-</td>
+          <td class="num">
+            <div style="display:flex; align-items:center; justify-content:flex-end; gap:6px;">
+              <input type="text" id="newStockPrice" class="cell-input wide numpad-trigger" data-label="새 종목 현재가(원)" value="0" readonly>
+              <button type="button" id="addStockBtn" style="padding:4px 7px; border-radius:5px; border:1px solid var(--border-strong); background:#fff; cursor:pointer; font-size:11.5px; white-space:nowrap;">+추가</button>
+            </div>
+          </td>
+          <td class="num">-</td>
+        </tr>
+      </tfoot>
+    </table>
   </div>
 </div>
 
-<div class="foot">유지보수를 위해 박스(설정 / 종목별 평가금액 / 계좌별 리밸런싱 현황 / 종목 마스터 / 단계별 미달성 금액)별로 CSS·JS 파일을 나눠 구성했습니다.</div>
+<div class="panel">
+  <h2>📈 단계별 미달성 금액 (요약)</h2>
+  <div class="table-scroll">
+    <table class="stage-summary" id="stageSummaryTable">
+      <thead><tr><th class="label">단계</th><th>50%</th><th>70%</th><th>80%</th><th>90%</th><th>100%</th></tr></thead>
+      <tbody>
+        <tr><td class="label">미달성 매수 필요 금액 (만원)</td>
+          <td id="shortfall-0.5"></td><td id="shortfall-0.7"></td><td id="shortfall-0.8"></td>
+          <td id="shortfall-0.9"></td><td id="shortfall-1"></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="note">현금성 종목을 제외한 실제 매수 대상 종목들만 집계합니다.</p>
+</div>
 
 <div class="numpad-overlay" id="folderFileListOverlay">
   <div class="numpad-box" style="width:320px;">
@@ -306,16 +300,16 @@
   </div>
 </div>
 
-<script src="js/core.js?v=26"></script>
-<script src="js/numpad.js?v=26"></script>
-<script src="js/auth-box.js?v=26"></script>
-<script src="js/account-box.js?v=26"></script>
-<script src="js/settings-box.js?v=26"></script>
-<script src="js/kiwoom-box.js?v=26"></script>
-<script src="js/stock-summary-box.js?v=26"></script>
-<script src="js/main-table-box.js?v=26"></script>
-<script src="js/price-table-box.js?v=26"></script>
-<script src="js/stage-summary-box.js?v=26"></script>
-<script src="js/app.js?v=26"></script>
+<script src="js/core.js?v=27"></script>
+<script src="js/numpad.js?v=27"></script>
+<script src="js/auth-box.js?v=27"></script>
+<script src="js/account-box.js?v=27"></script>
+<script src="js/settings-box.js?v=27"></script>
+<script src="js/kiwoom-box.js?v=27"></script>
+<script src="js/stock-summary-box.js?v=27"></script>
+<script src="js/main-table-box.js?v=27"></script>
+<script src="js/price-table-box.js?v=27"></script>
+<script src="js/stage-summary-box.js?v=27"></script>
+<script src="js/app.js?v=27"></script>
 </body>
 </html>
