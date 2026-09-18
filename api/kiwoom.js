@@ -5,6 +5,7 @@
 // 나눴을 때 배포가 바로 실패했다.
 import { Redis } from '@upstash/redis';
 import { callKiwoom, getKiwoomAccounts } from '../lib/kiwoom.js';
+import { callNh, getNhAccounts, getNhLiveAccountNumber } from '../lib/nh.js';
 
 const redis = new Redis({
   url: process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL,
@@ -144,23 +145,131 @@ async function getAccountBalance(account) {
   };
 }
 
+// 해외주식은 국가+통화 조합별로 따로 조회해야 하는 스펙이라(공식 문서 기준) 순서대로 돌아가며
+// 호출한다. 보유가 없는 시장은 결과가 비어 있을 뿐이니 실패로 취급하지 않는다.
+const NH_OVERSEAS_MARKETS = [
+  { code: '200', currency: 'USD' }, // 미국
+  { code: '070', currency: 'JPY' }, // 일본
+  { code: '120', currency: 'HKD' }, // 홍콩
+  { code: '160', currency: 'CNY' }, // 상해
+  { code: '170', currency: 'CNY' }, // 심천
+];
+
+// 계좌 하나(앱키 하나)의 국내/해외 잔고 + 예수금을 모두 조회해서 한 묶음으로 돌려준다.
+// NH는 계좌번호를 미리 모르므로(/n2/acctinfo로 조회) 앱키당 계좌번호부터 확인한다.
+async function getNhAccountBalance(account) {
+  const actNo = await getNhLiveAccountNumber(redis, account);
+
+  const domestic = await callNh(redis, account, '/krstock/inquiry/v1/balance', {
+    Input_0: {
+      act_no: actNo,
+      bnc_bse_cd: '5', // 주식잔고평가(현재가기준)
+      ltg_aot_dit_cd: '1', // 상장종목
+      aet_bse: '1', // 순자산
+      qut_dit_cd: 'UNT', // 통합시세(KRX+NXT)
+      aly_qut_cd: '1', // 정규장
+    },
+  });
+  const d0 = domestic.Output_0 || {};
+  const cashBalance = toNumber(d0.dca);
+
+  const holdings = (domestic.Output_1 || []).map((row) => ({
+    broker: 'NH투자증권',
+    account: account.label,
+    accountType: '국내',
+    code: row.iem_cd || '',
+    name: row.iem_nm || '',
+    qty: toNumber(row.itg_bnc_qty),
+    currentPrice: toNumber(row.now_pr),
+    purchasePrice: toNumber(row.phs_pr),
+    evalAmount: toNumber(row.eal_amt),
+    evalProfit: toNumber(row.eal_pls_amt),
+    profitRate: toNumber(row.pft_rt),
+  }));
+
+  const cashHolding = {
+    broker: 'NH투자증권',
+    account: account.label,
+    accountType: '국내',
+    code: 'CASH',
+    name: '예수금',
+    qty: null,
+    currentPrice: cashBalance,
+    purchasePrice: cashBalance,
+    evalAmount: cashBalance,
+    evalProfit: 0,
+    profitRate: 0,
+    isCash: true,
+  };
+
+  let overseasEvalAmount = 0, overseasEvalProfit = 0;
+  const overseasHoldings = [];
+  for (const market of NH_OVERSEAS_MARKETS) {
+    try {
+      const gb = await callNh(redis, account, '/gbstock/inquiry/v1/balance', {
+        Input_0: {
+          act_no: actNo,
+          qut_iqr_dit_cd: '1', // 정규장
+          fc_sec_trd_nat_cd: market.code,
+          cur_cd: market.currency,
+        },
+      });
+      const g0 = gb.Output_0;
+      if (g0) {
+        overseasEvalAmount += toNumber(g0.eal_amt_sum);
+        overseasEvalProfit += toNumber(g0.eal_pls_sum_amt);
+      }
+      (gb.Output_1 || []).forEach((row) => {
+        overseasHoldings.push({
+          broker: 'NH투자증권',
+          account: account.label,
+          accountType: '해외',
+          code: row.iem_cd || '',
+          name: row.iem_nm || row.oss_iem_eng_nm || '',
+          qty: toNumber(row.cns_bse_bnc_qty),
+          currentPrice: toNumber(row.end_pr),
+          purchasePrice: toNumber(row.phs_uit_pr),
+          evalAmount: toNumber(row.krw_eal_amt),
+          evalProfit: toNumber(row.krw_eal_pls_amt),
+          profitRate: toNumber(row.eal_pft_rt),
+        });
+      });
+    } catch (e) {
+      // 이 시장 조회 하나가 막혀도(예: 그 국가 미보유) 나머지 시장은 계속 조회한다.
+    }
+  }
+
+  const evalAmount = toNumber(d0.tot_eal_amt) + overseasEvalAmount;
+  const evalProfit = toNumber(d0.tot_eal_pls) + overseasEvalProfit;
+  return {
+    purchaseAmount: evalAmount - evalProfit, // 평가손익 = 평가금액 - 매입금액 관계를 거꾸로 이용
+    evalAmount,
+    evalProfit,
+    cashBalance,
+    holdings: [...holdings, cashHolding, ...overseasHoldings],
+  };
+}
+
 async function getBalance(id) {
   if (id !== KIWOOM_OWNER_ID) {
     return { status: 403, body: { error: '이 계좌 정보는 조회할 수 없습니다.' } };
   }
 
-  const accounts = getKiwoomAccounts();
+  const accounts = [
+    ...getKiwoomAccounts().map((account) => ({ account, fetcher: getAccountBalance })),
+    ...getNhAccounts().map((account) => ({ account, fetcher: getNhAccountBalance })),
+  ];
   if (accounts.length === 0) {
-    return { status: 500, body: { error: '키움 앱키가 설정되지 않았습니다.' } };
+    return { status: 500, body: { error: '증권사 앱키가 설정되지 않았습니다.' } };
   }
 
   let totalPurchaseAmount = 0, totalEvalAmount = 0, totalEvalProfit = 0, cashBalance = 0;
   const holdings = [];
   const failed = [];
 
-  for (const account of accounts) {
+  for (const { account, fetcher } of accounts) {
     try {
-      const result = await getAccountBalance(account);
+      const result = await fetcher(account);
       totalPurchaseAmount += result.purchaseAmount;
       totalEvalAmount += result.evalAmount;
       totalEvalProfit += result.evalProfit;
