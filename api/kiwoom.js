@@ -81,13 +81,29 @@ async function getAccountBalance(account) {
   // 다만 실패 자체는 cashError로 남겨서, 계좌에 실제 예수금이 있는데도 0으로 보이는 원인을
   // 화면(일부 계좌 조회 실패 안내)에서 바로 알 수 있게 한다.
   let cashBalance = 0;
-  let cashError = null;
+  let cashNote = null; // 화면(일부 계좌 조회 실패 안내)에 그대로 노출할 완성된 문구
   try {
     const cash = await callKiwoom(redis, account, 'kt00001', '/api/dostk/acnt', { qry_tp: '2' });
     cashBalance = toNumber(cash.entr);
   } catch (e) {
     cashBalance = 0;
-    cashError = e.message;
+    cashNote = `[${account.label}] 예수금 조회 실패: ${e.message}`;
+  }
+
+  // kt00001(예수금상세현황요청)이 0을 반환하는 계좌(IRP 등 연금 계좌로 추정)는, 더 포괄적인
+  // 계좌평가현황요청(kt00004)의 예수금 필드로 한 번 더 확인해본다. 아직 진단 단계라 값을
+  // 실제로 바꾸지 않고, 차이가 있으면 화면에 그대로 노출만 한다.
+  if (cashBalance === 0 && !cashNote) {
+    try {
+      const eval4 = await callKiwoom(redis, account, 'kt00004', '/api/dostk/acnt', { qry_tp: '0', dmst_stex_tp: 'KRX' });
+      const entr4 = toNumber(eval4.entr);
+      const d2entr4 = toNumber(eval4.d2_entra);
+      if (entr4 || d2entr4) {
+        cashNote = `[${account.label}] kt00001은 예수금 0, kt00004는 entr=${entr4} / d2_entra=${d2entr4} 반환`;
+      }
+    } catch (e) {
+      // 진단용 추가 호출 실패는 무시 — kt00001 결과만 그대로 사용.
+    }
   }
 
   const holdings = (data.acnt_evlt_remn_indv_tot || []).map((row) => ({
@@ -146,7 +162,7 @@ async function getAccountBalance(account) {
     evalProfit: toNumber(data.tot_evlt_pl) + (overseas ? toNumber(overseas.tot_pl_amt_krw) : 0),
     cashBalance,
     holdings: [...holdings, cashHolding, ...overseasHoldings],
-    cashError: cashError ? `[${account.label}] 예수금 조회 실패: ${cashError}` : null,
+    cashError: cashNote,
   };
 }
 
