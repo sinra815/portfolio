@@ -169,8 +169,8 @@ document.addEventListener('click', (e) => {
 async function loadKiwoomBalance(){
   const btn = document.getElementById('kiwoomRefreshBtn');
   // 여러 계좌를 순서대로 조회하느라 응답이 몇 초 걸릴 수 있어, 끝날 때까지 버튼을 잠그고
-  // "Loading..."으로 바꿔서 지금 진행 중이라는 걸 보여준다.
-  await withButtonLoading(btn, 'Loading...', async () => {
+  // "불러오는중"으로 바꿔서 지금 진행 중이라는 걸 보여준다.
+  await withButtonLoading(btn, '불러오는중', async () => {
     try {
       const res = await fetch('/api/kiwoom', {
         method: 'POST',
@@ -203,7 +203,7 @@ function updateKiwoomPanelVisibility(){
 
 // 이 버튼은 "종목 마스터"의 금액 불러오기와 같은 동작(refreshAllPrices)을 한다 — 그 함수
 // 자체가 끝에 계좌 잔고(키움)도 함께 갱신하도록 이미 연결돼 있어, 티커 가격과 잔고가 한 번에 맞춰진다.
-document.getElementById('kiwoomRefreshBtn').addEventListener('click', (e) => refreshAllPrices(e.currentTarget, 'Loading...'));
+document.getElementById('kiwoomRefreshBtn').addEventListener('click', (e) => refreshAllPrices(e.currentTarget, '불러오는중'));
 
 // auth-box.js 의 로그인 유지 복원은 이 스크립트가 로드되기 전에 이미 실행됐을 수 있어(그때는
 // 이 함수가 아직 없어 setAccountUI 안의 typeof 가드가 조용히 넘어간다), 여기서 한 번 더
