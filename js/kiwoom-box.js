@@ -1,0 +1,79 @@
+// ==== "🏦 계좌 잔고 (키움)" 박스: 키움증권 REST API로 조회한 실제 계좌 잔고 (읽기 전용) ====
+// 이 앱의 키움 앱키/시크릿은 sinra815 개인 계좌에 연결돼 있어, 서버(api/kiwoom-balance.js)가
+// 그 ID로만 조회를 허용한다. 여기서는 그 계정으로 로그인했을 때만 패널을 보여주는 UI
+// 스위치일 뿐이고, 실제 접근 제어는 서버 쪽에서 한다 — 프런트 코드는 누구나 볼 수 있으므로
+// 이 상수만으로는 아무것도 못 한다.
+const KIWOOM_OWNER_ID = 'sinra815';
+const KIWOOM_POLL_MS = 30000;
+let kiwoomPollTimer = null;
+
+function kiwoomColorClass(n){
+  return n > 0 ? 'remark-up' : (n < 0 ? 'remark-down' : '');
+}
+
+function renderKiwoomBalance(data){
+  document.getElementById('kiwoomSummary').innerHTML = `
+    <div><span style="color:var(--muted);">총평가금액</span> <strong>${fmt(data.totalEvalAmount)} 원</strong></div>
+    <div><span style="color:var(--muted);">총평가손익</span> <strong class="${kiwoomColorClass(data.totalEvalProfit)}">${fmt(data.totalEvalProfit)} 원</strong></div>
+    <div><span style="color:var(--muted);">총수익률</span> <strong class="${kiwoomColorClass(data.totalProfitRate)}">${fmtTrim(data.totalProfitRate, 2)}%</strong></div>
+  `;
+  const tbody = document.getElementById('kiwoomHoldingsBody');
+  if (!data.holdings || data.holdings.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--muted);">보유 종목이 없습니다.</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = data.holdings.map(h => `
+    <tr>
+      <td><span class="summary-name">${h.name}</span></td>
+      <td class="num">${fmt(h.qty)}</td>
+      <td class="num">${fmt(h.currentPrice)}</td>
+      <td class="num">${fmt(h.evalAmount)}</td>
+      <td class="num ${kiwoomColorClass(h.evalProfit)}">${fmt(h.evalProfit)}</td>
+      <td class="num ${kiwoomColorClass(h.profitRate)}">${fmtTrim(h.profitRate, 2)}%</td>
+    </tr>
+  `).join('');
+}
+
+async function loadKiwoomBalance(){
+  const btn = document.getElementById('kiwoomRefreshBtn');
+  try {
+    const res = await fetch('/api/kiwoom-balance', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: currentUserId }),
+    });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(json.error || '계좌 잔고를 불러오지 못했습니다.');
+    renderKiwoomBalance(json);
+    document.getElementById('kiwoomUpdatedAt').textContent = `${new Date().toLocaleTimeString('ko-KR')} 기준`;
+  } catch (e) {
+    showFieldStatus(btn, e.message, 'error');
+  }
+}
+
+function stopKiwoomPolling(){
+  clearInterval(kiwoomPollTimer);
+  kiwoomPollTimer = null;
+}
+
+// 로그인 상태가 바뀔 때마다(로그인/게스트/로그아웃) 호출된다 — auth-box.js 의 setAccountUI() 가
+// showAdminButtonIfAdmin() 과 같은 방식으로 훅을 걸어준다.
+function updateKiwoomPanelVisibility(){
+  const panel = document.getElementById('kiwoomPanel');
+  if (!panel) return;
+  const shouldShow = currentUserId === KIWOOM_OWNER_ID;
+  panel.style.display = shouldShow ? '' : 'none';
+  if (shouldShow) {
+    loadKiwoomBalance();
+    if (!kiwoomPollTimer) kiwoomPollTimer = setInterval(loadKiwoomBalance, KIWOOM_POLL_MS);
+  } else {
+    stopKiwoomPolling();
+  }
+}
+
+document.getElementById('kiwoomRefreshBtn').addEventListener('click', loadKiwoomBalance);
+
+// auth-box.js 의 로그인 유지 복원은 이 스크립트가 로드되기 전에 이미 실행됐을 수 있어(그때는
+// 이 함수가 아직 없어 setAccountUI 안의 typeof 가드가 조용히 넘어간다), 여기서 한 번 더
+// currentUserId 기준으로 패널 표시를 맞춘다.
+updateKiwoomPanelVisibility();
