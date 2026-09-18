@@ -90,19 +90,15 @@ async function getAccountBalance(account) {
     cashNote = `[${account.label}] 예수금 조회 실패: ${e.message}`;
   }
 
-  // kt00001(예수금상세현황요청)이 0을 반환하는 계좌(IRP 등 연금 계좌로 추정)는, 더 포괄적인
-  // 계좌평가현황요청(kt00004)의 예수금 필드로 한 번 더 확인해본다. 아직 진단 단계라 값을
-  // 실제로 바꾸지 않고, 차이가 있으면 화면에 그대로 노출만 한다.
-  if (cashBalance === 0 && !cashNote) {
+  // IRP(개인형퇴직연금) 등 결제 체계가 다른 계좌는 kt00001의 즉시결제 예수금(entr)이 항상
+  // 0으로 나온다 — 실제 잔고는 D+2 결제 기준인 계좌평가현황요청(kt00004)의 d2_entra(D+2
+  // 추정예수금)에 찍힌다. kt00001이 0일 때만 이 TR을 한 번 더 불러 그 값을 예수금으로 쓴다.
+  if (cashBalance === 0) {
     try {
       const eval4 = await callKiwoom(redis, account, 'kt00004', '/api/dostk/acnt', { qry_tp: '0', dmst_stex_tp: 'KRX' });
-      const entr4 = toNumber(eval4.entr);
-      const d2entr4 = toNumber(eval4.d2_entra);
-      if (entr4 || d2entr4) {
-        cashNote = `[${account.label}] kt00001은 예수금 0, kt00004는 entr=${entr4} / d2_entra=${d2entr4} 반환`;
-      }
+      cashBalance = toNumber(eval4.entr) || toNumber(eval4.d2_entra);
     } catch (e) {
-      // 진단용 추가 호출 실패는 무시 — kt00001 결과만 그대로 사용.
+      // 이 보조 조회가 실패해도 kt00001 결과(0)를 그대로 쓴다.
     }
   }
 
