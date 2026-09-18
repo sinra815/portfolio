@@ -34,12 +34,27 @@ Vercel 서버리스 함수입니다. 정적 파일만 올리면 로그인, "저�
 - `api/login.js` (`POST /api/login`) — ID/비밀번호 확인. 5회 연속 오입력 시 해당 ID 10분 잠금
 - `api/save.js` (`POST /api/save`) — 로그인한 ID의 현재 상태를 Upstash Redis에 저장
 - `api/load.js` (`POST /api/load`) — 로그인한 ID로 저장된 상태를 반환
-- `api/price.js` (`GET /api/price?query=`) — 티커/종목명으로 현재가 조회 (네이버 금융 프록시).
+- `api/price.js` (`GET /api/price?query=`) — 티커/종목명으로 현재가 조회 (네이버 금융 프록시, 해외 종목용).
   원화가 아닌 종목은 네이버 환율 API로 원화 환산까지 처리합니다.
 - `api/search.js` (`GET /api/search?q=`) — 종목명 자동완성 (네이버 금융 프록시, 이름 + 티커 최대 10건)
+- `api/kiwoom-price.js` (`GET /api/kiwoom-price?code=`) — 6자리 국내 종목코드로 현재가 조회
+  (키움증권 REST API, `ka10001`).
+- `api/kiwoom-price-overseas.js` (`GET /api/kiwoom-price-overseas?code=`) — 미국 상장 종목코드로
+  현재가 조회 (키움증권 REST API, `usa10098`로 거래소 확인 후 `usa20100`으로 시세 조회). 원화
+  환산은 응답에 포함된 환율(`base_exrt`)로 서버에서 처리합니다.
+  `js/core.js`의 `fetchPriceForTicker()`가 6자리 숫자 티커는 국내로, 알파벳 티커는 미국으로,
+  그 외(일본·홍콩 등)는 `api/price.js`(네이버)로 자동 라우팅하며, 알파벳 티커가 키움에 없으면
+  (미국 외 시장일 수 있으므로) 네이버로 한 번 더 시도합니다.
+- `api/kiwoom-balance.js` (`POST /api/kiwoom-balance`) — 실제 계좌 잔고 조회. 국내(`kt00018`)와
+  미국 해외주식(`ust21070`) 잔고를 함께 조회해 하나의 목록으로 합쳐 돌려줍니다(해외 거래 계좌가
+  없으면 해외 조회만 조용히 건너뜁니다). 키움 앱키가 특정 계좌 하나에 연결되는 구조라, 요청
+  본문의 `id`가 `sinra815`가 아니면 거부합니다(다른 로그인 계정은 이 계좌를 조회할 수 없음).
 
 `api/price.js`·`api/search.js`는 네이버 금융의 공개 엔드포인트를 그대로 호출합니다.
 인증 키는 필요 없지만 공식 문서가 있는 API가 아니므로, 네이버 쪽 응답 형식이 바뀌면 조회가 실패할 수 있습니다.
+
+`api/kiwoom-*.js`는 `lib/kiwoom.js`를 통해 키움증권 공식 REST API(`https://api.kiwoom.com`)를
+호출합니다. 접근토큰은 Upstash Redis에 캐싱되어 만료 직전에만 자동 재발급됩니다.
 
 ## 데이터 저장 방식
 
