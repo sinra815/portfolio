@@ -5,7 +5,7 @@
 // 나눴을 때 배포가 바로 실패했다.
 import { Redis } from '@upstash/redis';
 import { callKiwoom, getKiwoomAccounts } from '../lib/kiwoom.js';
-import { callNh, getNhAccounts, getNhLiveAccounts } from '../lib/nh.js';
+import { callNh, getNhAccounts, getNhLiveAccounts, checkNhToken } from '../lib/nh.js';
 
 const redis = new Redis({
   url: process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL,
@@ -186,6 +186,10 @@ async function getNhAccountBalance(account) {
   );
   const results = [];
   const failedSubAccounts = [];
+  // 진단용: 지금 설정된 앱키/시크릿으로 토큰이 실제로 발급되는지 강제로 확인한다(토큰 값
+  // 자체는 노출하지 않음) — "유효하지 않은 token" 오류가 앱키/시크릿 문제인지, 캐시된
+  // 토큰만의 문제인지 구분하기 위함.
+  failedSubAccounts.push(await checkNhToken(account));
   settled.forEach((s, i) => {
     if (s.status === 'fulfilled') results.push(s.value);
     else failedSubAccounts.push(`${account.label}(${actNos[i].slice(-4)}): ${(s.reason && s.reason.message) || s.reason}`);
