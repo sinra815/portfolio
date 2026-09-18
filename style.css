@@ -230,6 +230,13 @@ input.cell-input:focus{outline:2px solid var(--accent); outline-offset:0;}
   border:1px solid var(--border-strong); border-radius:8px; font-size:14px; font-family:inherit;
 }
 .auth-box input:focus{outline:2px solid var(--accent); outline-offset:0;}
+.auth-remember-row{
+  display:flex; align-items:center; gap:7px; width:100%; box-sizing:border-box;
+  margin:-2px 0 12px; font-size:13px; color:var(--muted); text-align:left; cursor:pointer;
+}
+.auth-remember-row input[type="checkbox"]{
+  width:16px; height:16px; margin:0; accent-color:var(--accent); cursor:pointer; flex:0 0 auto;
+}
 .auth-box button.primary{
   width:100%; padding:11px 0; font-size:14px; border-radius:8px; border:1px solid var(--accent);
   background:var(--accent); color:#fff; cursor:pointer; font-weight:600; font-family:inherit; margin-top:4px;
