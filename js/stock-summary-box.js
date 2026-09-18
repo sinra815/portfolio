@@ -4,7 +4,6 @@ let summaryMode = 'stock'; // 'stock' | 'account'
 
 const SUMMARY_VIEWS = {
   stock: {
-    note: '모든 계좌를 통틀어 같은 종목을 합산한 금액입니다. (현금 포함)',
     theadHtml: '<tr><th>종목</th><th>보유 계좌 수</th><th>합계 평가금액(만원)</th><th>비중(%)</th></tr>',
     colgroupHtml: '<col style="width:auto;"><col style="width:90px;"><col style="width:140px;"><col style="width:90px;">',
     emptyMessage: '계좌별 리밸런싱 현황에 종목을 추가하면 여기에 요약이 표시됩니다.',
@@ -15,7 +14,6 @@ const SUMMARY_VIEWS = {
   account: {
     // 매입가/손익 개념은 수동 입력 표(계좌별 리밸런싱 현황)에는 없고 My Data(키움 실계좌)에만
     // 있어서, 평가금액은 두 데이터를 합치고 평가손익/수익률은 키움 데이터가 있는 계좌만 계산한다.
-    note: '증권사+계좌별 평가금액/평가손익/수익률입니다. 평가금액은 계좌별 리밸런싱 현황(수동 입력)과 My Data(키움 실계좌)를 더한 값이고, 평가손익/수익률은 My Data가 있는 계좌만 계산됩니다.',
     theadHtml: '<tr><th>증권사</th><th>계좌</th><th>평가금액(만원)</th><th>평가손익(만원)</th><th>수익률(%)</th></tr>',
     colgroupHtml: '<col style="width:90px;"><col style="width:auto;"><col style="width:130px;"><col style="width:130px;"><col style="width:90px;">',
     emptyMessage: '계좌별 리밸런싱 현황 또는 My Data에 데이터가 있으면 여기에 요약이 표시됩니다.',
@@ -31,7 +29,6 @@ function summaryColorClass(n){
 
 function renderStockSummary(){
   const view = SUMMARY_VIEWS[summaryMode];
-  document.getElementById('summaryNote').textContent = view.note;
   document.getElementById('summaryThead').innerHTML = view.theadHtml;
   document.getElementById('summaryColgroup').innerHTML = view.colgroupHtml;
   if (summaryMode === 'stock') renderSummaryByStock(view); else renderSummaryByAccount(view);
@@ -52,6 +49,19 @@ function renderSummaryByStock(view){
       byStock.set(r.stock, entry);
       grandTotal += r.M;
     });
+  });
+
+  // My Data(키움/NH 실계좌) 보유 종목도 같은 종목명 기준으로 합산한다.
+  const kiwoomHoldings = (typeof lastKiwoomData !== 'undefined' && lastKiwoomData && lastKiwoomData.holdings) || [];
+  kiwoomHoldings.forEach(h => {
+    const name = h.name || '';
+    if (!name) return;
+    const evalM = (h.evalAmount || 0) / 10000;
+    const entry = byStock.get(name) || { total: 0, accounts: new Set() };
+    entry.total += evalM;
+    entry.accounts.add(h.broker + '·' + h.account);
+    byStock.set(name, entry);
+    grandTotal += evalM;
   });
 
   const rows = Array.from(byStock.entries())

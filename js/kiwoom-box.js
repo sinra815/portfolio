@@ -75,6 +75,32 @@ function renderKiwoomBalance(data){
     const override = kiwoomGroupOverrides[key] || {};
     const brokerDisplay = override.broker || broker;
     const accountDisplay = override.account || account;
+    // 증권사명·계좌명을 둘 다 직접 확정(override)하기 전에는 서버가 내려준 원시값(예: 환경변수
+    // 라벨, 계좌번호)일 수 있어 표를 바로 보여주지 않는다 — 이름을 클릭해 확정하면 그 순간
+    // 전체 표가 나타난다.
+    const confirmed = !!(override.broker && override.account);
+
+    const nameRowHtml = `
+      <div class="kiwoom-group-title" style="display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap;">
+        <span style="display:flex; align-items:center; gap:4px; flex-wrap:wrap;">
+          <span class="kiwoom-group-name-edit" data-key="${kiwoomEscapeHtml(key)}" data-field="broker" title="클릭하여 증권사명 변경">${kiwoomEscapeHtml(brokerDisplay)}</span>
+          <span style="color:var(--muted);">·</span>
+          <span class="kiwoom-group-name-edit" data-key="${kiwoomEscapeHtml(key)}" data-field="account" title="클릭하여 계좌명 변경">${kiwoomEscapeHtml(accountDisplay)}</span>
+          <span style="color:var(--muted); font-size:12px;">(${kiwoomEscapeHtml(accountType)})</span>
+        </span>
+        <span class="spin-btns">
+          <button type="button" class="group-move-btn kiwoom-group-up" data-key="${kiwoomEscapeHtml(key)}" title="위로 이동" ${idx === 0 ? 'disabled' : ''}>▲</button>
+          <button type="button" class="group-move-btn kiwoom-group-down" data-key="${kiwoomEscapeHtml(key)}" title="아래로 이동" ${idx === order.length - 1 ? 'disabled' : ''}>▼</button>
+        </span>
+      </div>
+    `;
+
+    if (!confirmed) {
+      return `
+        ${nameRowHtml}
+        <div style="font-size:12px; color:var(--muted); margin-bottom:16px;">증권사명·계좌명을 클릭해 확정하면 표가 표시됩니다.</div>
+      `;
+    }
 
     // 이 표(계좌) 안의 평가금액/평가손익/수익률 소계. 매입금액은 종목마다 따로 안 내려주지만
     // 평가손익 = 평가금액 - 매입금액이라는 관계로 역산할 수 있다.
@@ -96,18 +122,7 @@ function renderKiwoomBalance(data){
       </tr>
     `).join('');
     return `
-      <div class="kiwoom-group-title" style="display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap;">
-        <span style="display:flex; align-items:center; gap:4px; flex-wrap:wrap;">
-          <span class="kiwoom-group-name-edit" data-key="${kiwoomEscapeHtml(key)}" data-field="broker" title="클릭하여 증권사명 변경">${kiwoomEscapeHtml(brokerDisplay)}</span>
-          <span style="color:var(--muted);">·</span>
-          <span class="kiwoom-group-name-edit" data-key="${kiwoomEscapeHtml(key)}" data-field="account" title="클릭하여 계좌명 변경">${kiwoomEscapeHtml(accountDisplay)}</span>
-          <span style="color:var(--muted); font-size:12px;">(${kiwoomEscapeHtml(accountType)})</span>
-        </span>
-        <span class="spin-btns">
-          <button type="button" class="group-move-btn kiwoom-group-up" data-key="${kiwoomEscapeHtml(key)}" title="위로 이동" ${idx === 0 ? 'disabled' : ''}>▲</button>
-          <button type="button" class="group-move-btn kiwoom-group-down" data-key="${kiwoomEscapeHtml(key)}" title="아래로 이동" ${idx === order.length - 1 ? 'disabled' : ''}>▼</button>
-        </span>
-      </div>
+      ${nameRowHtml}
       <div style="font-size:12px; color:var(--muted); margin-bottom:4px;">
         평가금액 <strong style="color:var(--text);">${fmt(subEval)} 원</strong>
         · 평가손익 <strong class="${kiwoomColorClass(subProfit)}">${fmt(subProfit)} 원</strong>
@@ -161,9 +176,9 @@ document.addEventListener('click', (e) => {
   if (!trimmed) { showFieldStatus(el, '이름은 비워둘 수 없습니다.', 'error'); return; }
   kiwoomGroupOverrides[key] = kiwoomGroupOverrides[key] || {};
   kiwoomGroupOverrides[key][field] = trimmed;
-  el.textContent = trimmed;
-  // "📋 요약" 박스가 계좌 모드일 때 바뀐 이름이 바로 반영되도록 함께 다시 그린다.
-  if (typeof renderStockSummary === 'function') renderStockSummary();
+  // 증권사명·계좌명이 둘 다 확정되는 순간 표가 새로 나타날 수 있어(위 renderKiwoomBalance의
+  // confirmed 조건), 단순히 라벨 텍스트만 바꾸지 않고 전체를 다시 그린다.
+  if (lastKiwoomData) renderKiwoomBalance(lastKiwoomData);
 });
 
 // 로그인 시 updateKiwoomPanelVisibility() 와 applyLoadedData() 두 경로가 거의 동시에 이 함수를
