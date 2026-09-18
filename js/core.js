@@ -1,7 +1,7 @@
 // ==== 핵심 상태 · 계산 로직 (모든 박스가 공유) ====
 const STAGES = [0.5, 0.7, 0.8, 0.9, 1];
 // 현금처럼 "수량 1 = 1만원" 으로 쓰고 싶은 종목의 현재가. 평가금액 식이
-// 현재가 × 수량 ÷ 10000 이므로, 현재가를 10000원으로 두면 수량이 곧 만원 금액이 된다.
+// 현재가 × 수량 이므로, 현재가를 10000원으로 두면 수량이 곧 만원 단위 금액이 된다.
 const CASH_UNIT_PRICE = 10000;
 let totalMHidden = true; // 설정 박스의 "평가금액 합계" 숨기기 여부 (기본값: 숨김)
 
@@ -154,7 +154,7 @@ function computeAll(){
 
   groups.forEach(g => {
     g.rows.forEach(r => {
-      r.M = (getPrice(r.stock) * (Number(r.qty) || 0)) / 10000;
+      r.M = getPrice(r.stock) * (Number(r.qty) || 0);
       // 전일 평가금액 추정치: 현재가를 등락률로 역산한 전일 가격 기준. 등락률을 아직
       // 조회한 적 없는 종목은 변동이 없다고 간주한다(전일=오늘, 증감 0으로 계산됨).
       const cp = getChangePercent(r.stock);

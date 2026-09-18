@@ -9,7 +9,7 @@
      그 파일들 중 하나라도 내용을 바꾸면, 여기와 아래 <script> 태그들의 ?v= 값을 전부 함께 올려야
      기존에 캐싱해 둔 브라우저가 새 파일을 다시 받는다. (index.html 자체는 캐싱하지 않으므로
      이 값이 바뀐 참조는 항상 즉시 반영된다.) -->
-<link rel="stylesheet" href="style.css?v=41">
+<link rel="stylesheet" href="style.css?v=43">
 </head>
 <body>
 
@@ -53,7 +53,7 @@
         <label>평가금액 합계</label>
         <div>
           <div style="display:flex; align-items:center; gap:8px;">
-            <div id="settingsTotalM" style="font-size:28px; font-weight:800; color:var(--text); white-space:nowrap;">0 만원</div>
+            <div id="settingsTotalM" style="font-size:28px; font-weight:800; color:var(--text); white-space:nowrap;">0</div>
             <button type="button" id="toggleTotalMBtn" title="금액 숨기기/보이기" style="padding:5px 9px; border-radius:6px; border:1px solid #1f2430; background:#fff; cursor:pointer; font-size:15px; line-height:1;">🙈</button>
           </div>
           <div id="settingsTotalMChange" style="font-size:12px; margin-top:2px;">&nbsp;</div>
@@ -103,7 +103,7 @@
           <col style="width:140px;">
           <col style="width:90px;">
         </colgroup>
-        <thead id="summaryThead"><tr><th>종목</th><th>보유 계좌 수</th><th>합계 평가금액(만원)</th><th>비중(%)</th></tr></thead>
+        <thead id="summaryThead"><tr><th>종목</th><th>보유 계좌 수</th><th>합계 평가금액</th><th>비중(%)</th></tr></thead>
         <tbody id="stockSummaryBody"></tbody>
       </table>
     </div>
@@ -135,11 +135,11 @@
           <th>계좌</th>
           <th>종목</th>
           <th>비중(%)</th>
-          <th>목표금액<br>(만원)</th>
+          <th>목표금액</th>
           <th>보유수량<br>(주식수/현금)</th>
-          <th>평가금액<br>(만원)</th>
+          <th>평가금액</th>
           <th>
-            목표금액 (만원)<br>
+            목표금액<br>
             <input type="text" id="stagePercentInput" class="numpad-trigger" data-label="목표금액 계산 비율(%)" value="100" readonly
               style="margin-top:4px; width:44px; padding:2px 4px; border-radius:5px; border:1px solid var(--border-strong); font-size:11.5px; text-align:right; background:var(--input-bg);"> %
           </th>
@@ -176,7 +176,7 @@
         <col style="width:148px;">
         <col style="width:76px;">
       </colgroup>
-      <thead><tr><th>종목</th><th>티커</th><th>유형</th><th>보유<br>계좌 수</th><th>현재가(원)</th><th>등락률</th></tr></thead>
+      <thead><tr><th>종목</th><th>티커</th><th>유형</th><th>보유<br>계좌 수</th><th>현재가</th><th>등락률</th></tr></thead>
       <tbody id="priceBody"></tbody>
       <tfoot>
         <tr>
@@ -193,7 +193,7 @@
           <td class="num">-</td>
           <td class="num">
             <div style="display:flex; align-items:center; justify-content:flex-end; gap:6px;">
-              <input type="text" id="newStockPrice" class="cell-input wide numpad-trigger" data-label="새 종목 현재가(원)" value="0" readonly>
+              <input type="text" id="newStockPrice" class="cell-input wide numpad-trigger" data-label="새 종목 현재가" value="0" readonly>
               <button type="button" id="addStockBtn" style="padding:4px 7px; border-radius:5px; border:1px solid #1f2430; background:#fff; cursor:pointer; font-size:11.5px; white-space:nowrap;">+추가</button>
             </div>
           </td>
@@ -210,7 +210,7 @@
     <table class="stage-summary" id="stageSummaryTable">
       <thead><tr><th class="label">단계</th><th>50%</th><th>70%</th><th>80%</th><th>90%</th><th>100%</th></tr></thead>
       <tbody>
-        <tr><td class="label">미달성 매수 필요 금액 (만원)</td>
+        <tr><td class="label">미달성 매수 필요 금액</td>
           <td id="shortfall-0.5"></td><td id="shortfall-0.7"></td><td id="shortfall-0.8"></td>
           <td id="shortfall-0.9"></td><td id="shortfall-1"></td>
         </tr>
@@ -284,16 +284,16 @@
   </div>
 </div>
 
-<script src="js/core.js?v=41"></script>
-<script src="js/numpad.js?v=41"></script>
-<script src="js/auth-box.js?v=41"></script>
-<script src="js/account-box.js?v=41"></script>
-<script src="js/settings-box.js?v=41"></script>
-<script src="js/kiwoom-box.js?v=41"></script>
-<script src="js/stock-summary-box.js?v=41"></script>
-<script src="js/main-table-box.js?v=41"></script>
-<script src="js/price-table-box.js?v=41"></script>
-<script src="js/stage-summary-box.js?v=41"></script>
-<script src="js/app.js?v=41"></script>
+<script src="js/core.js?v=43"></script>
+<script src="js/numpad.js?v=43"></script>
+<script src="js/auth-box.js?v=43"></script>
+<script src="js/account-box.js?v=43"></script>
+<script src="js/settings-box.js?v=43"></script>
+<script src="js/kiwoom-box.js?v=43"></script>
+<script src="js/stock-summary-box.js?v=43"></script>
+<script src="js/main-table-box.js?v=43"></script>
+<script src="js/price-table-box.js?v=43"></script>
+<script src="js/stage-summary-box.js?v=43"></script>
+<script src="js/app.js?v=43"></script>
 </body>
 </html>

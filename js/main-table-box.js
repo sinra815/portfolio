@@ -160,8 +160,15 @@ function renderMainTable(){
     grand.N += sumN;
   });
 
+  // My Data(키움/NH 실계좌) 평가금액도 합산한다. My Data는 종목별 당일 등락률을 안 내려주므로
+  // prevM(전일 추정치)에도 같은 값을 더해 전일대비 변동 계산에는 기여하지 않게 한다 — 그래야
+  // My Data를 더했다고 전일대비가 그 금액만큼 갑자기 뛴 것처럼 보이지 않는다.
+  const kiwoomTotalM = (typeof lastKiwoomData !== 'undefined' && lastKiwoomData) ? (lastKiwoomData.totalEvalAmount || 0) : 0;
+  grand.M += kiwoomTotalM;
+  grand.prevM = (grand.prevM || 0) + kiwoomTotalM;
+
   const totalMEl = document.getElementById('settingsTotalM');
-  if (totalMEl) totalMEl.textContent = totalMHidden ? '•••••• 만원' : `${fmt(grand.M)} 만원`;
+  if (totalMEl) totalMEl.textContent = totalMHidden ? '••••••' : fmt(grand.M);
 
   const totalMChangeEl = document.getElementById('settingsTotalMChange');
   if (totalMChangeEl) {
@@ -172,7 +179,7 @@ function renderMainTable(){
       const changePct = grand.prevM > 0 ? (change / grand.prevM * 100) : 0;
       const cls = change > 0 ? 'remark-up' : (change < 0 ? 'remark-down' : '');
       const sign = change > 0 ? '+' : (change < 0 ? '-' : '');
-      totalMChangeEl.innerHTML = `<span class="${cls}">전일대비 ${sign}${fmt(Math.abs(change))} 만원 (${sign}${fmtTrim(Math.abs(changePct), 2)}%)</span>`;
+      totalMChangeEl.innerHTML = `<span class="${cls}">전일대비 ${sign}${fmt(Math.abs(change))} (${sign}${fmtTrim(Math.abs(changePct), 2)}%)</span>`;
     }
   }
 

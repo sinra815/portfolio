@@ -58,7 +58,7 @@ function renderPriceTable(){
         </select>
       </td>
       <td class="num">${count}</td>
-      <td class="num"><input type="text" class="cell-input wide price-input numpad-trigger" data-label="${m.name} 현재가(원)" data-idx="${idx}" value="${m.price}" readonly></td>
+      <td class="num"><input type="text" class="cell-input wide price-input numpad-trigger" data-label="${m.name} 현재가" data-idx="${idx}" value="${m.price}" readonly></td>
       <td class="num">${formatChangePercent(m.changePercent)}</td>
     `;
     tbody.appendChild(tr);

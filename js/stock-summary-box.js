@@ -4,7 +4,7 @@ let summaryMode = 'stock'; // 'stock' | 'account'
 
 const SUMMARY_VIEWS = {
   stock: {
-    theadHtml: '<tr><th>종목</th><th>보유 계좌 수</th><th>합계 평가금액(만원)</th><th>비중(%)</th></tr>',
+    theadHtml: '<tr><th>종목</th><th>보유 계좌 수</th><th>합계 평가금액</th><th>비중(%)</th></tr>',
     colgroupHtml: '<col style="width:auto;"><col style="width:90px;"><col style="width:140px;"><col style="width:90px;">',
     emptyMessage: '계좌별 리밸런싱 현황에 종목을 추가하면 여기에 요약이 표시됩니다.',
     colspan: 4,
@@ -14,7 +14,7 @@ const SUMMARY_VIEWS = {
   account: {
     // 매입가/손익 개념은 수동 입력 표(계좌별 리밸런싱 현황)에는 없고 My Data(키움 실계좌)에만
     // 있어서, 평가금액은 두 데이터를 합치고 평가손익/수익률은 키움 데이터가 있는 계좌만 계산한다.
-    theadHtml: '<tr><th>증권사</th><th>계좌</th><th>평가금액(만원)</th><th>평가손익(만원)</th><th>수익률(%)</th></tr>',
+    theadHtml: '<tr><th>증권사</th><th>계좌</th><th>평가금액</th><th>평가손익</th><th>수익률(%)</th></tr>',
     colgroupHtml: '<col style="width:90px;"><col style="width:auto;"><col style="width:130px;"><col style="width:130px;"><col style="width:90px;">',
     emptyMessage: '계좌별 리밸런싱 현황 또는 My Data에 데이터가 있으면 여기에 요약이 표시됩니다.',
     colspan: 5,
@@ -56,7 +56,7 @@ function renderSummaryByStock(view){
   kiwoomHoldings.forEach(h => {
     const name = h.name || '';
     if (!name) return;
-    const evalM = (h.evalAmount || 0) / 10000;
+    const evalM = h.evalAmount || 0;
     const entry = byStock.get(name) || { total: 0, accounts: new Set() };
     entry.total += evalM;
     entry.accounts.add(h.broker + '·' + h.account);
@@ -89,9 +89,8 @@ function renderSummaryByStock(view){
   fitSummaryLayout(view);
 }
 
-// 증권사+계좌별로 "계좌별 리밸런싱 현황"(수동, 만원 단위)과 "My Data"(키움 실계좌, 원 단위 →
-// 만원으로 환산)를 더한다. 같은 증권사+계좌 문자열이면 두 데이터를 합산, 한쪽에만 있으면
-// 그 데이터만으로 표시한다.
+// 증권사+계좌별로 "계좌별 리밸런싱 현황"(수동)과 "My Data"(키움 실계좌)를 더한다(둘 다 원 단위).
+// 같은 증권사+계좌 문자열이면 두 데이터를 합산, 한쪽에만 있으면 그 데이터만으로 표시한다.
 function renderSummaryByAccount(view){
   const tbody = document.getElementById('stockSummaryBody');
   tbody.innerHTML = '';
@@ -117,8 +116,8 @@ function renderSummaryByAccount(view){
     const displayAccount = override.account || h.account;
     const key = displayBroker + '·' + displayAccount;
     const entry = byAccount.get(key) || { broker: displayBroker, account: displayAccount, evalM: 0, profitM: 0, hasKiwoom: false };
-    entry.evalM += (h.evalAmount || 0) / 10000;
-    entry.profitM += (h.evalProfit || 0) / 10000;
+    entry.evalM += (h.evalAmount || 0);
+    entry.profitM += (h.evalProfit || 0);
     entry.hasKiwoom = true;
     byAccount.set(key, entry);
   });

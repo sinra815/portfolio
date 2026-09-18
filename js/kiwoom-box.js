@@ -31,10 +31,10 @@ function renderKiwoomBalance(data){
     ? `<div style="width:100%; color:var(--down); font-size:12px;">⚠ 일부 계좌 조회 실패: ${kiwoomEscapeHtml(data.failedAccounts.join(', '))}</div>`
     : '';
   document.getElementById('kiwoomSummary').innerHTML = `
-    <div><span style="color:var(--muted);">총평가금액</span> <strong>${fmt(data.totalEvalAmount)} 원</strong></div>
-    <div><span style="color:var(--muted);">총평가손익</span> <strong class="${kiwoomColorClass(data.totalEvalProfit)}">${fmt(data.totalEvalProfit)} 원</strong></div>
+    <div><span style="color:var(--muted);">총평가금액</span> <strong>${fmt(data.totalEvalAmount)}</strong></div>
+    <div><span style="color:var(--muted);">총평가손익</span> <strong class="${kiwoomColorClass(data.totalEvalProfit)}">${fmt(data.totalEvalProfit)}</strong></div>
     <div><span style="color:var(--muted);">총수익률</span> <strong class="${kiwoomColorClass(data.totalProfitRate)}">${fmtTrim(data.totalProfitRate, 2)}%</strong></div>
-    <div><span style="color:var(--muted);">예수금(국내)</span> <strong>${fmt(data.cashBalance)} 원</strong></div>
+    <div><span style="color:var(--muted);">예수금(국내)</span> <strong>${fmt(data.cashBalance)}</strong></div>
     ${failedNote}
   `;
 
@@ -106,8 +106,8 @@ function renderKiwoomBalance(data){
       <tr>
         <td>${kiwoomEscapeHtml(h.name)}</td>
         <td class="num kiwoom-disabled-cell">${h.qty != null ? fmt(h.qty) : '-'}</td>
-        <td class="num">${h.currentPrice != null ? fmt(h.currentPrice) + ' 원' : '-'}</td>
-        <td class="num">${fmt(h.evalAmount)} 원</td>
+        <td class="num">${h.currentPrice != null ? fmt(h.currentPrice) : '-'}</td>
+        <td class="num">${fmt(h.evalAmount)}</td>
         <td class="num kiwoom-disabled-cell ${kiwoomColorClass(h.evalProfit)}">${fmt(h.evalProfit)}</td>
         <td class="num kiwoom-disabled-cell ${kiwoomColorClass(h.profitRate)}">${fmtTrim(h.profitRate, 2)}%</td>
       </tr>
@@ -115,8 +115,8 @@ function renderKiwoomBalance(data){
     return `
       ${nameRowHtml}
       <div style="font-size:12px; color:var(--muted); margin-bottom:4px;">
-        평가금액 <strong style="color:var(--text);">${fmt(subEval)} 원</strong>
-        · 평가손익 <strong class="${kiwoomColorClass(subProfit)}">${fmt(subProfit)} 원</strong>
+        평가금액 <strong style="color:var(--text);">${fmt(subEval)}</strong>
+        · 평가손익 <strong class="${kiwoomColorClass(subProfit)}">${fmt(subProfit)}</strong>
         · 수익률 <strong class="${kiwoomColorClass(subRate)}">${fmtTrim(subRate, 2)}%</strong>
       </div>
       <div class="table-scroll" style="margin-bottom:16px;">
@@ -136,8 +136,10 @@ function renderKiwoomBalance(data){
     `;
   }).join('');
 
-  // "📋 요약" 박스가 계좌 모드일 때 My Data 최신값을 바로 반영하도록 함께 다시 그린다.
+  // "📋 요약" 박스(계좌 모드)와 "⚙️ 설정" 박스의 평가금액 합계가 My Data 최신값을 바로
+  // 반영하도록 함께 다시 그린다.
   if (typeof renderStockSummary === 'function') renderStockSummary();
+  if (typeof renderMainTable === 'function') renderMainTable();
 }
 
 // 표 순서 위/아래 이동 — 새로 가져오지 않고 마지막 데이터로 즉시 다시 그린다.

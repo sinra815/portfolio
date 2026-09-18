@@ -78,12 +78,16 @@ async function getAccountBalance(account) {
 
   // 예수금(국내 원화 현금)은 kt00018/보유종목과 별도 TR. 여기서도 실패해도 나머지 잔고는
   // 정상 표시되도록 실패를 삼킨다. (해외 계좌의 외화 예수금은 통화별 환산이 더 필요해 범위 밖.)
+  // 다만 실패 자체는 cashError로 남겨서, 계좌에 실제 예수금이 있는데도 0으로 보이는 원인을
+  // 화면(일부 계좌 조회 실패 안내)에서 바로 알 수 있게 한다.
   let cashBalance = 0;
+  let cashError = null;
   try {
     const cash = await callKiwoom(redis, account, 'kt00001', '/api/dostk/acnt', { qry_tp: '2' });
     cashBalance = toNumber(cash.entr);
   } catch (e) {
     cashBalance = 0;
+    cashError = e.message;
   }
 
   const holdings = (data.acnt_evlt_remn_indv_tot || []).map((row) => ({
@@ -142,6 +146,7 @@ async function getAccountBalance(account) {
     evalProfit: toNumber(data.tot_evlt_pl) + (overseas ? toNumber(overseas.tot_pl_amt_krw) : 0),
     cashBalance,
     holdings: [...holdings, cashHolding, ...overseasHoldings],
+    cashError: cashError ? `[${account.label}] 예수금 조회 실패: ${cashError}` : null,
   };
 }
 
@@ -311,6 +316,7 @@ async function getBalance(id) {
       cashBalance += result.cashBalance;
       holdings.push(...result.holdings);
       if (result.failedSubAccounts && result.failedSubAccounts.length) failed.push(...result.failedSubAccounts);
+      if (result.cashError) failed.push(result.cashError);
     } catch (e) {
       // 계좌 하나가 막혀도(예: IP 미등록, 토큰 문제) 나머지 계좌는 계속 보여준다.
       failed.push(`${account.label}: ${e.message}`);
