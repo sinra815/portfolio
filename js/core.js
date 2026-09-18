@@ -262,11 +262,9 @@ async function fetchPriceForTicker(ticker, opts){
   const isDomestic = /^\d{6}$/.test(query);
   const isUsTicker = !isDomestic && /^[A-Za-z]{1,6}$/.test(query);
   const naverUrl = '/api/price?query=' + encodeURIComponent(query);
-  const primaryUrl = isDomestic
-    ? '/api/kiwoom-price?code=' + encodeURIComponent(query)
-    : isUsTicker
-      ? '/api/kiwoom-price-overseas?code=' + encodeURIComponent(query)
-      : naverUrl;
+  const primaryUrl = (isDomestic || isUsTicker)
+    ? '/api/kiwoom?code=' + encodeURIComponent(query)
+    : naverUrl;
   try {
     let { ok, json } = await fetchPriceJson(primaryUrl);
     if (!ok && isUsTicker) ({ ok, json } = await fetchPriceJson(naverUrl));
