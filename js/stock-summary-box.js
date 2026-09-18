@@ -98,8 +98,13 @@ function renderSummaryByAccount(view){
 
   const kiwoomHoldings = (typeof lastKiwoomData !== 'undefined' && lastKiwoomData && lastKiwoomData.holdings) || [];
   kiwoomHoldings.forEach(h => {
-    const key = h.broker + '·' + h.account;
-    const entry = byAccount.get(key) || { broker: h.broker, account: h.account, evalM: 0, profitM: 0, hasKiwoom: false };
+    // My Data 표에서 사용자가 직접 지정한 표 이름(kiwoomGroupNames)이 있으면 그 이름을 계좌명으로
+    // 쓴다 — 서버가 내려주는 원본 계좌명(환경변수 라벨) 대신 사용자가 실제로 부르는 이름을 써야
+    // "계좌별 리밸런싱 현황"에 같은 이름으로 수동 입력해둔 행과 하나로 합쳐진다.
+    const groupKey = `${h.broker}|${h.account}|${h.accountType}`;
+    const displayAccount = kiwoomGroupNames[groupKey] || h.account;
+    const key = h.broker + '·' + displayAccount;
+    const entry = byAccount.get(key) || { broker: h.broker, account: displayAccount, evalM: 0, profitM: 0, hasKiwoom: false };
     entry.evalM += (h.evalAmount || 0) / 10000;
     entry.profitM += (h.evalProfit || 0) / 10000;
     entry.hasKiwoom = true;
