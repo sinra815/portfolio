@@ -5,7 +5,7 @@
 // 나눴을 때 배포가 바로 실패했다.
 import { Redis } from '@upstash/redis';
 import { callKiwoom, getKiwoomAccounts } from '../lib/kiwoom.js';
-import { callNh, getNhAccounts, getNhLiveAccountNumber } from '../lib/nh.js';
+import { callNh, getNhAccounts, getNhLiveAccounts } from '../lib/nh.js';
 
 const redis = new Redis({
   url: process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL,
@@ -156,10 +156,29 @@ const NH_OVERSEAS_MARKETS = [
 ];
 
 // 계좌 하나(앱키 하나)의 국내/해외 잔고 + 예수금을 모두 조회해서 한 묶음으로 돌려준다.
-// NH는 계좌번호를 미리 모르므로(/n2/acctinfo로 조회) 앱키당 계좌번호부터 확인한다.
+// NH는 계좌번호를 미리 모르므로(/n2/acctinfo로 조회) 앱키당 계좌번호부터 확인하는데, 앱키 하나에
+// 운영 계좌가 여러 개 연결된 경우(예: 일반증권계좌 + 연금저축/IRP)가 있어 각 계좌를 모두 조회해
+// 합친다 — 계좌가 여러 개면 화면에서 구분할 수 있도록 계좌번호 뒷자리를 이름에 덧붙인다.
 async function getNhAccountBalance(account) {
-  const actNo = await getNhLiveAccountNumber(redis, account);
+  const actNos = await getNhLiveAccounts(redis, account);
+  const results = await Promise.all(
+    actNos.map((actNo) => getNhSingleAccountBalance(
+      account,
+      actNo,
+      actNos.length > 1 ? `${account.label} (${actNo.slice(-4)})` : account.label,
+    ))
+  );
+  return {
+    purchaseAmount: results.reduce((s, r) => s + r.purchaseAmount, 0),
+    evalAmount: results.reduce((s, r) => s + r.evalAmount, 0),
+    evalProfit: results.reduce((s, r) => s + r.evalProfit, 0),
+    cashBalance: results.reduce((s, r) => s + r.cashBalance, 0),
+    holdings: results.flatMap((r) => r.holdings),
+  };
+}
 
+// 계좌번호(actNo) 하나의 국내/해외 잔고 + 예수금 조회. label은 화면에 표시할 계좌명.
+async function getNhSingleAccountBalance(account, actNo, label) {
   const domestic = await callNh(redis, account, '/krstock/inquiry/v1/balance', {
     Input_0: {
       act_no: actNo,
@@ -175,7 +194,7 @@ async function getNhAccountBalance(account) {
 
   const holdings = (domestic.Output_1 || []).map((row) => ({
     broker: 'NH투자증권',
-    account: account.label,
+    account: label,
     accountType: '국내',
     code: row.iem_cd || '',
     name: row.iem_nm || '',
@@ -189,7 +208,7 @@ async function getNhAccountBalance(account) {
 
   const cashHolding = {
     broker: 'NH투자증권',
-    account: account.label,
+    account: label,
     accountType: '국내',
     code: 'CASH',
     name: '예수금',
@@ -222,7 +241,7 @@ async function getNhAccountBalance(account) {
       (gb.Output_1 || []).forEach((row) => {
         overseasHoldings.push({
           broker: 'NH투자증권',
-          account: account.label,
+          account: label,
           accountType: '해외',
           code: row.iem_cd || '',
           name: row.iem_nm || row.oss_iem_eng_nm || '',
