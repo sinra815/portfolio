@@ -147,6 +147,7 @@ function applyLoadedData(saved){
   groups = saved.groups || groups;
   kiwoomGroupOverrides = deriveKiwoomGroupOverrides(saved) || kiwoomGroupOverrides;
   kiwoomGroupOrder = saved.kiwoomGroupOrder || kiwoomGroupOrder;
+  kiwoomHoldingWeights = saved.kiwoomHoldingWeights || kiwoomHoldingWeights;
   if (saved.stage !== undefined) document.getElementById('stagePercentInput').value = saved.stage;
   if (saved.threshold !== undefined) document.getElementById('overweightThreshold').value = saved.threshold;
   renderAll();

@@ -22,6 +22,7 @@ function buildStateSnapshot(){
     groups: groups,
     kiwoomGroupOverrides: kiwoomGroupOverrides,
     kiwoomGroupOrder: kiwoomGroupOrder,
+    kiwoomHoldingWeights: kiwoomHoldingWeights,
     stage: document.getElementById('stagePercentInput') ? document.getElementById('stagePercentInput').value : '100',
     threshold: document.getElementById('overweightThreshold') ? document.getElementById('overweightThreshold').value : '10',
   };
@@ -87,6 +88,9 @@ function deriveKiwoomGroupOverrides(saved){
 let kiwoomGroupOverrides = deriveKiwoomGroupOverrides(__restore) || {};
 // 위 표들의 사용자 지정 표시 순서(groupKey 배열). 새로 나타난 계좌는 끝에 자동으로 붙는다.
 let kiwoomGroupOrder = (__restore && __restore.kiwoomGroupOrder) ? __restore.kiwoomGroupOrder : [];
+// My Data(실계좌) 보유종목별 목표비중(%) — "계좌별 리밸런싱 현황"과 같은 방식으로 사용자가
+// 직접 입력한다. 키: "groupKey::code또는종목명" → 목표비중(%) 숫자.
+let kiwoomHoldingWeights = (__restore && __restore.kiwoomHoldingWeights) ? __restore.kiwoomHoldingWeights : {};
 
 function fmt(n, digits){
   if (n === null || n === undefined || isNaN(n)) return "";
@@ -160,6 +164,12 @@ function computeAll(){
       const cp = getChangePercent(r.stock);
       const cpValid = typeof cp === 'number' && !isNaN(cp) && (1 + cp / 100) !== 0;
       r.prevM = cpValid ? r.M / (1 + cp / 100) : r.M;
+      // 평균매입금액(사용자 직접 입력) × 보유수량 = 매입금액. 평가금액과의 차이로 평가손익/
+      // 수익률을 구한다 — My Data(실계좌) 표가 evalAmount-evalProfit로 매입금액을 역산하는
+      // 것과 반대로, 여기는 매입금액을 직접 입력받아 평가손익을 구하는 방향이다.
+      r.purchaseAmount = (Number(r.avgPurchasePrice) || 0) * (Number(r.qty) || 0);
+      r.evalProfit = r.M - r.purchaseAmount;
+      r.profitRate = r.purchaseAmount ? (r.evalProfit / r.purchaseAmount) * 100 : 0;
     });
     g.D = g.rows.reduce((s, r) => s + r.M, 0);
   });

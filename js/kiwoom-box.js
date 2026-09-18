@@ -69,72 +69,144 @@ function renderKiwoomBalance(data){
     return;
   }
 
-  container.innerHTML = order.map((key, idx) => {
+  // "📊 계좌별 리밸런싱 현황"과 같은 방식(비중→목표금액→목표가→차액→비고→과비중)으로
+  // 계산한다 — 목표비중(%)만 사용자가 직접 입력하고(kiwoomHoldingWeights), 나머지는 그
+  // 표와 똑같은 단계(%)/과비중 임계값(%) 입력을 그대로 써서 계산한다. 현금성 종목(예수금)은
+  // 매뉴얼 표처럼 목표가를 항상 100% 기준으로 계산한다. My Data는 계좌당 예수금 행이 최대
+  // 1개뿐이라, 매뉴얼 표의 "현금성자산 여러 행 병합" 로직 없이 그 행 자신의 값을 그대로 쓴다.
+  const stage = (parseFloat(document.getElementById('stagePercentInput').value) || 0) / 100;
+  const threshold = (parseFloat(document.getElementById('overweightThreshold').value) || 0) / 100;
+
+  // 계좌(증권사+계좌+계좌유형)별로 나뉘어 있던 여러 개의 표를, "계좌별 리밸런싱 현황"처럼
+  // 증권사·계좌 컬럼을 rowspan으로 병합한 하나의 표로 합친다. 계좌 셀은 그 계좌의 보유종목
+  // 행 + 소계 행(rows.length+1)만큼, 증권사 셀은 순서상 연속된 같은 증권사 계좌들을 모아
+  // 그 합만큼 병합한다(메인 테이블의 brokerRenderAt/brokerSpan과 같은 방식).
+  const groupsData = order.map((key) => {
     const rows = groupMap.get(key);
     const [broker, account, accountType] = key.split('|');
     const override = kiwoomGroupOverrides[key] || {};
-    // 이름을 확정(override)한 적이 있으면 그 이름을, 없으면 서버가 내려준 기본 이름(예:
-    // 키움계좌1, NH계좌1)을 그대로 보여준다 — 확정 여부와 무관하게 표는 항상 표시한다.
     const brokerDisplay = override.broker || broker;
     const accountDisplay = override.account || account;
-
-    const nameRowHtml = `
-      <div class="kiwoom-group-title" style="display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap;">
-        <span style="display:flex; align-items:center; gap:4px; flex-wrap:wrap;">
-          <span class="kiwoom-group-name-edit" data-key="${kiwoomEscapeHtml(key)}" data-field="broker" title="클릭하여 증권사명 변경">${kiwoomEscapeHtml(brokerDisplay)}</span>
-          <span style="color:var(--muted);">·</span>
-          <span class="kiwoom-group-name-edit" data-key="${kiwoomEscapeHtml(key)}" data-field="account" title="클릭하여 계좌명 변경">${kiwoomEscapeHtml(accountDisplay)}</span>
-          <span style="color:var(--muted); font-size:12px;">(${kiwoomEscapeHtml(accountType)})</span>
-        </span>
-        <span class="spin-btns">
-          <button type="button" class="group-move-btn kiwoom-group-up" data-key="${kiwoomEscapeHtml(key)}" title="위로 이동" ${idx === 0 ? 'disabled' : ''}>▲</button>
-          <button type="button" class="group-move-btn kiwoom-group-down" data-key="${kiwoomEscapeHtml(key)}" title="아래로 이동" ${idx === order.length - 1 ? 'disabled' : ''}>▼</button>
-        </span>
-      </div>
-    `;
-
-    // 이 표(계좌) 안의 평가금액/평가손익/수익률 소계. 매입금액은 종목마다 따로 안 내려주지만
-    // 평가손익 = 평가금액 - 매입금액이라는 관계로 역산할 수 있다.
     const subEval = rows.reduce((s, h) => s + (h.evalAmount || 0), 0);
     const subProfit = rows.reduce((s, h) => s + (h.evalProfit || 0), 0);
     const subPurchase = rows.reduce((s, h) => s + ((h.evalAmount || 0) - (h.evalProfit || 0)), 0);
     const subRate = subPurchase ? (subProfit / subPurchase) * 100 : 0;
+    return { key, rows, accountType, brokerDisplay, accountDisplay, subEval, subProfit, subRate, rowspan: rows.length + 1 };
+  });
 
-    // 보유수량/평가손익/수익률은 참고용이라 흐리게(kiwoom-disabled-cell), 현재가/평가금액은
-    // 실제 리밸런싱 판단에 쓰는 금액이라 또렷하게 남긴다.
-    const rowsHtml = rows.map((h) => `
-      <tr>
+  const brokerRenderAt = groupsData.map((g, i) => i === 0 || groupsData[i - 1].brokerDisplay !== g.brokerDisplay);
+  const brokerSpan = groupsData.map((g, i) => {
+    if (!brokerRenderAt[i]) return 0;
+    let span = g.rowspan;
+    for (let j = i + 1; j < groupsData.length && groupsData[j].brokerDisplay === g.brokerDisplay; j++) span += groupsData[j].rowspan;
+    return span;
+  });
+
+  let bodyHtml = '';
+  groupsData.forEach((gd, gi) => {
+    const { key, rows, accountType, brokerDisplay, accountDisplay, subEval, subProfit, subRate, rowspan } = gd;
+
+    rows.forEach((h, ri) => {
+      const holdingKey = `${key}::${h.code || h.name}`;
+      const weight = kiwoomHoldingWeights[holdingKey] || 0;
+      const target = subEval * weight / 100; // 목표금액
+      const targetPrice = h.isCash ? target : target * stage; // 목표가(현금성은 항상 100% 기준)
+      const diff = targetPrice - (h.evalAmount || 0); // 차액
+      const remark = diff < 0 ? '축소' : (diff > 0 ? '확대' : '');
+      const ratio = subEval > 0 ? roundDown(Math.abs(diff) / subEval, 3) : 0;
+      const overweight = ratio >= threshold;
+
+      let rowCells = '';
+      if (ri === 0) {
+        if (brokerRenderAt[gi]) {
+          rowCells += `<td class="grp-cell grp-cell-broker" rowspan="${brokerSpan[gi]}"><span class="kiwoom-group-name-edit" data-key="${kiwoomEscapeHtml(key)}" data-field="broker" title="클릭하여 증권사명 변경">${kiwoomEscapeHtml(brokerDisplay)}</span></td>`;
+        }
+        rowCells += `<td class="grp-cell grp-cell-account" rowspan="${rowspan}"><span class="kiwoom-group-name-edit" data-key="${kiwoomEscapeHtml(key)}" data-field="account" title="클릭하여 계좌명 변경">${kiwoomEscapeHtml(accountDisplay)}</span> <span style="color:var(--muted); font-size:11px;">(${kiwoomEscapeHtml(accountType)})</span></td>`;
+      }
+
+      // 보유수량/평가손익/수익률은 참고용이라 흐리게(kiwoom-disabled-cell), 현재가/평가금액은
+      // 실제 리밸런싱 판단에 쓰는 금액이라 또렷하게 남긴다.
+      rowCells += `
         <td>${kiwoomEscapeHtml(h.name)}</td>
+        <td><div class="stepper">
+          <input type="text" class="cell-input kiwoom-weight-input numpad-trigger" data-label="${kiwoomEscapeHtml(h.name)} 목표비중(%)" data-key="${kiwoomEscapeHtml(holdingKey)}" value="${weight}" readonly>
+          <span class="spin-btns">
+            <button type="button" class="step-btn kiwoom-step-up" data-key="${kiwoomEscapeHtml(holdingKey)}" data-step="1">▲</button>
+            <button type="button" class="step-btn kiwoom-step-down" data-key="${kiwoomEscapeHtml(holdingKey)}" data-step="1">▼</button>
+          </span>
+        </div></td>
+        <td class="num">${fmt(target)}</td>
         <td class="num kiwoom-disabled-cell">${h.qty != null ? fmt(h.qty) : '-'}</td>
         <td class="num">${h.currentPrice != null ? fmt(h.currentPrice) : '-'}</td>
         <td class="num">${fmt(h.evalAmount)}</td>
         <td class="num kiwoom-disabled-cell ${kiwoomColorClass(h.evalProfit)}">${fmt(h.evalProfit)}</td>
         <td class="num kiwoom-disabled-cell ${kiwoomColorClass(h.profitRate)}">${fmtTrim(h.profitRate, 2)}%</td>
+        <td class="num">${fmt(targetPrice)}</td>
+        <td class="num ${diff < 0 ? 'remark-down' : (diff > 0 ? 'remark-up' : '')}">${fmt(diff)}</td>
+        <td class="center ${remark === '확대' ? 'remark-up' : (remark === '축소' ? 'remark-down' : '')}">${remark}</td>
+        <td class="num center">${h.isCash ? fmt(diff) : ''}</td>
+        <td class="center">${overweight ? `<span class="flag-o">O</span>` : ''}</td>
+      `;
+      bodyHtml += `<tr${ri === 0 ? ' class="group-first"' : ''}>${rowCells}</tr>`;
+    });
+
+    // 소계 행. 증권사·계좌 컬럼은 위 첫 행의 rowspan이 이미 덮고 있으므로 이 행에서는 다시
+    // 만들지 않고, "종목" 자리부터 colspan=2로 소계 라벨(+이동 버튼)을 넣는다 — 소계 라벨이
+    // 앞에 별도로 증권사·계좌 칸을 또 차지하면 rowspan과 겹쳐 이후 값들이 두 칸씩 밀린다.
+    bodyHtml += `
+      <tr class="subtotal-row">
+        <td colspan="2" class="center">
+          <div style="display:flex; align-items:center; justify-content:center; gap:6px;">
+            <span>소계</span>
+            <span class="spin-btns">
+              <button type="button" class="group-move-btn kiwoom-group-up" data-key="${kiwoomEscapeHtml(key)}" title="위로 이동" ${gi === 0 ? 'disabled' : ''}>▲</button>
+              <button type="button" class="group-move-btn kiwoom-group-down" data-key="${kiwoomEscapeHtml(key)}" title="아래로 이동" ${gi === groupsData.length - 1 ? 'disabled' : ''}>▼</button>
+            </span>
+          </div>
+        </td>
+        <td>-</td>
+        <td>-</td>
+        <td>-</td>
+        <td class="num">${fmt(subEval)}</td>
+        <td class="num ${kiwoomColorClass(subProfit)}">${fmt(subProfit)}</td>
+        <td class="num ${kiwoomColorClass(subRate)}">${fmtTrim(subRate, 2)}%</td>
+        <td>-</td>
+        <td>-</td>
+        <td>-</td>
+        <td>-</td>
+        <td>-</td>
       </tr>
-    `).join('');
-    return `
-      ${nameRowHtml}
-      <div style="font-size:12px; color:var(--muted); margin-bottom:4px;">
-        평가금액 <strong style="color:var(--text);">${fmt(subEval)}</strong>
-        · 평가손익 <strong class="${kiwoomColorClass(subProfit)}">${fmt(subProfit)}</strong>
-        · 수익률 <strong class="${kiwoomColorClass(subRate)}">${fmtTrim(subRate, 2)}%</strong>
-      </div>
-      <div class="table-scroll" style="margin-bottom:16px;">
-        <table class="price-table kiwoom-table">
-          <colgroup>
-            <col style="width:auto;">
-            <col style="width:90px;">
-            <col style="width:100px;">
-            <col style="width:120px;">
-            <col style="width:110px;">
-            <col style="width:80px;">
-          </colgroup>
-          <thead><tr><th>종목</th><th>보유수량</th><th>현재가</th><th>평가금액</th><th>평가손익</th><th>수익률</th></tr></thead>
-          <tbody>${rowsHtml}</tbody>
-        </table>
-      </div>
     `;
-  }).join('');
+  });
+
+  container.innerHTML = `
+    <div class="table-scroll">
+      <table class="price-table kiwoom-table">
+        <colgroup>
+          <col style="width:70px;">
+          <col style="width:90px;">
+          <col style="width:auto;">
+          <col style="width:90px;">
+          <col style="width:100px;">
+          <col style="width:90px;">
+          <col style="width:100px;">
+          <col style="width:110px;">
+          <col style="width:100px;">
+          <col style="width:80px;">
+          <col style="width:100px;">
+          <col style="width:100px;">
+          <col style="width:60px;">
+          <col style="width:100px;">
+          <col style="width:70px;">
+        </colgroup>
+        <thead><tr>
+          <th>증권사</th><th>계좌</th><th>종목</th><th>비중(%)</th><th>목표금액</th><th>보유수량</th><th>현재가</th>
+          <th>평가금액</th><th>평가손익</th><th>수익률</th><th>목표가</th><th>차액</th><th>비고</th><th>현금성자산</th><th>과비중</th>
+        </tr></thead>
+        <tbody>${bodyHtml}</tbody>
+      </table>
+    </div>
+  `;
 
   // "📋 요약" 박스(계좌 모드)와 "⚙️ 설정" 박스의 평가금액 합계가 My Data 최신값을 바로
   // 반영하도록 함께 다시 그린다.
@@ -171,6 +243,27 @@ document.addEventListener('click', (e) => {
   kiwoomGroupOverrides[key][field] = trimmed;
   // 증권사명·계좌명이 둘 다 확정되는 순간 표가 새로 나타날 수 있어(위 renderKiwoomBalance의
   // confirmed 조건), 단순히 라벨 텍스트만 바꾸지 않고 전체를 다시 그린다.
+  if (lastKiwoomData) renderKiwoomBalance(lastKiwoomData);
+});
+
+// My Data 종목별 목표비중(%) 입력 — "계좌별 리밸런싱 현황"의 weight-input/step-btn과 같은
+// 동작이지만, groups[g].rows[r] 대신 kiwoomHoldingWeights(홀딩 키 기준)에 저장한다는 점만
+// 다르다. 클래스명을 kiwoom- 접두어로 따로 둬서 main-table-box.js의 전역 핸들러(data-g/data-r
+// 기준)와 서로 간섭하지 않게 한다.
+document.addEventListener('input', (e) => {
+  if (!e.target.classList.contains('kiwoom-weight-input')) return;
+  const key = e.target.dataset.key;
+  kiwoomHoldingWeights[key] = parseFloat(e.target.value) || 0;
+  if (lastKiwoomData) renderKiwoomBalance(lastKiwoomData);
+});
+
+document.addEventListener('click', (e) => {
+  const btn = e.target.closest('.kiwoom-step-up, .kiwoom-step-down');
+  if (!btn) return;
+  const key = btn.dataset.key;
+  const step = parseFloat(btn.dataset.step) || 1;
+  const delta = btn.classList.contains('kiwoom-step-up') ? step : -step;
+  kiwoomHoldingWeights[key] = Math.max(0, Number(kiwoomHoldingWeights[key] || 0) + delta);
   if (lastKiwoomData) renderKiwoomBalance(lastKiwoomData);
 });
 

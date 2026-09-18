@@ -26,7 +26,7 @@ function renderMainTable(){
     g.rows.forEach((r, idx) => {
       if (idx > 0 && getRowType(r) === 'cash' && getRowType(g.rows[idx - 1]) !== 'cash') {
         const divider = document.createElement('tr');
-        divider.innerHTML = `<td colspan="10" style="padding:0; height:2px; background:var(--border-strong); border:none;"></td>`;
+        divider.innerHTML = `<td colspan="13" style="padding:0; height:2px; background:var(--border-strong); border:none;"></td>`;
         tbody.appendChild(divider);
       }
 
@@ -74,6 +74,14 @@ function renderMainTable(){
       cells += `<td>${fmt(r.G)}</td>`;
 
       cells += `<td><div class="stepper">
+        <input type="text" class="cell-input avgprice-input numpad-trigger" data-label="${r.stock} 평균매입금액" data-g="${g.__idx}" data-r="${idx}" value="${r.avgPurchasePrice || 0}" readonly>
+        <span class="spin-btns">
+          <button type="button" class="step-btn step-up" data-field="avgPrice" data-g="${g.__idx}" data-r="${idx}" data-step="1">▲</button>
+          <button type="button" class="step-btn step-down" data-field="avgPrice" data-g="${g.__idx}" data-r="${idx}" data-step="1">▼</button>
+        </span>
+      </div></td>`;
+
+      cells += `<td><div class="stepper">
         <input type="text" class="cell-input qty-input numpad-trigger" data-label="${r.stock} 수량" data-g="${g.__idx}" data-r="${idx}" value="${r.qty}" readonly>
         <span class="spin-btns">
           <button type="button" class="step-btn step-up" data-field="qty" data-g="${g.__idx}" data-r="${idx}" data-step="1">▲</button>
@@ -82,6 +90,8 @@ function renderMainTable(){
       </div></td>`;
 
       cells += `<td>${fmt(r.M)}</td>`;
+      cells += `<td class="${r.evalProfit<0?'remark-down':(r.evalProfit>0?'remark-up':'')}">${fmt(r.evalProfit)}</td>`;
+      cells += `<td class="${r.evalProfit<0?'remark-down':(r.evalProfit>0?'remark-up':'')}">${fmtTrim(r.profitRate,2)}%</td>`;
       cells += `<td>${fmt(r.targetPrice)}</td>`;
 
       cells += `<td class="${r.N<0?'remark-down':(r.N>0?'remark-up':'')} ${r.isMaxDiff?'diff-maxgap':''}">${fmt(r.N)}</td>`;
@@ -114,7 +124,7 @@ function renderMainTable(){
     }
     addRowTr.innerHTML = `
       ${addRowHead}
-      <td colspan="10" style="text-align:left;">
+      <td colspan="13" style="text-align:left;">
         <div style="display:flex; align-items:center; gap:6px;">
           <span style="color:var(--muted); font-size:12px;">+ 종목 추가:</span>
           <select class="add-row-select" data-g="${g.__idx}" style="padding:4px 6px; border:1px solid var(--border-strong); border-radius:4px; font-size:12.5px; font-family:inherit; background:#fff; max-width:220px;">${addOptions}</select>
@@ -145,10 +155,14 @@ function renderMainTable(){
       </td>
       <td>-</td>
       <td>-</td>
+      <td>-</td>
       <td>${fmt(sumM)}</td>
       <td>-</td>
       <td>-</td>
-      <td>-</td><td>-</td><td>-</td>
+      <td>-</td>
+      <td>-</td>
+      <td>-</td>
+      <td>-</td><td>-</td>
     `;
     tbody.appendChild(subtotalTr);
 
@@ -185,7 +199,7 @@ function renderMainTable(){
 
   const addGroupTr = document.createElement('tr');
   addGroupTr.innerHTML = `
-    <td colspan="12" style="text-align:left; background:#f5f6f8;">
+    <td colspan="15" style="text-align:left; background:#f5f6f8;">
       <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
         <span style="color:var(--muted); font-size:12px;">+ 계좌(그룹) 추가:</span>
         <input type="text" id="newGroupBroker" placeholder="증권사 (예: 키움)" style="width:120px; padding:4px 6px; border:1px solid var(--border-strong); border-radius:4px; font-size:12.5px; font-family:inherit;">
@@ -204,7 +218,10 @@ function renderMainTable(){
       <td>-</td>
       <td>-</td>
       <td>-</td>
+      <td>-</td>
       <td>${fmt(grand.M)}</td>
+      <td>-</td>
+      <td>-</td>
       <td>-</td>
       <td>-</td>
       <td>-</td><td>-</td><td>-</td>
@@ -220,6 +237,10 @@ document.addEventListener('input', (e) => {
     const g = +e.target.dataset.g, r = +e.target.dataset.r;
     groups[g].rows[r].qty = parseFloat(e.target.value) || 0;
     renderAll();
+  } else if (e.target.classList.contains('avgprice-input')) {
+    const g = +e.target.dataset.g, r = +e.target.dataset.r;
+    groups[g].rows[r].avgPurchasePrice = parseFloat(e.target.value) || 0;
+    renderAll();
   }
 });
 
@@ -234,6 +255,8 @@ document.addEventListener('click', (e) => {
     row.weight = Math.max(0, Number(row.weight || 0) + delta);
   } else if (btn.dataset.field === 'qty') {
     row.qty = Math.max(0, Number(row.qty || 0) + delta);
+  } else if (btn.dataset.field === 'avgPrice') {
+    row.avgPurchasePrice = Math.max(0, Number(row.avgPurchasePrice || 0) + delta);
   }
   renderAll();
 });
@@ -272,7 +295,7 @@ document.addEventListener('click', (e) => {
     showFieldStatus(btn, `"${stockName}"은(는) 이미 이 계좌에 등록되어 있습니다.`, 'error');
     return;
   }
-  const newRow = { stock: stockName, weight: 0, qty: 0 };
+  const newRow = { stock: stockName, weight: 0, qty: 0, avgPurchasePrice: 0 };
   const masterItem = master.find(m => m.name === stockName);
   if (masterItem && masterItem.type === 'cash') {
     rows.push(newRow);  // 현금성 종목은 항상 아래쪽에 모아둔다
