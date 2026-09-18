@@ -223,6 +223,11 @@ async function refreshAllPrices(btn){
       if (result !== null) { targets[i].price = result.price; targets[i].changePercent = result.changePercent; ok++; }
     }
     renderAll();
+    // sinra815로 로그인 중이면 계좌 잔고(키움)도 이 버튼으로 같이 갱신한다 — 잔고는 주기적
+    // 자동 갱신 없이 로그인 직후와 이 버튼 클릭 시에만 가져오기 때문.
+    if (typeof loadKiwoomBalance === 'function' && typeof KIWOOM_OWNER_ID !== 'undefined' && currentUserId === KIWOOM_OWNER_ID) {
+      loadKiwoomBalance();
+    }
     showFieldStatus(btn, `${targets.length}개 중 ${ok}개 종목의 금액을 불러왔습니다.`);
   });
 }
