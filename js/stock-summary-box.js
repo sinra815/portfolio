@@ -123,9 +123,26 @@ function renderSummaryByAccount(view){
     byAccount.set(key, entry);
   });
 
-  const rows = Array.from(byAccount.values())
-    .filter(entry => entry.evalM !== 0)
-    .sort((a, b) => b.evalM - a.evalM);
+  // My Data 표에 표시된 증권사·계좌 순서(kiwoomGroupOrder, 위/아래 이동으로 사용자가 지정)를
+  // 그대로 따른다 — "증권사·계좌" 표시 이름 기준으로 첫 등장 순서를 인덱스로 매핑해둔다.
+  const orderIndex = new Map();
+  (typeof kiwoomGroupOrder !== 'undefined' ? kiwoomGroupOrder : []).forEach((groupKey, idx) => {
+    const [broker, account] = groupKey.split('|');
+    const override = kiwoomGroupOverrides[groupKey] || {};
+    const displayKey = (override.broker || broker) + '·' + (override.account || account);
+    if (!orderIndex.has(displayKey)) orderIndex.set(displayKey, idx);
+  });
+
+  const rows = Array.from(byAccount.entries())
+    .filter(([, entry]) => entry.evalM !== 0)
+    .sort((a, b) => {
+      const ai = orderIndex.has(a[0]) ? orderIndex.get(a[0]) : Infinity;
+      const bi = orderIndex.has(b[0]) ? orderIndex.get(b[0]) : Infinity;
+      // My Data에 없는 계좌(수동 입력만 있는 계좌)는 순서 뒤로 보내고, 그런 계좌끼리는 평가금액
+      // 내림차순으로 유지한다.
+      return ai !== bi ? ai - bi : b[1].evalM - a[1].evalM;
+    })
+    .map(([, entry]) => entry);
 
   if (rows.length === 0) {
     tbody.innerHTML = `<tr><td colspan="${view.colspan}" style="text-align:center; color:var(--muted);">${view.emptyMessage}</td></tr>`;

@@ -73,12 +73,10 @@ function renderKiwoomBalance(data){
     const rows = groupMap.get(key);
     const [broker, account, accountType] = key.split('|');
     const override = kiwoomGroupOverrides[key] || {};
+    // 이름을 확정(override)한 적이 있으면 그 이름을, 없으면 서버가 내려준 기본 이름(예:
+    // 키움계좌1, NH계좌1)을 그대로 보여준다 — 확정 여부와 무관하게 표는 항상 표시한다.
     const brokerDisplay = override.broker || broker;
     const accountDisplay = override.account || account;
-    // 증권사명·계좌명을 둘 다 직접 확정(override)하기 전에는 서버가 내려준 원시값(예: 환경변수
-    // 라벨, 계좌번호)일 수 있어 표를 바로 보여주지 않는다 — 이름을 클릭해 확정하면 그 순간
-    // 전체 표가 나타난다.
-    const confirmed = !!(override.broker && override.account);
 
     const nameRowHtml = `
       <div class="kiwoom-group-title" style="display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap;">
@@ -94,13 +92,6 @@ function renderKiwoomBalance(data){
         </span>
       </div>
     `;
-
-    if (!confirmed) {
-      return `
-        ${nameRowHtml}
-        <div style="font-size:12px; color:var(--muted); margin-bottom:16px;">증권사명·계좌명을 클릭해 확정하면 표가 표시됩니다.</div>
-      `;
-    }
 
     // 이 표(계좌) 안의 평가금액/평가손익/수익률 소계. 매입금액은 종목마다 따로 안 내려주지만
     // 평가손익 = 평가금액 - 매입금액이라는 관계로 역산할 수 있다.
