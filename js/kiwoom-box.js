@@ -166,8 +166,12 @@ document.addEventListener('click', (e) => {
   if (typeof renderStockSummary === 'function') renderStockSummary();
 });
 
+// 반환값(true/false)으로 호출자가 성공 여부를 알 수 있게 한다 — refreshAllPrices 가 이 결과를
+// 기다리지 않고(await 누락) 곧바로 자기 성공 메시지를 띄우면, 여기서 보여준 실패 메시지가
+// 화면에 뜨자마자 덮어써져 사라지는 버그가 있었다.
 async function loadKiwoomBalance(){
   const btn = document.getElementById('kiwoomRefreshBtn');
+  let ok = true;
   // 여러 계좌를 순서대로 조회하느라 응답이 몇 초 걸릴 수 있어, 끝날 때까지 버튼을 잠그고
   // "불러오는중"으로 바꿔서 지금 진행 중이라는 걸 보여준다.
   await withButtonLoading(btn, '불러오는중', async () => {
@@ -185,8 +189,10 @@ async function loadKiwoomBalance(){
       document.getElementById('kiwoomUpdatedAt').textContent = `${new Date().toLocaleTimeString('ko-KR')} 기준`;
     } catch (e) {
       showFieldStatus(btn, e.message, 'error');
+      ok = false;
     }
   });
+  return ok;
 }
 
 // 로그인 상태가 바뀔 때마다(로그인/게스트/로그아웃) 호출된다 — auth-box.js 의 setAccountUI() 가

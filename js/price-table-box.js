@@ -226,10 +226,13 @@ async function refreshAllPrices(btn, fixedLabel){
     renderAll();
     // sinra815로 로그인 중이면 계좌 잔고(키움)도 이 버튼으로 같이 갱신한다 — 잔고는 주기적
     // 자동 갱신 없이 로그인 직후와 이 버튼 클릭 시에만 가져오기 때문.
+    // await 필수: 안 기다리면 이 함수가 끝나기 전에 아래 성공 메시지가 먼저 떠서, 잔고 조회가
+    // 실패해 표시한 에러 메시지를 곧바로 덮어써 버린다(에러가 안 보이는 것처럼 보이는 버그).
+    let kiwoomOk = true;
     if (typeof loadKiwoomBalance === 'function' && typeof KIWOOM_OWNER_ID !== 'undefined' && currentUserId === KIWOOM_OWNER_ID) {
-      loadKiwoomBalance();
+      kiwoomOk = await loadKiwoomBalance();
     }
-    showFieldStatus(btn, `${targets.length}개 중 ${ok}개 종목의 금액을 불러왔습니다.`);
+    if (kiwoomOk) showFieldStatus(btn, `${targets.length}개 중 ${ok}개 종목의 금액을 불러왔습니다.`);
   });
 }
 
