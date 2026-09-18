@@ -6,170 +6,18 @@ function buildExportFilename(){
   return `투자_${ts.getFullYear()}${pad(ts.getMonth()+1)}${pad(ts.getDate())}.json`;
 }
 
-// 모바일에서는 "작업 폴더 지정"(showDirectoryPicker 로 폴더를 고정해 두고 그 안을 직접
-// 읽고/쓰고/나열하는 기능) 자체를 아예 쓰지 않는다 — showDirectoryPicker 는 켜져 있는 모바일
-// 브라우저(삼성 인터넷 등)가 있지만, 그 폴더의 하위 기능들(getFileHandle/entries/removeEntry)
-// 이 브라우저마다 들쭉날쭉하게 빠져 있어(실제로 확인된 사례: 폴더 선택은 되는데 그 안에 파일을
-// 쓰거나 목록을 나열하는 건 안 됨) 신뢰할 수 없다.
-// showSaveFilePicker(다운로드할 때마다 저장 위치를 직접 고르는 대화상자)는 작업 폴더 지정과는
-// 별개의 API라 모바일 여부와 무관하게 지원 여부만 보고 그대로 쓴다 — 폴더를 미리 고정해두지
-// 않고 매번 위치를 고르는 방식이라 지원되는 경우가 많다.
-const IS_MOBILE = /Android|iPhone|iPad|iPod|Mobi/i.test(navigator.userAgent);
-const SUPPORTS_FS_ACCESS = !IS_MOBILE && !!window.showDirectoryPicker;
+// showSaveFilePicker(다운로드할 때마다 저장 위치를 직접 고르는 대화상자)만 지원 여부를 보고
+// 쓴다 — 매번 위치를 고르는 방식이라 지원되면 그대로 쓰고, 안 되면 표준 다운로드로 넘어간다.
+// (예전에 있던 "작업 폴더 지정"(showDirectoryPicker로 폴더를 고정해두는 기능)은 모바일은
+// 물론 데스크톱에서도 브라우저마다 하위 기능이 들쭉날쭉해서 완전히 제거했다.)
 const SUPPORTS_SAVE_PICKER = !!window.showSaveFilePicker;
-
-const IDB_NAME = 'investRebalanceDB';
-const IDB_STORE = 'handles';
-let workDirHandle = null;
-
-function idbOpen(){
-  return new Promise((resolve, reject) => {
-    const req = indexedDB.open(IDB_NAME, 1);
-    req.onupgradeneeded = () => { req.result.createObjectStore(IDB_STORE); };
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error);
-  });
-}
-async function idbGet(key){
-  try {
-    const db = await idbOpen();
-    return await new Promise((resolve, reject) => {
-      const tx = db.transaction(IDB_STORE, 'readonly');
-      const req = tx.objectStore(IDB_STORE).get(key);
-      req.onsuccess = () => resolve(req.result);
-      req.onerror = () => reject(req.error);
-    });
-  } catch (e) { return undefined; }
-}
-async function idbSet(key, value){
-  try {
-    const db = await idbOpen();
-    await new Promise((resolve, reject) => {
-      const tx = db.transaction(IDB_STORE, 'readwrite');
-      tx.objectStore(IDB_STORE).put(value, key);
-      tx.oncomplete = () => resolve();
-      tx.onerror = () => reject(tx.error);
-    });
-  } catch (e) {}
-}
-
-function updateWorkDirStatus(){
-  const el = document.getElementById('workDirStatus');
-  if (!el) return;
-  el.textContent = workDirHandle ? `작업 폴더: 📁 ${workDirHandle.name}` : '작업 폴더: 미설정';
-}
-
-async function restoreWorkDirHandle(){
-  if (!SUPPORTS_FS_ACCESS) return;
-  const stored = await idbGet('workDirHandle');
-  if (!stored) return;
-  // queryPermission() 결과를 재확인하지 않고 그대로 신뢰한다 — 일부 브라우저(삼성 인터넷 등)는
-  // 이 API가 있어도 예외 없이 그냥 'granted' 가 아닌 값만 돌려줘서, 방금까지 정상 사용하던
-  // 폴더도 재확인 절차 때문에 "지정 안 됨"으로 취급돼버리는 문제가 있었다. 실제로 쓰기 권한이
-  // 없다면 그건 실제 쓰기 시점에 오류로 드러나고, exportToFile()/importFromFile() 이 잡아서
-  // 다음 방법으로 넘어간다.
-  workDirHandle = stored;
-  updateWorkDirStatus();
-}
-
-function getCurrentFolderHint(){
-  try {
-    if (location.protocol !== 'file:') return '';
-    let path = decodeURIComponent(location.pathname).replace(/^\/+/, '');
-    const parts = path.split('/');
-    parts.pop();
-    return parts[parts.length - 1] || '';
-  } catch (e) { return ''; }
-}
-
-async function chooseWorkDir(anchor){
-  const btn = anchor || document.getElementById('chooseWorkDirBtn');
-  if (!SUPPORTS_FS_ACCESS) {
-    showFieldStatus(btn, '이 브라우저는 폴더를 직접 지정하는 기능을 지원하지 않습니다. 데스크톱 Chrome이나 Edge 최신 버전에서 사용해주세요.', 'error');
-    return null;
-  }
-  try {
-    const handle = await window.showDirectoryPicker({ mode: 'readwrite' });
-    workDirHandle = handle;
-    await idbSet('workDirHandle', handle);
-    updateWorkDirStatus();
-    return handle;
-  } catch (e) {
-    if (e && e.name !== 'AbortError') showFieldStatus(btn, '폴더를 지정하는 중 오류가 발생했습니다: ' + e.message, 'error');
-    return null;
-  }
-}
-
-async function ensureWorkDir(anchor){
-  if (!SUPPORTS_FS_ACCESS) return null;
-  // 이미 사용자가 직접 고른 폴더가 있으면 그대로 쓴다 — queryPermission/requestPermission 을
-  // 다시 확인하지 않는다. 이 API가 있어도 항상 'granted' 가 아닌 값만 돌려주는 브라우저(삼성
-  // 인터넷 등)가 있어서, 재확인 절차 자체가 방금까지 정상 지정돼 있던 폴더를 "지정 안 됨"으로
-  // 잘못 취급해버리는 원인이었다. 정말로 쓰기 권한이 없다면 실제 쓰기 시점에 오류로 드러나고,
-  // 그건 exportToFile()/importFromFile() 이 잡아서 다음 방법으로 넘어간다.
-  if (workDirHandle) return workDirHandle;
-  const hint = getCurrentFolderHint();
-  const hintMsg = hint ? `\n\n👉 이 파일은 "${hint}" 폴더 안에 있습니다. 다음 창에서 그 폴더를 선택해주세요.` : '';
-  if (!confirm(`내보내기/가져오기에 항상 사용할 "작업 폴더"가 아직 지정되지 않았습니다.\n지금 폴더를 선택할까요?${hintMsg}`)) return null;
-  return await chooseWorkDir(anchor);
-}
-
-const chooseWorkDirBtnEl = document.getElementById('chooseWorkDirBtn');
-const workDirStatusEl = document.getElementById('workDirStatus');
-if (IS_MOBILE) {
-  // 모바일에서는 "작업 폴더 지정" 기능 자체를 화면에서 완전히 뺀다 — 버튼/상태 표시를 숨기고,
-  // showDirectoryPicker 관련 코드(chooseWorkDir/ensureWorkDir/restoreWorkDirHandle)는 아예
-  // 실행하지 않는다. 대신 다운로드/업로드는 매번 위치를 고르는 방식(showSaveFilePicker, 표준
-  // 파일 선택창)을 쓴다 — exportToFile()/importFromFile() 이 SUPPORTS_FS_ACCESS=false 일 때
-  // 이미 그렇게 동작한다.
-  chooseWorkDirBtnEl.style.display = 'none';
-  workDirStatusEl.style.display = 'none';
-} else {
-  chooseWorkDirBtnEl.addEventListener('click', (e) => {
-    const btn = e.currentTarget;
-    const hint = getCurrentFolderHint();
-    if (hint) showFieldStatus(btn, `👉 이 파일은 "${hint}" 폴더 안에 있습니다. 다음 창에서 그 폴더를 선택해주세요.`);
-    chooseWorkDir(btn);
-  });
-  restoreWorkDirHandle();
-}
-
-// 이미 같은 이름의 파일이 그 폴더에 있는지 확인한다(있으면 getFileHandle 이 성공, 없으면
-// NotFoundError 로 실패하는 걸 이용).
-async function fileExistsInDir(dir, filename){
-  try {
-    await dir.getFileHandle(filename, { create: false });
-    return true;
-  } catch (e) {
-    return false;
-  }
-}
 
 async function exportToFile(anchor){
   const btn = anchor || document.getElementById('exportBtn');
-  await ensureWorkDir(btn);
-
   const jsonStr = JSON.stringify(buildStateSnapshot(), null, 2);
   const filename = buildExportFilename(); // 파일명은 항상 규칙대로 자동 생성 — 다시 물어보지 않는다.
 
-  // 1) 작업 폴더가 지정돼 있으면 오직 그 폴더에만 써 본다 — 이름/위치를 다시 묻지 않고, 같은
-  //    이름의 파일이 이미 있을 때만 덮어쓸지 확인한다. 실패해도(일부 브라우저는 폴더 핸들
-  //    자체는 주면서 그 안에 파일을 쓰는 기능은 지원하지 않는다 — 삼성 인터넷 등) 다른 폴더
-  //    선택 대화상자를 새로 띄우지 않는다 — 이미 폴더를 지정해 둔 사용자에게 또 다른 위치를
-  //    고르라고 하면 안 되기 때문. 이 경우 조용히 표준 다운로드로 넘어간다.
-  if (SUPPORTS_FS_ACCESS && workDirHandle) {
-    try {
-      if (await fileExistsInDir(workDirHandle, filename) && !confirm(`"${filename}" 파일이 이미 있습니다. 덮어쓸까요?`)) return;
-      const fileHandle = await workDirHandle.getFileHandle(filename, { create: true });
-      const writable = await fileHandle.createWritable();
-      await writable.write(jsonStr);
-      await writable.close();
-      showFieldStatus(btn, `저장했습니다. (${filename})`);
-      return;
-    } catch (e) {}
-  } else if (SUPPORTS_SAVE_PICKER) {
-    // 2) 작업 폴더가 아예 지정돼 있지 않을 때만 세이브 피커로 저장 위치를 고르게 한다 — 이
-    //    경우엔 애초에 정해둔 위치가 없으니 물어보는 게 자연스럽다.
+  if (SUPPORTS_SAVE_PICKER) {
     try {
       const opts = {
         suggestedName: filename,
@@ -187,8 +35,9 @@ async function exportToFile(anchor){
     }
   }
 
-  // 3) 표준 다운로드(모든 브라우저의 최종 대체 경로). 이미 있는 파일과의 충돌 확인은 브라우저
-  //    다운로드 기능의 몫이라 여기선 할 수 없다 — 예외가 나도 조용히 실패하지 않도록만 감싼다.
+  // 표준 다운로드(showSaveFilePicker 미지원 브라우저의 대체 경로). 이미 있는 파일과의 충돌
+  // 확인은 브라우저 다운로드 기능의 몫이라 여기선 할 수 없다 — 예외가 나도 조용히 실패하지
+  // 않도록만 감싼다.
   try {
     const blob = new Blob([jsonStr], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -228,105 +77,9 @@ function applyImportedJson(text, anchor){
   showFieldStatus(btn, '가져오기가 완료되었습니다.');
 }
 
-// files 배열을 직접 변형(삭제 시 splice)하면서 다시 그릴 수 있도록 렌더링만 분리했다.
-function renderFolderFileList(dir, files){
-  const listEl = document.getElementById('folderFileListItems');
-  listEl.innerHTML = '';
-  if (files.length === 0) {
-    listEl.innerHTML = `<div style="color:var(--muted); padding:8px 0;">이 폴더에 JSON 파일이 없습니다.</div>`;
-    return;
-  }
-  files.forEach(f => {
-    const row = document.createElement('div');
-    row.style.cssText = 'display:flex; align-items:center; gap:6px; margin-bottom:4px;';
-
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.textContent = f.name;
-    btn.style.cssText = 'flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; text-align:left; padding:8px 10px; border:1px solid var(--border-strong); border-radius:6px; background:#fff; cursor:pointer; font-size:12.5px; font-family:inherit;';
-    btn.addEventListener('click', async () => {
-      document.getElementById('folderFileListOverlay').classList.remove('open');
-      const importBtn = document.getElementById('importBtn');
-      try {
-        const file = await f.handle.getFile();
-        const text = await file.text();
-        applyImportedJson(text, importBtn);
-      } catch (e) {
-        showFieldStatus(importBtn, '파일을 읽는 중 오류가 발생했습니다: ' + e.message, 'error');
-      }
-    });
-
-    const delBtn = document.createElement('button');
-    delBtn.type = 'button';
-    delBtn.textContent = '삭제';
-    delBtn.title = `"${f.name}" 파일 삭제`;
-    delBtn.style.cssText = 'flex:0 0 auto; padding:8px 10px; border:1px solid var(--down); border-radius:6px; background:#fff; color:var(--down); cursor:pointer; font-size:12px; font-family:inherit;';
-    // confirm() 은 쓰지 않는다 — 크롬은 removeEntry() 에 "일시적 사용자 활성화"를 요구하는데,
-    // confirm() 같은 네이티브 대화상자를 띄우면 그 활성화가 소모되어 버려서, 클릭→confirm→
-    // removeEntry 순서로는 "The request is not allowed by the user agent..." 에러가 난다.
-    // 대신 "한 번 더 누르면 삭제" 방식으로, 두 번째 클릭 자체의 새 사용자 동작으로 바로 지운다.
-    delBtn.addEventListener('click', async (ev) => {
-      ev.stopPropagation();
-      if (!delBtn.dataset.armed) {
-        delBtn.dataset.armed = '1';
-        delBtn.textContent = '정말 삭제?';
-        clearTimeout(delBtn._disarmTimer);
-        delBtn._disarmTimer = setTimeout(() => {
-          delete delBtn.dataset.armed;
-          delBtn.textContent = '삭제';
-        }, 3000);
-        return;
-      }
-      clearTimeout(delBtn._disarmTimer);
-      try {
-        await dir.removeEntry(f.name);
-        files.splice(files.indexOf(f), 1);
-        renderFolderFileList(dir, files);
-      } catch (e) {
-        alert('파일을 삭제하는 중 오류가 발생했습니다: ' + e.message);
-      }
-    });
-
-    row.appendChild(btn);
-    row.appendChild(delBtn);
-    listEl.appendChild(row);
-  });
-}
-
-function openFolderFileList(dir, files){
-  const overlay = document.getElementById('folderFileListOverlay');
-  document.getElementById('folderFileListDirName').textContent = dir.name;
-  renderFolderFileList(dir, files);
-  overlay.classList.add('open');
-}
-document.getElementById('folderFileListCancel').addEventListener('click', () => {
-  document.getElementById('folderFileListOverlay').classList.remove('open');
-});
-document.getElementById('folderFileListBrowse').addEventListener('click', () => {
-  document.getElementById('folderFileListOverlay').classList.remove('open');
+document.getElementById('importBtn').addEventListener('click', () => {
   document.getElementById('importFileInput').click();
 });
-
-async function importFromFile(anchor){
-  const btn = anchor || document.getElementById('importBtn');
-  const dir = await ensureWorkDir(btn);
-  // 폴더는 지정돼 있어도 그 안의 파일 목록을 나열하는 기능(entries())은 지원하지 않는 브라우저가
-  // 있다(삼성 인터넷 등 — showDirectoryPicker/getFileHandle 은 되는데 entries() 는 없음). 그런
-  // 경우 매번 오류 메시지를 보여주는 대신 조용히 표준 파일 선택으로 넘어간다.
-  if (dir && typeof dir.entries === 'function') {
-    try {
-      const files = [];
-      for await (const [name, handle] of dir.entries()) {
-        if (handle.kind === 'file' && name.toLowerCase().endsWith('.json')) files.push({ name, handle });
-      }
-      files.sort((a, b) => a.name.localeCompare(b.name));
-      openFolderFileList(dir, files);
-      return;
-    } catch (e) {}
-  }
-  document.getElementById('importFileInput').click();
-}
-document.getElementById('importBtn').addEventListener('click', (e) => importFromFile(e.currentTarget));
 
 document.getElementById('importFileInput').addEventListener('change', (e) => {
   const file = e.target.files[0];
