@@ -53,6 +53,7 @@ function setAccountUI(loggedIn){
   deleteAccountBtnEl.disabled = !loggedIn;
   logoutBtn.textContent = loggedIn ? '로그아웃' : '로그인';
   if (typeof showAdminButtonIfAdmin === 'function') showAdminButtonIfAdmin();
+  if (typeof updateKiwoomPanelVisibility === 'function') updateKiwoomPanelVisibility();
 }
 
 function showLoginView(){
