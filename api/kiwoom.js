@@ -187,8 +187,12 @@ async function getNhAccountBalance(account) {
   const results = [];
   const failedSubAccounts = [];
   settled.forEach((s, i) => {
-    if (s.status === 'fulfilled') results.push(s.value);
-    else failedSubAccounts.push(`${account.label}(${actNos[i].slice(-4)}): ${(s.reason && s.reason.message) || s.reason}`);
+    if (s.status === 'fulfilled') {
+      results.push(s.value);
+      if (s.value.note) failedSubAccounts.push(s.value.note);
+    } else {
+      failedSubAccounts.push(`${account.label}(${actNos[i].slice(-4)}): ${(s.reason && s.reason.message) || s.reason}`);
+    }
   });
   if (results.length === 0) {
     throw new Error(failedSubAccounts.join(' / ') || `[${account.label}] 계좌 조회에 실패했습니다.`);
@@ -217,6 +221,17 @@ async function getNhSingleAccountBalance(account, actNo, label) {
   });
   const d0 = domestic.Output_0 || {};
   const cashBalance = toNumber(d0.dca);
+  // 예수금(dca)이 0인데 자산 자체는 있는 경우(키움 IRP와 유사하게 계좌 유형에 따라 즉시결제
+  // 예수금 필드가 0으로 나올 수 있어) 원인 파악용으로 다른 자산 필드/계좌 상태를 함께 남긴다.
+  let note = null;
+  if (cashBalance === 0) {
+    const nas = toNumber(d0.nas_amt);
+    const tot = toNumber(d0.tot_aet_amt);
+    const status = d0.act_atv_tp_dtl_cd;
+    if (nas || tot || (status && status !== '101')) {
+      note = `[${label}] 예수금 0, 순자산금액=${nas} / 총자산금액=${tot} / 계좌상태코드=${status || '-'}`;
+    }
+  }
 
   const holdings = (domestic.Output_1 || []).map((row) => ({
     broker: 'NH투자증권',
@@ -292,6 +307,7 @@ async function getNhSingleAccountBalance(account, actNo, label) {
     evalProfit,
     cashBalance,
     holdings: [...holdings, cashHolding, ...overseasHoldings],
+    note,
   };
 }
 
