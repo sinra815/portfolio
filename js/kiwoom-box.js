@@ -72,7 +72,9 @@ function renderKiwoomBalance(data){
   container.innerHTML = order.map((key, idx) => {
     const rows = groupMap.get(key);
     const [broker, account, accountType] = key.split('|');
-    const title = kiwoomGroupNames[key] || `${broker} ${account} ${accountType}`;
+    const override = kiwoomGroupOverrides[key] || {};
+    const brokerDisplay = override.broker || broker;
+    const accountDisplay = override.account || account;
 
     // 이 표(계좌) 안의 평가금액/평가손익/수익률 소계. 매입금액은 종목마다 따로 안 내려주지만
     // 평가손익 = 평가금액 - 매입금액이라는 관계로 역산할 수 있다.
@@ -94,8 +96,13 @@ function renderKiwoomBalance(data){
       </tr>
     `).join('');
     return `
-      <div class="kiwoom-group-title" style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
-        <span class="kiwoom-group-name-edit" data-key="${kiwoomEscapeHtml(key)}" title="클릭하여 표 이름 변경">${kiwoomEscapeHtml(title)}</span>
+      <div class="kiwoom-group-title" style="display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap;">
+        <span style="display:flex; align-items:center; gap:4px; flex-wrap:wrap;">
+          <span class="kiwoom-group-name-edit" data-key="${kiwoomEscapeHtml(key)}" data-field="broker" title="클릭하여 증권사명 변경">${kiwoomEscapeHtml(brokerDisplay)}</span>
+          <span style="color:var(--muted);">·</span>
+          <span class="kiwoom-group-name-edit" data-key="${kiwoomEscapeHtml(key)}" data-field="account" title="클릭하여 계좌명 변경">${kiwoomEscapeHtml(accountDisplay)}</span>
+          <span style="color:var(--muted); font-size:12px;">(${kiwoomEscapeHtml(accountType)})</span>
+        </span>
         <span class="spin-btns">
           <button type="button" class="group-move-btn kiwoom-group-up" data-key="${kiwoomEscapeHtml(key)}" title="위로 이동" ${idx === 0 ? 'disabled' : ''}>▲</button>
           <button type="button" class="group-move-btn kiwoom-group-down" data-key="${kiwoomEscapeHtml(key)}" title="아래로 이동" ${idx === order.length - 1 ? 'disabled' : ''}>▼</button>
@@ -139,19 +146,24 @@ document.addEventListener('click', (e) => {
   renderKiwoomBalance(lastKiwoomData);
 });
 
-// 표 제목 클릭 → 이름 직접 수정(다른 곳의 계좌명 수정과 같은 prompt() 방식). 새로고침해도
-// 유지되도록 kiwoomGroupNames(core.js 에서 선언, 저장/불러오기 대상)에 저장한다.
+// 증권사명/계좌명 클릭 → 각각 직접 수정(다른 곳의 계좌명 수정과 같은 prompt() 방식). 새로고침해도
+// 유지되도록 kiwoomGroupOverrides(core.js 에서 선언, 저장/불러오기 대상)에 저장한다.
 document.addEventListener('click', (e) => {
   const el = e.target.closest('.kiwoom-group-name-edit');
   if (!el) return;
   const key = el.dataset.key;
-  const current = kiwoomGroupNames[key] || el.textContent;
-  const newValue = prompt('표 이름을 입력하세요.', current);
+  const field = el.dataset.field; // 'broker' | 'account'
+  const label = field === 'broker' ? '증권사명' : '계좌명';
+  const current = (kiwoomGroupOverrides[key] && kiwoomGroupOverrides[key][field]) || el.textContent;
+  const newValue = prompt(`${label}을 입력하세요.`, current);
   if (newValue === null) return;
   const trimmed = newValue.trim();
   if (!trimmed) { showFieldStatus(el, '이름은 비워둘 수 없습니다.', 'error'); return; }
-  kiwoomGroupNames[key] = trimmed;
+  kiwoomGroupOverrides[key] = kiwoomGroupOverrides[key] || {};
+  kiwoomGroupOverrides[key][field] = trimmed;
   el.textContent = trimmed;
+  // "📋 요약" 박스가 계좌 모드일 때 바뀐 이름이 바로 반영되도록 함께 다시 그린다.
+  if (typeof renderStockSummary === 'function') renderStockSummary();
 });
 
 async function loadKiwoomBalance(){
