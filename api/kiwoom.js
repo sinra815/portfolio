@@ -118,7 +118,8 @@ async function getAccountBalance(account) {
 
   // 예수금도 "종목"처럼 국내 보유 목록에 한 줄로 끼워 넣는다 — 화면에서 표를 계좌/유형별로
   // 나눌 때 다른 종목과 같은 방식으로 자연스럽게 그 계좌의 국내 표에 들어가게 하기 위함.
-  // 보유수량/평가손익/수익률 개념이 없어 null로 둔다(화면에서 "-"로 표시).
+  // 보유수량은 개념이 없어 null(화면에서 "-")로 두고, 현재가는 평가금액과 같은 값(예수금
+  // 자체가 금액이라 "가격" 개념이 곧 그 금액), 평가손익/수익률은 손익이 없으니 0으로 둔다.
   const cashHolding = {
     broker: '키움증권',
     account: account.label,
@@ -126,11 +127,11 @@ async function getAccountBalance(account) {
     code: 'CASH',
     name: '예수금',
     qty: null,
-    currentPrice: null,
-    purchasePrice: null,
+    currentPrice: cashBalance,
+    purchasePrice: cashBalance,
     evalAmount: cashBalance,
-    evalProfit: null,
-    profitRate: null,
+    evalProfit: 0,
+    profitRate: 0,
     isCash: true,
   };
 
