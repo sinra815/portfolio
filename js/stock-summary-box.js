@@ -16,11 +16,11 @@ const SUMMARY_VIEWS = {
     // 매입가/손익 개념은 수동 입력 표(계좌별 리밸런싱 현황)에는 없고 My Data(키움 실계좌)에만
     // 있어서, 평가금액은 두 데이터를 합치고 평가손익/수익률은 키움 데이터가 있는 계좌만 계산한다.
     note: '증권사+계좌별 평가금액/평가손익/수익률입니다. 평가금액은 계좌별 리밸런싱 현황(수동 입력)과 My Data(키움 실계좌)를 더한 값이고, 평가손익/수익률은 My Data가 있는 계좌만 계산됩니다.',
-    theadHtml: '<tr><th>계좌</th><th>증권사</th><th>평가금액(만원)</th><th>평가손익(만원)</th><th>수익률(%)</th></tr>',
-    colgroupHtml: '<col style="width:auto;"><col style="width:90px;"><col style="width:130px;"><col style="width:130px;"><col style="width:90px;">',
+    theadHtml: '<tr><th>증권사</th><th>계좌</th><th>평가금액(만원)</th><th>평가손익(만원)</th><th>수익률(%)</th></tr>',
+    colgroupHtml: '<col style="width:90px;"><col style="width:auto;"><col style="width:130px;"><col style="width:130px;"><col style="width:90px;">',
     emptyMessage: '계좌별 리밸런싱 현황 또는 My Data에 데이터가 있으면 여기에 요약이 표시됩니다.',
     colspan: 5,
-    nameColIndex: 0,
+    nameColIndex: 1,
     fitColIndexes: [2, 3, 4],
   },
 };
@@ -98,13 +98,15 @@ function renderSummaryByAccount(view){
 
   const kiwoomHoldings = (typeof lastKiwoomData !== 'undefined' && lastKiwoomData && lastKiwoomData.holdings) || [];
   kiwoomHoldings.forEach(h => {
-    // My Data 표에서 사용자가 직접 지정한 표 이름(kiwoomGroupNames)이 있으면 그 이름을 계좌명으로
-    // 쓴다 — 서버가 내려주는 원본 계좌명(환경변수 라벨) 대신 사용자가 실제로 부르는 이름을 써야
+    // My Data 표에서 사용자가 직접 지정한 증권사명/계좌명(kiwoomGroupOverrides)이 있으면 그걸
+    // 쓴다 — 서버가 내려주는 원본 값(환경변수 라벨 등) 대신 사용자가 실제로 부르는 이름을 써야
     // "계좌별 리밸런싱 현황"에 같은 이름으로 수동 입력해둔 행과 하나로 합쳐진다.
     const groupKey = `${h.broker}|${h.account}|${h.accountType}`;
-    const displayAccount = kiwoomGroupNames[groupKey] || h.account;
-    const key = h.broker + '·' + displayAccount;
-    const entry = byAccount.get(key) || { broker: h.broker, account: displayAccount, evalM: 0, profitM: 0, hasKiwoom: false };
+    const override = kiwoomGroupOverrides[groupKey] || {};
+    const displayBroker = override.broker || h.broker;
+    const displayAccount = override.account || h.account;
+    const key = displayBroker + '·' + displayAccount;
+    const entry = byAccount.get(key) || { broker: displayBroker, account: displayAccount, evalM: 0, profitM: 0, hasKiwoom: false };
     entry.evalM += (h.evalAmount || 0) / 10000;
     entry.profitM += (h.evalProfit || 0) / 10000;
     entry.hasKiwoom = true;
@@ -128,8 +130,8 @@ function renderSummaryByAccount(view){
     const rate = entry.hasKiwoom && purchaseM ? (entry.profitM / purchaseM) * 100 : null;
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td><span class="summary-name">${entry.account}</span></td>
       <td>${entry.broker}</td>
+      <td><span class="summary-name">${entry.account}</span></td>
       <td class="num">${fmt(entry.evalM)}</td>
       <td class="num ${entry.hasKiwoom ? summaryColorClass(entry.profitM) : ''}">${entry.hasKiwoom ? fmt(entry.profitM) : '-'}</td>
       <td class="num ${entry.hasKiwoom ? summaryColorClass(rate) : ''}">${rate !== null ? fmtTrim(rate, 2) : '-'}</td>
@@ -143,12 +145,12 @@ function renderSummaryByAccount(view){
 document.getElementById('summaryModeStock').addEventListener('change', () => { summaryMode = 'stock'; renderStockSummary(); });
 document.getElementById('summaryModeAccount').addEventListener('change', () => { summaryMode = 'account'; renderStockSummary(); });
 
-// 종목/계좌 두 모드가 공통으로 거치는 마무리 처리. 두 모드 다 이름 컬럼(종목명 또는 계좌명)이
-// 항상 0번째라 fitNameColumn 을 그대로 재사용할 수 있다.
+// 종목/계좌 두 모드가 공통으로 거치는 마무리 처리. 이름 컬럼(종목명 또는 계좌명) 위치가 모드마다
+// 달라(view.nameColIndex) fitNameColumn 에 그 위치를 넘겨준다.
 function fitSummaryLayout(view){
   const table = document.getElementById('stockSummaryTable');
   fitNameColumn(table, document.querySelectorAll('#stockSummaryBody .summary-name'),
-                NAME_COL_MIN_W, NAME_COL_MAX_W);
+                NAME_COL_MIN_W, NAME_COL_MAX_W, view.nameColIndex);
 
   const headerCells = table.querySelectorAll('thead th');
   const bodyRows = Array.from(document.querySelectorAll('#stockSummaryBody tr'))
