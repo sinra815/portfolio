@@ -75,7 +75,19 @@ async function getBalance(id) {
     overseas = null;
   }
 
+  // 예수금(국내 원화 현금)은 kt00018/보유종목과 별도 TR. 여기서도 실패해도 나머지 잔고는
+  // 정상 표시되도록 실패를 삼킨다. (해외 계좌의 외화 예수금은 통화별 환산이 더 필요해 범위 밖.)
+  let cashBalance = 0;
+  try {
+    const cash = await callKiwoom(redis, 'kt00001', '/api/dostk/acnt', { qry_tp: '2' });
+    cashBalance = toNumber(cash.entr);
+  } catch (e) {
+    cashBalance = 0;
+  }
+
   const holdings = (data.acnt_evlt_remn_indv_tot || []).map((row) => ({
+    broker: '키움증권',
+    accountType: '국내',
     code: String(row.stk_cd || '').replace(/^[A-Z]/, ''), // 접두어(A:주식/J:ELW/Q:ETN) 제거
     name: row.stk_nm || '',
     qty: toNumber(row.rmnd_qty),
@@ -90,6 +102,8 @@ async function getBalance(id) {
   // 해외 API는 원화 환산 필드(_krw)를 함께 내려주므로, 화면이 통화 단위 없이 원화 기준으로
   // 통일해서 보여줄 수 있도록 그 값을 그대로 쓴다.
   const overseasHoldings = ((overseas && overseas.result_list) || []).map((row) => ({
+    broker: '키움증권',
+    accountType: '해외',
     code: row.stk_cd || '',
     name: row.frgn_stk_nm || '',
     qty: toNumber(row.poss_qty),
@@ -116,7 +130,8 @@ async function getBalance(id) {
       totalEvalProfit,
       // 국내/해외를 합친 총수익률은 각 TR이 따로 주는 값을 쓸 수 없어(통화 기준이 달라) 직접 계산한다.
       totalProfitRate: totalPurchaseAmount ? (totalEvalProfit / totalPurchaseAmount) * 100 : 0,
-      estimatedAssetAmount: toNumber(data.prsm_dpst_aset_amt), // 국내 예수금 기준(해외 현금은 미포함)
+      estimatedAssetAmount: toNumber(data.prsm_dpst_aset_amt), // 국내 추정예탁자산(현금+보유종목, 해외 계좌는 미포함)
+      cashBalance, // 국내 원화 예수금(현금)만. 해외 계좌의 외화 예수금은 포함하지 않음
       holdings: [...holdings, ...overseasHoldings],
     },
   };
