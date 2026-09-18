@@ -108,6 +108,9 @@ function renderKiwoomBalance(data){
       </div>
     `;
   }).join('');
+
+  // "📋 요약" 박스가 계좌 모드일 때 My Data 최신값을 바로 반영하도록 함께 다시 그린다.
+  if (typeof renderStockSummary === 'function') renderStockSummary();
 }
 
 // 표 순서 위/아래 이동 — 새로 가져오지 않고 마지막 데이터로 즉시 다시 그린다.
@@ -174,7 +177,7 @@ function updateKiwoomPanelVisibility(){
 
 // 이 버튼은 "종목 마스터"의 금액 불러오기와 같은 동작(refreshAllPrices)을 한다 — 그 함수
 // 자체가 끝에 계좌 잔고(키움)도 함께 갱신하도록 이미 연결돼 있어, 티커 가격과 잔고가 한 번에 맞춰진다.
-document.getElementById('kiwoomRefreshBtn').addEventListener('click', (e) => refreshAllPrices(e.currentTarget));
+document.getElementById('kiwoomRefreshBtn').addEventListener('click', (e) => refreshAllPrices(e.currentTarget, '새로고침 중...'));
 
 // auth-box.js 의 로그인 유지 복원은 이 스크립트가 로드되기 전에 이미 실행됐을 수 있어(그때는
 // 이 함수가 아직 없어 setAccountUI 안의 typeof 가드가 조용히 넘어간다), 여기서 한 번 더
