@@ -5,7 +5,7 @@
 // 나눴을 때 배포가 바로 실패했다.
 import { Redis } from '@upstash/redis';
 import { callKiwoom, getKiwoomAccounts } from '../lib/kiwoom.js';
-import { callNh, getNhAccounts, getNhLiveAccounts } from '../lib/nh.js';
+import { callNh, getNhAccounts, getNhLiveAccounts, getNhRawAccountList } from '../lib/nh.js';
 
 const redis = new Redis({
   url: process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL,
@@ -186,6 +186,14 @@ async function getNhAccountBalance(account) {
   );
   const results = [];
   const failedSubAccounts = [];
+  // 진단용: 이 앱키로 /n2/acctinfo에 실제로 어떤 계좌가 연결돼 있는지(캐시 무시, 01/02
+  // 필터링 없이 전부) 함께 확인한다 — 찾고 있는 특정 계좌가 아예 목록에 없는지 보기 위함.
+  try {
+    const rawList = await getNhRawAccountList(redis, account);
+    failedSubAccounts.push(`[${account.label}] 이 앱키에 연결된 전체 계좌 목록: ${rawList.join(', ')}`);
+  } catch (e) {
+    failedSubAccounts.push(`[${account.label}] 전체 계좌 목록 조회 실패: ${e.message}`);
+  }
   settled.forEach((s, i) => {
     if (s.status === 'fulfilled') {
       results.push(s.value);
