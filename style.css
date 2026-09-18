@@ -111,7 +111,7 @@ input.cell-input:focus{outline:2px solid var(--accent); outline-offset:0;}
 .group-move-btn:active{background:#ffe4b8;}
 .group-move-btn:disabled{cursor:default; opacity:.3;}
 
-#saveBtn:disabled, #loadBtn:disabled{opacity:.4; cursor:not-allowed;}
+#saveBtn:disabled, #loadBtn:disabled, #kiwoomRefreshBtn:disabled, #fetchAllPricesBtn:disabled{opacity:.4; cursor:not-allowed;}
 
 .remark-up{color:var(--up); font-weight:700;}
 .remark-down{color:var(--down); font-weight:700;}
