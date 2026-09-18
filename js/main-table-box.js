@@ -333,3 +333,10 @@ document.addEventListener('click', (e) => {
 
 document.getElementById('stagePercentInput').addEventListener('input', renderAll);
 document.getElementById('overweightThreshold').addEventListener('input', renderAll);
+
+// 이 박스(증권사·계좌·종목)만 초기화 — "종목 마스터"(master)는 건드리지 않는다.
+document.getElementById('resetGroupsBtn').addEventListener('click', () => {
+  if (!confirm('모든 증권사·계좌와 안에 있는 종목을 삭제할까요?')) return;
+  groups = [];
+  renderAll();
+});
