@@ -400,6 +400,7 @@ function applyLoadedData(saved){
   master = saved.master || master;
   groups = saved.groups || groups;
   kiwoomGroupNames = saved.kiwoomGroupNames || kiwoomGroupNames;
+  kiwoomGroupOrder = saved.kiwoomGroupOrder || kiwoomGroupOrder;
   if (saved.stage !== undefined) document.getElementById('stagePercentInput').value = saved.stage;
   if (saved.threshold !== undefined) document.getElementById('overweightThreshold').value = saved.threshold;
   renderAll();
