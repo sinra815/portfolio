@@ -8,7 +8,7 @@
      그 파일들 중 하나라도 내용을 바꾸면, 여기와 아래 <script> 태그들의 ?v= 값을 전부 함께 올려야
      기존에 캐싱해 둔 브라우저가 새 파일을 다시 받는다. (index.html 자체는 캐싱하지 않으므로
      이 값이 바뀐 참조는 항상 즉시 반영된다.) -->
-<link rel="stylesheet" href="style.css?v=23">
+<link rel="stylesheet" href="style.css?v=24">
 </head>
 <body>
 
@@ -95,11 +95,13 @@
       <button type="button" id="kiwoomRefreshBtn" style="padding:5px 10px; border-radius:5px; border:1px solid var(--border-strong); background:#fff; cursor:pointer; font-size:12px;">새로고침</button>
     </div>
   </div>
-  <p class="note" style="margin-top:6px;">키움증권 REST API로 조회한 실제 계좌 잔고입니다(읽기 전용, 화면이 열려있는 동안 자동 갱신). 아래 리밸런싱 표(수동 입력)와는 별개입니다.</p>
+  <p class="note" style="margin-top:6px;">키움증권 REST API로 조회한 실제 계좌 잔고입니다(읽기 전용, 로그인 시·새로고침 시에만 갱신). 아래 리밸런싱 표(수동 입력)와는 별개입니다.</p>
   <div id="kiwoomSummary" style="display:flex; gap:20px; flex-wrap:wrap; margin:10px 0 12px; font-size:13px;"></div>
   <div class="table-scroll">
-    <table class="price-table">
+    <table class="price-table kiwoom-table">
       <colgroup>
+        <col style="width:80px;">
+        <col style="width:70px;">
         <col style="width:auto;">
         <col style="width:90px;">
         <col style="width:100px;">
@@ -107,7 +109,7 @@
         <col style="width:110px;">
         <col style="width:80px;">
       </colgroup>
-      <thead><tr><th>종목</th><th>보유수량</th><th>현재가</th><th>평가금액</th><th>평가손익</th><th>수익률</th></tr></thead>
+      <thead><tr><th>증권사</th><th>계좌유형</th><th>종목</th><th>보유수량</th><th>현재가</th><th>평가금액</th><th>평가손익</th><th>수익률</th></tr></thead>
       <tbody id="kiwoomHoldingsBody"></tbody>
     </table>
   </div>
@@ -314,16 +316,16 @@
   </div>
 </div>
 
-<script src="js/core.js?v=23"></script>
-<script src="js/numpad.js?v=23"></script>
-<script src="js/auth-box.js?v=23"></script>
-<script src="js/account-box.js?v=23"></script>
-<script src="js/settings-box.js?v=23"></script>
-<script src="js/kiwoom-box.js?v=23"></script>
-<script src="js/stock-summary-box.js?v=23"></script>
-<script src="js/main-table-box.js?v=23"></script>
-<script src="js/price-table-box.js?v=23"></script>
-<script src="js/stage-summary-box.js?v=23"></script>
-<script src="js/app.js?v=23"></script>
+<script src="js/core.js?v=24"></script>
+<script src="js/numpad.js?v=24"></script>
+<script src="js/auth-box.js?v=24"></script>
+<script src="js/account-box.js?v=24"></script>
+<script src="js/settings-box.js?v=24"></script>
+<script src="js/kiwoom-box.js?v=24"></script>
+<script src="js/stock-summary-box.js?v=24"></script>
+<script src="js/main-table-box.js?v=24"></script>
+<script src="js/price-table-box.js?v=24"></script>
+<script src="js/stage-summary-box.js?v=24"></script>
+<script src="js/app.js?v=24"></script>
 </body>
 </html>
