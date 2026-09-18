@@ -116,12 +116,30 @@ async function getAccountBalance(account) {
     profitRate: toNumber(row.pl_rt),
   }));
 
+  // 예수금도 "종목"처럼 국내 보유 목록에 한 줄로 끼워 넣는다 — 화면에서 표를 계좌/유형별로
+  // 나눌 때 다른 종목과 같은 방식으로 자연스럽게 그 계좌의 국내 표에 들어가게 하기 위함.
+  // 보유수량/평가손익/수익률 개념이 없어 null로 둔다(화면에서 "-"로 표시).
+  const cashHolding = {
+    broker: '키움증권',
+    account: account.label,
+    accountType: '국내',
+    code: 'CASH',
+    name: '예수금',
+    qty: null,
+    currentPrice: null,
+    purchasePrice: null,
+    evalAmount: cashBalance,
+    evalProfit: null,
+    profitRate: null,
+    isCash: true,
+  };
+
   return {
     purchaseAmount: toNumber(data.tot_pur_amt) + (overseas ? toNumber(overseas.tot_prch_amt_krw) : 0),
     evalAmount: toNumber(data.tot_evlt_amt) + (overseas ? toNumber(overseas.tot_evlt_amt_krw) : 0),
     evalProfit: toNumber(data.tot_evlt_pl) + (overseas ? toNumber(overseas.tot_pl_amt_krw) : 0),
     cashBalance,
-    holdings: [...holdings, ...overseasHoldings],
+    holdings: [...holdings, cashHolding, ...overseasHoldings],
   };
 }
 
