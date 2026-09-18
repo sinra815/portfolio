@@ -243,16 +243,34 @@ async function withButtonLoading(btn, loadingText, task){
   }
 }
 
+async function fetchPriceJson(url){
+  const res = await fetch(url);
+  const json = await res.json().catch(() => ({}));
+  return { ok: res.ok && !json.error, json };
+}
+
 // 현재가와 함께 전일대비 등락률(changePercent, 부호 있는 %)도 반환한다.
+// 6자리 숫자 티커(국내 종목코드)와 알파벳 티커(미국 상장 종목)는 키움증권 REST API로,
+// 그 외(일본/홍콩 등 그 밖의 해외 티커)는 기존 네이버 금융 프록시로 조회한다 — 키움 API는
+// 국내·미국 주식만 지원한다. 알파벳 티커가 키움에서 못 찾으면(미국 외 시장일 수 있으므로)
+// 네이버로 한 번 더 시도한다.
 async function fetchPriceForTicker(ticker, opts){
   const silent = opts && opts.silent;
   const anchor = opts && opts.anchor;
   const query = (ticker || '').trim();
   if (!query) { if (!silent) showFieldStatus(anchor, '티커를 먼저 입력해주세요.', 'error'); return null; }
+  const isDomestic = /^\d{6}$/.test(query);
+  const isUsTicker = !isDomestic && /^[A-Za-z]{1,6}$/.test(query);
+  const naverUrl = '/api/price?query=' + encodeURIComponent(query);
+  const primaryUrl = isDomestic
+    ? '/api/kiwoom-price?code=' + encodeURIComponent(query)
+    : isUsTicker
+      ? '/api/kiwoom-price-overseas?code=' + encodeURIComponent(query)
+      : naverUrl;
   try {
-    const res = await fetch('/api/price?query=' + encodeURIComponent(query));
-    const json = await res.json();
-    if (!res.ok || json.error) {
+    let { ok, json } = await fetchPriceJson(primaryUrl);
+    if (!ok && isUsTicker) ({ ok, json } = await fetchPriceJson(naverUrl));
+    if (!ok) {
       if (!silent) showFieldStatus(anchor, json.error || '현재가를 불러오지 못했습니다.', 'error');
       else console.warn(`[${query}] 현재가 조회 실패:`, json.error);
       return null;
