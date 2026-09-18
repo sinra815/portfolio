@@ -166,33 +166,47 @@ document.addEventListener('click', (e) => {
   if (typeof renderStockSummary === 'function') renderStockSummary();
 });
 
+// 로그인 시 updateKiwoomPanelVisibility() 와 applyLoadedData() 두 경로가 거의 동시에 이 함수를
+// 각각 호출할 수 있어(서로 존재를 모름), 그대로 두면 같은 kiwoomRefreshBtn을 두고 withButtonLoading
+// 두 개가 동시에 돌면서 서로의 "원래 텍스트" 기록을 어긋나게 만들어 버튼이 "불러오는중"에 영영
+// 멈춰버리는 경합이 있었다. 진행 중인 호출이 있으면 새로 시작하지 않고 그 결과를 그대로 같이
+// 기다리게 해서 막는다.
+let kiwoomBalanceInFlight = null;
+
 // 반환값(true/false)으로 호출자가 성공 여부를 알 수 있게 한다 — refreshAllPrices 가 이 결과를
 // 기다리지 않고(await 누락) 곧바로 자기 성공 메시지를 띄우면, 여기서 보여준 실패 메시지가
 // 화면에 뜨자마자 덮어써져 사라지는 버그가 있었다.
-async function loadKiwoomBalance(){
+function loadKiwoomBalance(){
+  // 이미 진행 중인 호출이 있으면(joiner) 그 Promise를 그대로 돌려준다 — 이 Promise는 아래에서
+  // 성공 여부(true/false)로 resolve되므로, 나중에 합류한 호출자도 같은 결과를 정확히 받는다.
+  if (kiwoomBalanceInFlight) return kiwoomBalanceInFlight;
   const btn = document.getElementById('kiwoomRefreshBtn');
-  let ok = true;
-  // 여러 계좌를 순서대로 조회하느라 응답이 몇 초 걸릴 수 있어, 끝날 때까지 버튼을 잠그고
-  // "불러오는중"으로 바꿔서 지금 진행 중이라는 걸 보여준다.
-  await withButtonLoading(btn, '불러오는중', async () => {
-    try {
-      const res = await fetch('/api/kiwoom', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: currentUserId }),
-      });
-      const json = await res.json().catch(() => ({}));
-      // 서버는 사용자용 메시지(error)와 원인(detail)을 따로 내려주는데, detail 을 화면에
-      // 안 띄우면 "오류가 발생했습니다"만 보여서 뭐가 문제인지 알 방법이 없다.
-      if (!res.ok) throw new Error((json.error || '계좌 잔고를 불러오지 못했습니다.') + (json.detail ? ` (${json.detail})` : ''));
-      renderKiwoomBalance(json);
-      document.getElementById('kiwoomUpdatedAt').textContent = `${new Date().toLocaleTimeString('ko-KR')} 기준`;
-    } catch (e) {
-      showFieldStatus(btn, e.message, 'error');
-      ok = false;
-    }
-  });
-  return ok;
+  const run = (async () => {
+    let ok = true;
+    // 여러 계좌를 순서대로 조회하느라 응답이 몇 초 걸릴 수 있어, 끝날 때까지 버튼을 잠그고
+    // "불러오는중"으로 바꿔서 지금 진행 중이라는 걸 보여준다.
+    await withButtonLoading(btn, '불러오는중', async () => {
+      try {
+        const res = await fetch('/api/kiwoom', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: currentUserId }),
+        });
+        const json = await res.json().catch(() => ({}));
+        // 서버는 사용자용 메시지(error)와 원인(detail)을 따로 내려주는데, detail 을 화면에
+        // 안 띄우면 "오류가 발생했습니다"만 보여서 뭐가 문제인지 알 방법이 없다.
+        if (!res.ok) throw new Error((json.error || '계좌 잔고를 불러오지 못했습니다.') + (json.detail ? ` (${json.detail})` : ''));
+        renderKiwoomBalance(json);
+        document.getElementById('kiwoomUpdatedAt').textContent = `${new Date().toLocaleTimeString('ko-KR')} 기준`;
+      } catch (e) {
+        showFieldStatus(btn, e.message, 'error');
+        ok = false;
+      }
+    });
+    return ok;
+  })();
+  kiwoomBalanceInFlight = run.finally(() => { kiwoomBalanceInFlight = null; });
+  return kiwoomBalanceInFlight;
 }
 
 // 로그인 상태가 바뀔 때마다(로그인/게스트/로그아웃) 호출된다 — auth-box.js 의 setAccountUI() 가

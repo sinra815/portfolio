@@ -215,7 +215,10 @@ document.getElementById('addStockBtn').addEventListener('click', async (e) => {
 // fixedLabel 을 주면(키움 새로고침 버튼처럼) 진행률 대신 그 문구를 작업 끝까지 고정해서 보여준다.
 async function refreshAllPrices(btn, fixedLabel){
   const targets = master.filter(m => (m.ticker || '').trim());
-  if (targets.length === 0) { showFieldStatus(btn, '티커가 입력된 종목이 없습니다.', 'error'); return; }
+  const canRefreshKiwoom = typeof loadKiwoomBalance === 'function' && typeof KIWOOM_OWNER_ID !== 'undefined' && currentUserId === KIWOOM_OWNER_ID;
+  // 종목 마스터에 티커를 하나도 안 쓰고 "My Data"(증권사 잔고)만 쓰는 사용자도 있어, 이 버튼이
+  // 증권사 조회는 못 해보고 그냥 끝나버리면 안 된다 — 둘 다 없을 때만 에러로 끝낸다.
+  if (targets.length === 0 && !canRefreshKiwoom) { showFieldStatus(btn, '티커가 입력된 종목이 없습니다.', 'error'); return; }
   await withButtonLoading(btn, fixedLabel || `불러오는 중... (0/${targets.length})`, async () => {
     let ok = 0;
     for (let i = 0; i < targets.length; i++) {
@@ -223,16 +226,19 @@ async function refreshAllPrices(btn, fixedLabel){
       const result = await fetchPriceForTicker(targets[i].ticker, { silent: true });
       if (result !== null) { targets[i].price = result.price; targets[i].changePercent = result.changePercent; ok++; }
     }
-    renderAll();
+    if (targets.length) renderAll();
     // sinra815로 로그인 중이면 계좌 잔고(키움)도 이 버튼으로 같이 갱신한다 — 잔고는 주기적
     // 자동 갱신 없이 로그인 직후와 이 버튼 클릭 시에만 가져오기 때문.
     // await 필수: 안 기다리면 이 함수가 끝나기 전에 아래 성공 메시지가 먼저 떠서, 잔고 조회가
     // 실패해 표시한 에러 메시지를 곧바로 덮어써 버린다(에러가 안 보이는 것처럼 보이는 버그).
     let kiwoomOk = true;
-    if (typeof loadKiwoomBalance === 'function' && typeof KIWOOM_OWNER_ID !== 'undefined' && currentUserId === KIWOOM_OWNER_ID) {
-      kiwoomOk = await loadKiwoomBalance();
+    if (canRefreshKiwoom) kiwoomOk = await loadKiwoomBalance();
+    if (kiwoomOk) {
+      const message = targets.length
+        ? `${targets.length}개 중 ${ok}개 종목의 금액을 불러왔습니다.`
+        : '증권사 계좌 정보를 불러왔습니다.';
+      showFieldStatus(btn, message);
     }
-    if (kiwoomOk) showFieldStatus(btn, `${targets.length}개 중 ${ok}개 종목의 금액을 불러왔습니다.`);
   });
 }
 
