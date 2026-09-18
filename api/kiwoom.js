@@ -222,14 +222,20 @@ async function getNhSingleAccountBalance(account, actNo, label) {
   const d0 = domestic.Output_0 || {};
   const cashBalance = toNumber(d0.dca);
   // 예수금(dca)이 0인데 자산 자체는 있는 경우(키움 IRP와 유사하게 계좌 유형에 따라 즉시결제
-  // 예수금 필드가 0으로 나올 수 있어) 원인 파악용으로 다른 자산 필드/계좌 상태를 함께 남긴다.
+  // 예수금 필드가 0으로 나올 수 있어) 원인 파악용으로 다른 자산 필드/계좌 상태/공통 응답
+  // 메시지 봉투(message)를 함께 남긴다. callNh()는 HTTP 상태만 보고 성공/실패를 가르기
+  // 때문에, TR이 HTTP 200이면서 message 안에 에러를 담아 보내는 경우 지금까지는 그냥
+  // 조용히 빈 데이터로 넘어가고 있었을 수 있다.
   let note = null;
   if (cashBalance === 0) {
     const nas = toNumber(d0.nas_amt);
     const tot = toNumber(d0.tot_aet_amt);
     const status = d0.act_atv_tp_dtl_cd;
-    if (nas || tot || (status && status !== '101')) {
-      note = `[${label}] 예수금 0, 순자산금액=${nas} / 총자산금액=${tot} / 계좌상태코드=${status || '-'}`;
+    const msg = domestic.message || {};
+    if (nas || tot || (status && status !== '101') || msg.msg_lv_code || msg.usr_msg) {
+      note = `[${label}] 예수금 0, 순자산=${nas} / 총자산=${tot} / 계좌상태=${status || '-'} / msg_lv=${msg.msg_lv_code || '-'} / usr_msg=${msg.usr_msg || '-'} / msg_code=${msg.msg_code || '-'}`;
+    } else {
+      note = `[${label}] 예수금 0, 원본 응답: ${JSON.stringify(domestic).slice(0, 300)}`;
     }
   }
 
