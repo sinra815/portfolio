@@ -212,13 +212,14 @@ document.getElementById('addStockBtn').addEventListener('click', async (e) => {
 });
 
 // "종목 마스터"의 금액 불러오기 버튼과 계좌 잔고(키움) 박스의 금액 새로고침 버튼이 공유하는 동작.
-async function refreshAllPrices(btn){
+// fixedLabel 을 주면(키움 새로고침 버튼처럼) 진행률 대신 그 문구를 작업 끝까지 고정해서 보여준다.
+async function refreshAllPrices(btn, fixedLabel){
   const targets = master.filter(m => (m.ticker || '').trim());
   if (targets.length === 0) { showFieldStatus(btn, '티커가 입력된 종목이 없습니다.', 'error'); return; }
-  await withButtonLoading(btn, `불러오는 중... (0/${targets.length})`, async () => {
+  await withButtonLoading(btn, fixedLabel || `불러오는 중... (0/${targets.length})`, async () => {
     let ok = 0;
     for (let i = 0; i < targets.length; i++) {
-      btn.textContent = `불러오는 중... (${i + 1}/${targets.length})`;
+      if (!fixedLabel) btn.textContent = `불러오는 중... (${i + 1}/${targets.length})`;
       const result = await fetchPriceForTicker(targets[i].ticker, { silent: true });
       if (result !== null) { targets[i].price = result.price; targets[i].changePercent = result.changePercent; ok++; }
     }
