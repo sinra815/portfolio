@@ -37,7 +37,7 @@ function renderKiwoomBalance(data){
 async function loadKiwoomBalance(){
   const btn = document.getElementById('kiwoomRefreshBtn');
   try {
-    const res = await fetch('/api/kiwoom-balance', {
+    const res = await fetch('/api/kiwoom', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id: currentUserId }),
