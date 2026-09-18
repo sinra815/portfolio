@@ -4,8 +4,6 @@
 // 스위치일 뿐이고, 실제 접근 제어는 서버 쪽에서 한다 — 프런트 코드는 누구나 볼 수 있으므로
 // 이 상수만으로는 아무것도 못 한다.
 const KIWOOM_OWNER_ID = 'sinra815';
-const KIWOOM_POLL_MS = 30000;
-let kiwoomPollTimer = null;
 
 function kiwoomColorClass(n){
   return n > 0 ? 'remark-up' : (n < 0 ? 'remark-down' : '');
@@ -53,24 +51,16 @@ async function loadKiwoomBalance(){
   }
 }
 
-function stopKiwoomPolling(){
-  clearInterval(kiwoomPollTimer);
-  kiwoomPollTimer = null;
-}
-
 // 로그인 상태가 바뀔 때마다(로그인/게스트/로그아웃) 호출된다 — auth-box.js 의 setAccountUI() 가
-// showAdminButtonIfAdmin() 과 같은 방식으로 훅을 걸어준다.
+// showAdminButtonIfAdmin() 과 같은 방식으로 훅을 걸어준다. 잔고는 키움 API 호출 비용/속도
+// 때문에 주기적으로 자동 갱신하지 않고, 로그인 직후 한 번과 새로고침 버튼(이 패널의 버튼,
+// 또는 "종목 마스터"의 금액 불러오기 버튼) 클릭 시에만 가져온다.
 function updateKiwoomPanelVisibility(){
   const panel = document.getElementById('kiwoomPanel');
   if (!panel) return;
   const shouldShow = currentUserId === KIWOOM_OWNER_ID;
   panel.style.display = shouldShow ? '' : 'none';
-  if (shouldShow) {
-    loadKiwoomBalance();
-    if (!kiwoomPollTimer) kiwoomPollTimer = setInterval(loadKiwoomBalance, KIWOOM_POLL_MS);
-  } else {
-    stopKiwoomPolling();
-  }
+  if (shouldShow) loadKiwoomBalance();
 }
 
 document.getElementById('kiwoomRefreshBtn').addEventListener('click', loadKiwoomBalance);
