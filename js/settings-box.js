@@ -1,4 +1,4 @@
-// ==== "⚙️ 설정" 박스: 평가금액 합계 표시 / 저장·불러오기 / File 내보내기·가져오기 / 초기화 ====
+// ==== "⚙️ 설정" 박스: 평가금액 합계 표시 / 저장·불러오기 / File 내보내기·가져오기 ====
 
 function buildExportFilename(){
   const ts = new Date();
@@ -90,13 +90,6 @@ document.getElementById('importFileInput').addEventListener('change', (e) => {
   reader.onload = () => applyImportedJson(reader.result, importBtn);
   reader.onerror = () => showFieldStatus(importBtn, '파일을 읽는 중 오류가 발생했습니다.', 'error');
   reader.readAsText(file);
-});
-
-document.getElementById('resetAllBtn').addEventListener('click', () => {
-  if (!confirm('모든 증권사·계좌와 종목 마스터를 삭제할까요? 안에 있는 종목도 모두 함께 삭제됩니다.')) return;
-  groups = [];
-  master = [];
-  renderAll();
 });
 
 // ==== 저장 버튼의 초록 배지: 현재 위치(로그인=서버 / 게스트=이 기기)에 저장된 데이터가 있는지 ====
