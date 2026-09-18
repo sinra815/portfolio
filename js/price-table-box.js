@@ -235,6 +235,14 @@ async function refreshAllPrices(btn, fixedLabel){
 
 document.getElementById('fetchAllPricesBtn').addEventListener('click', (e) => refreshAllPrices(e.currentTarget));
 
+// 이 박스(종목 마스터)만 초기화 — "계좌별 리밸런싱 현황"(groups)은 건드리지 않는다. 마스터에서
+// 빠진 종목은 삭제 버튼과 동일하게 그 종목을 쓰던 계좌 항목에 "(삭제됨)" 표시만 남는다.
+document.getElementById('resetMasterBtn').addEventListener('click', () => {
+  if (!confirm('종목 마스터에 등록된 모든 종목을 삭제할까요?')) return;
+  master = [];
+  renderAll();
+});
+
 document.addEventListener('change', (e) => {
   if (e.target.classList.contains('stock-type-select')) {
     const idx = +e.target.dataset.idx;
