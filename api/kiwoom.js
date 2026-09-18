@@ -283,9 +283,11 @@ async function getBalance(id) {
     return { status: 403, body: { error: '이 계좌 정보는 조회할 수 없습니다.' } };
   }
 
+  const kiwoomAccounts = getKiwoomAccounts();
+  const nhAccounts = getNhAccounts();
   const accounts = [
-    ...getKiwoomAccounts().map((account) => ({ account, fetcher: getAccountBalance })),
-    ...getNhAccounts().map((account) => ({ account, fetcher: getNhAccountBalance })),
+    ...kiwoomAccounts.map((account) => ({ account, fetcher: getAccountBalance })),
+    ...nhAccounts.map((account) => ({ account, fetcher: getNhAccountBalance })),
   ];
   if (accounts.length === 0) {
     return { status: 500, body: { error: '증권사 앱키가 설정되지 않았습니다.' } };
@@ -293,7 +295,12 @@ async function getBalance(id) {
 
   let totalPurchaseAmount = 0, totalEvalAmount = 0, totalEvalProfit = 0, cashBalance = 0;
   const holdings = [];
+  // 증권사 하나가 앱키 자체가 없어서(NH_APP_KEY 등 환경변수 미설정) accounts 목록에 처음부터
+  // 빠지면, 그 증권사는 실패조차 안 하고 조용히 생략돼 화면에 아무 안내 없이 사라져 버린다
+  // — 이 경우를 구분해서 눈에 보이는 안내를 남긴다.
   const failed = [];
+  if (kiwoomAccounts.length === 0) failed.push('키움증권: 앱키(KIWOOM_APP_KEY)가 설정되지 않았습니다.');
+  if (nhAccounts.length === 0) failed.push('NH투자증권: 앱키(NH_APP_KEY)가 설정되지 않았습니다.');
 
   for (const { account, fetcher } of accounts) {
     try {
