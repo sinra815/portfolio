@@ -1,5 +1,5 @@
 import { Redis } from '@upstash/redis';
-import { verifyAdmin, ADMIN_ID } from '../lib/admin.js';
+import { verifyAdmin, computeIsAdmin } from '../lib/admin.js';
 
 const redis = new Redis({
   url: process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL,
@@ -26,7 +26,7 @@ export default async function handler(req, res) {
         id,
         suspended: !!(u && u.suspended),
         lockedUntil: (u && u.lockedUntil) || null,
-        isAdmin: !!(u && (u.isAdmin || (id === ADMIN_ID && u.isAdmin === undefined))),
+        isAdmin: u ? await computeIsAdmin(redis, u, id) : false,
       };
     }));
     users.sort((a, b) => a.id.localeCompare(b.id));
