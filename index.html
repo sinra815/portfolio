@@ -9,7 +9,7 @@
      그 파일들 중 하나라도 내용을 바꾸면, 여기와 아래 <script> 태그들의 ?v= 값을 전부 함께 올려야
      기존에 캐싱해 둔 브라우저가 새 파일을 다시 받는다. (index.html 자체는 캐싱하지 않으므로
      이 값이 바뀐 참조는 항상 즉시 반영된다.) -->
-<link rel="stylesheet" href="style.css?v=32">
+<link rel="stylesheet" href="style.css?v=33">
 </head>
 <body>
 
@@ -44,7 +44,19 @@
 
 <div class="panel panel-pinned" id="settingsPanel">
   <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:8px; flex-wrap:wrap;">
-    <h2 style="margin:0;">⚙️ 설정</h2>
+    <div style="display:flex; flex-direction:column; gap:6px;">
+      <h2 style="margin:0;">⚙️ 설정</h2>
+      <div class="ctrl">
+        <label>평가금액 합계</label>
+        <div>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <div id="settingsTotalM" style="font-size:28px; font-weight:800; color:var(--text); white-space:nowrap;">0 만원</div>
+            <button type="button" id="toggleTotalMBtn" title="금액 숨기기/보이기" style="padding:5px 9px; border-radius:6px; border:1px solid #1f2430; background:#fff; cursor:pointer; font-size:15px; line-height:1;">🙈</button>
+          </div>
+          <div id="settingsTotalMChange" style="font-size:12px; margin-top:2px;">&nbsp;</div>
+        </div>
+      </div>
+    </div>
     <div style="display:flex; flex-direction:column; align-items:flex-end; gap:6px;">
       <div style="display:flex; align-items:center; gap:8px;">
         <span style="font-size:12px; color:var(--muted); font-weight:600;">계정</span>
@@ -66,18 +78,6 @@
         <button id="exportBtn" style="padding:4px 8px;border-radius:5px;border:1px solid #1f2430;background:#fff;cursor:pointer;white-space:nowrap;font-size:11px;flex:0 0 auto;">⬇ File Download</button>
         <button id="importBtn" style="padding:4px 8px;border-radius:5px;border:1px solid #1f2430;background:#fff;cursor:pointer;white-space:nowrap;font-size:11px;flex:0 0 auto;">⬆ File Upload</button>
         <input type="file" id="importFileInput" accept="application/json,.json" style="display:none;">
-      </div>
-    </div>
-  </div>
-  <div class="controls">
-    <div class="ctrl">
-      <label>평가금액 합계</label>
-      <div>
-        <div style="display:flex; align-items:center; gap:8px;">
-          <div id="settingsTotalM" style="font-size:28px; font-weight:800; color:var(--text); white-space:nowrap;">0 만원</div>
-          <button type="button" id="toggleTotalMBtn" title="금액 숨기기/보이기" style="padding:5px 9px; border-radius:6px; border:1px solid #1f2430; background:#fff; cursor:pointer; font-size:15px; line-height:1;">🙈</button>
-        </div>
-        <div id="settingsTotalMChange" style="font-size:12px; margin-top:2px;">&nbsp;</div>
       </div>
     </div>
   </div>
@@ -292,16 +292,16 @@
   </div>
 </div>
 
-<script src="js/core.js?v=32"></script>
-<script src="js/numpad.js?v=32"></script>
-<script src="js/auth-box.js?v=32"></script>
-<script src="js/account-box.js?v=32"></script>
-<script src="js/settings-box.js?v=32"></script>
-<script src="js/kiwoom-box.js?v=32"></script>
-<script src="js/stock-summary-box.js?v=32"></script>
-<script src="js/main-table-box.js?v=32"></script>
-<script src="js/price-table-box.js?v=32"></script>
-<script src="js/stage-summary-box.js?v=32"></script>
-<script src="js/app.js?v=32"></script>
+<script src="js/core.js?v=33"></script>
+<script src="js/numpad.js?v=33"></script>
+<script src="js/auth-box.js?v=33"></script>
+<script src="js/account-box.js?v=33"></script>
+<script src="js/settings-box.js?v=33"></script>
+<script src="js/kiwoom-box.js?v=33"></script>
+<script src="js/stock-summary-box.js?v=33"></script>
+<script src="js/main-table-box.js?v=33"></script>
+<script src="js/price-table-box.js?v=33"></script>
+<script src="js/stage-summary-box.js?v=33"></script>
+<script src="js/app.js?v=33"></script>
 </body>
 </html>
