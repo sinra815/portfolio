@@ -14,15 +14,18 @@ function renderKiwoomBalance(data){
     <div><span style="color:var(--muted);">총평가금액</span> <strong>${fmt(data.totalEvalAmount)} 원</strong></div>
     <div><span style="color:var(--muted);">총평가손익</span> <strong class="${kiwoomColorClass(data.totalEvalProfit)}">${fmt(data.totalEvalProfit)} 원</strong></div>
     <div><span style="color:var(--muted);">총수익률</span> <strong class="${kiwoomColorClass(data.totalProfitRate)}">${fmtTrim(data.totalProfitRate, 2)}%</strong></div>
+    <div><span style="color:var(--muted);">예수금(국내)</span> <strong>${fmt(data.cashBalance)} 원</strong></div>
   `;
   const tbody = document.getElementById('kiwoomHoldingsBody');
   if (!data.holdings || data.holdings.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--muted);">보유 종목이 없습니다.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:var(--muted);">보유 종목이 없습니다.</td></tr>`;
     return;
   }
   tbody.innerHTML = data.holdings.map(h => `
     <tr>
-      <td><span class="summary-name">${h.name}</span></td>
+      <td>${h.broker || ''}</td>
+      <td>${h.accountType || ''}</td>
+      <td>${h.name}</td>
       <td class="num">${fmt(h.qty)}</td>
       <td class="num">${fmt(h.currentPrice)}</td>
       <td class="num">${fmt(h.evalAmount)}</td>
