@@ -42,7 +42,15 @@
 <p class="sub">증권사/계좌별 목표 비중과 단계별(분할매수) 목표가 대비 현재 평가금액을 비교해 확대/축소 여부를 판단합니다. 주황색 배경 셀은 직접 입력하는 값입니다.</p>
 
 <div class="panel panel-pinned" id="settingsPanel">
-  <h2>⚙️ 설정</h2>
+  <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap;">
+    <h2 style="margin:0;">⚙️ 설정</h2>
+    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+      <button id="changePasswordBtn" disabled title="로그인 후 사용할 수 있습니다." style="padding:7px 14px;border-radius:6px;border:1px solid var(--border-strong);background:#fff;cursor:pointer;white-space:nowrap;">비밀번호 변경</button>
+      <button id="resetAllBtn" style="padding:7px 14px;border-radius:6px;border:1px solid var(--down);background:#fff;color:var(--down);cursor:pointer;white-space:nowrap;">초기화</button>
+      <button id="deleteAccountBtn" disabled title="로그인 후 사용할 수 있습니다." style="padding:7px 14px;border-radius:6px;border:1px solid var(--down);background:#fff;color:var(--down);cursor:pointer;white-space:nowrap;">계정 삭제</button>
+      <button id="adminPanelBtn" style="display:none;padding:7px 14px;border-radius:6px;border:1px solid #7c3aed;background:#7c3aed;color:#fff;cursor:pointer;white-space:nowrap;">🛠 관리자</button>
+    </div>
+  </div>
   <div class="controls">
     <div class="ctrl">
       <label>평가금액 합계</label>
@@ -54,7 +62,7 @@
         <div id="settingsTotalMChange" style="font-size:12px; margin-top:2px;">&nbsp;</div>
       </div>
     </div>
-    <div class="ctrl">
+    <div class="ctrl" style="flex-direction:row; align-items:center;">
       <label>계정</label>
       <div style="display:flex; align-items:center; gap:8px;">
         <span id="currentUserIdLabel" style="font-size:13px; font-weight:600;"></span>
@@ -73,11 +81,7 @@
         <button id="exportBtn" style="padding:7px 14px;border-radius:6px;border:1px solid var(--border-strong);background:#fff;cursor:pointer;white-space:nowrap;">⬇ File Download</button>
         <button id="importBtn" style="padding:7px 14px;border-radius:6px;border:1px solid var(--border-strong);background:#fff;cursor:pointer;white-space:nowrap;">⬆ File Upload</button>
         <input type="file" id="importFileInput" accept="application/json,.json" style="display:none;">
-        <button id="resetAllBtn" style="padding:7px 14px;border-radius:6px;border:1px solid var(--down);background:#fff;color:var(--down);cursor:pointer;white-space:nowrap;">초기화</button>
         <button id="refreshPricesBtn" style="padding:7px 14px;border-radius:6px;border:1px solid var(--border-strong);background:#fff;cursor:pointer;white-space:nowrap;">금액 새로고침</button>
-        <button id="changePasswordBtn" disabled title="로그인 후 사용할 수 있습니다." style="padding:7px 14px;border-radius:6px;border:1px solid var(--border-strong);background:#fff;cursor:pointer;white-space:nowrap;">비밀번호 변경</button>
-        <button id="deleteAccountBtn" disabled title="로그인 후 사용할 수 있습니다." style="padding:7px 14px;border-radius:6px;border:1px solid var(--down);background:#fff;color:var(--down);cursor:pointer;white-space:nowrap;">계정 삭제</button>
-        <button id="adminPanelBtn" style="display:none;padding:7px 14px;border-radius:6px;border:1px solid #7c3aed;background:#7c3aed;color:#fff;cursor:pointer;white-space:nowrap;">🛠 관리자</button>
       </div>
       <div style="margin-top:6px; display:flex; align-items:center; gap:8px; font-size:11.5px; color:var(--muted);">
         <button id="chooseWorkDirBtn" style="padding:2px 8px; border-radius:4px; border:1px solid var(--border-strong); background:#fff; cursor:pointer; font-size:11px;">폴더 지정</button>
