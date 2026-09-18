@@ -54,9 +54,20 @@ function renderKiwoomBalance(data){
     if (!groupMap.has(key)) { groupMap.set(key, []); naturalOrder.push(key); }
     groupMap.get(key).push(h);
   }
+  // 보유 종목도 없고 예수금도 0원인 계좌(예: 미보유 해외 시장, 잔액 없는 계좌)는 빈 표를
+  // 보여줄 필요가 없으니 걸러낸다.
+  const isEmptyGroup = (rows) => rows.every((h) => !(h.evalAmount || 0) && !(h.qty || 0));
+  for (const [key, rows] of groupMap) {
+    if (isEmptyGroup(rows)) groupMap.delete(key);
+  }
   const order = kiwoomGroupOrder.filter((k) => groupMap.has(k));
-  for (const k of naturalOrder) if (!order.includes(k)) order.push(k);
+  for (const k of naturalOrder) if (groupMap.has(k) && !order.includes(k)) order.push(k);
   kiwoomGroupOrder = order;
+
+  if (order.length === 0) {
+    container.innerHTML = `<p class="note">보유 종목이 없습니다.</p>`;
+    return;
+  }
 
   container.innerHTML = order.map((key, idx) => {
     const rows = groupMap.get(key);
