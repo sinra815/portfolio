@@ -5,7 +5,7 @@
 // 나눴을 때 배포가 바로 실패했다.
 import { Redis } from '@upstash/redis';
 import { callKiwoom, getKiwoomAccounts } from '../lib/kiwoom.js';
-import { callNh, getNhAccounts, getNhLiveAccounts, getNhRawAccountList } from '../lib/nh.js';
+import { callNh, getNhAccounts, getNhLiveAccounts } from '../lib/nh.js';
 
 const redis = new Redis({
   url: process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL,
@@ -186,21 +186,9 @@ async function getNhAccountBalance(account) {
   );
   const results = [];
   const failedSubAccounts = [];
-  // 진단용: 이 앱키로 /n2/acctinfo에 실제로 어떤 계좌가 연결돼 있는지(캐시 무시, 01/02
-  // 필터링 없이 전부) 함께 확인한다 — 찾고 있는 특정 계좌가 아예 목록에 없는지 보기 위함.
-  try {
-    const rawList = await getNhRawAccountList(redis, account);
-    failedSubAccounts.push(`[${account.label}] 이 앱키에 연결된 전체 계좌 목록: ${rawList.join(', ')}`);
-  } catch (e) {
-    failedSubAccounts.push(`[${account.label}] 전체 계좌 목록 조회 실패: ${e.message}`);
-  }
   settled.forEach((s, i) => {
-    if (s.status === 'fulfilled') {
-      results.push(s.value);
-      if (s.value.note) failedSubAccounts.push(s.value.note);
-    } else {
-      failedSubAccounts.push(`${account.label}(${actNos[i].slice(-4)}): ${(s.reason && s.reason.message) || s.reason}`);
-    }
+    if (s.status === 'fulfilled') results.push(s.value);
+    else failedSubAccounts.push(`${account.label}(${actNos[i].slice(-4)}): ${(s.reason && s.reason.message) || s.reason}`);
   });
   if (results.length === 0) {
     throw new Error(failedSubAccounts.join(' / ') || `[${account.label}] 계좌 조회에 실패했습니다.`);
@@ -229,23 +217,6 @@ async function getNhSingleAccountBalance(account, actNo, label) {
   });
   const d0 = domestic.Output_0 || {};
   const cashBalance = toNumber(d0.dca);
-  // 예수금(dca)이 0인데 자산 자체는 있는 경우(키움 IRP와 유사하게 계좌 유형에 따라 즉시결제
-  // 예수금 필드가 0으로 나올 수 있어) 원인 파악용으로 다른 자산 필드/계좌 상태/공통 응답
-  // 메시지 봉투(message)를 함께 남긴다. callNh()는 HTTP 상태만 보고 성공/실패를 가르기
-  // 때문에, TR이 HTTP 200이면서 message 안에 에러를 담아 보내는 경우 지금까지는 그냥
-  // 조용히 빈 데이터로 넘어가고 있었을 수 있다.
-  let note = null;
-  if (cashBalance === 0) {
-    const nas = toNumber(d0.nas_amt);
-    const tot = toNumber(d0.tot_aet_amt);
-    const status = d0.act_atv_tp_dtl_cd;
-    const msg = domestic.message || {};
-    if (nas || tot || (status && status !== '101') || msg.msg_lv_code || msg.usr_msg) {
-      note = `[${label}] 예수금 0, 순자산=${nas} / 총자산=${tot} / 계좌상태=${status || '-'} / msg_lv=${msg.msg_lv_code || '-'} / usr_msg=${msg.usr_msg || '-'} / msg_code=${msg.msg_code || '-'}`;
-    } else {
-      note = `[${label}] 예수금 0, 원본 응답: ${JSON.stringify(domestic).slice(0, 300)}`;
-    }
-  }
 
   const holdings = (domestic.Output_1 || []).map((row) => ({
     broker: 'NH투자증권',
@@ -321,7 +292,6 @@ async function getNhSingleAccountBalance(account, actNo, label) {
     evalProfit,
     cashBalance,
     holdings: [...holdings, cashHolding, ...overseasHoldings],
-    note,
   };
 }
 
