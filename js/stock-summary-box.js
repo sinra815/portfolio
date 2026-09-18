@@ -22,19 +22,16 @@ function renderStockSummary(){
     .sort((a, b) => b[1].total - a[1].total);
 
   if (rows.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--muted);">계좌별 리밸런싱 현황에 종목을 추가하면 여기에 요약이 표시됩니다.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:var(--muted);">계좌별 리밸런싱 현황에 종목을 추가하면 여기에 요약이 표시됩니다.</td></tr>`;
     fitSummaryLayout();
     return;
   }
 
   rows.forEach(([name, entry]) => {
-    const m = master.find(x => x.name === name);
-    const type = m ? ((m.type || 'stock') === 'cash' ? '현금' : '주식') : '-';
     const pct = grandTotal > 0 ? (entry.total / grandTotal * 100) : 0;
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td><span class="summary-name">${name}</span></td>
-      <td class="num">${type}</td>
       <td class="num">${entry.accounts.size}</td>
       <td class="num">${fmt(entry.total)}</td>
       <td class="num">${fmtTrim(pct, 1)}</td>
@@ -54,7 +51,7 @@ function fitSummaryLayout(){
   const headerCells = table.querySelectorAll('thead th');
   const bodyRows = Array.from(document.querySelectorAll('#stockSummaryBody tr'))
     .filter(r => r.children.length > 1); // "데이터 없음" 안내 행(colspan) 제외
-  [1, 2, 3, 4].forEach(colIdx => {
+  [1, 2, 3].forEach(colIdx => {
     const cellEls = bodyRows.map(r => r.children[colIdx]).filter(Boolean);
     fitSimpleColumnWidth(table, colIdx, headerCells[colIdx], cellEls, 36, 220);
   });
