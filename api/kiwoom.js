@@ -159,21 +159,34 @@ const NH_OVERSEAS_MARKETS = [
 // NH는 계좌번호를 미리 모르므로(/n2/acctinfo로 조회) 앱키당 계좌번호부터 확인하는데, 앱키 하나에
 // 운영 계좌가 여러 개 연결된 경우(예: 일반증권계좌 + 연금저축/IRP)가 있어 각 계좌를 모두 조회해
 // 합친다 — 계좌가 여러 개면 화면에서 구분할 수 있도록 계좌번호 뒷자리를 이름에 덧붙인다.
+// 계좌별로 개별 try/catch를 둬서, 계좌 하나가 실패해도(예: 연금계좌 쪽 조회 오류) 나머지 계좌는
+// 계속 보여준다 — Promise.all은 하나만 실패해도 전체가 실패해버려서 이 앱키 전체가 통째로
+// 사라지는 문제가 있었다.
 async function getNhAccountBalance(account) {
   const actNos = await getNhLiveAccounts(redis, account);
-  const results = await Promise.all(
+  const settled = await Promise.allSettled(
     actNos.map((actNo) => getNhSingleAccountBalance(
       account,
       actNo,
       actNos.length > 1 ? `${account.label} (${actNo.slice(-4)})` : account.label,
     ))
   );
+  const results = [];
+  const failedSubAccounts = [];
+  settled.forEach((s, i) => {
+    if (s.status === 'fulfilled') results.push(s.value);
+    else failedSubAccounts.push(`${account.label}(${actNos[i].slice(-4)}): ${(s.reason && s.reason.message) || s.reason}`);
+  });
+  if (results.length === 0) {
+    throw new Error(failedSubAccounts.join(' / ') || `[${account.label}] 계좌 조회에 실패했습니다.`);
+  }
   return {
     purchaseAmount: results.reduce((s, r) => s + r.purchaseAmount, 0),
     evalAmount: results.reduce((s, r) => s + r.evalAmount, 0),
     evalProfit: results.reduce((s, r) => s + r.evalProfit, 0),
     cashBalance: results.reduce((s, r) => s + r.cashBalance, 0),
     holdings: results.flatMap((r) => r.holdings),
+    failedSubAccounts,
   };
 }
 
@@ -294,6 +307,7 @@ async function getBalance(id) {
       totalEvalProfit += result.evalProfit;
       cashBalance += result.cashBalance;
       holdings.push(...result.holdings);
+      if (result.failedSubAccounts && result.failedSubAccounts.length) failed.push(...result.failedSubAccounts);
     } catch (e) {
       // 계좌 하나가 막혀도(예: IP 미등록, 토큰 문제) 나머지 계좌는 계속 보여준다.
       failed.push(`${account.label}: ${e.message}`);
