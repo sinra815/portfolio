@@ -3,12 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>투자 관리</title>
+<title>My Stock</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
 <!-- ASSET_VERSION: js/*.js 와 style.css 는 vercel.json 에서 오래 캐싱하도록(길고 immutable) 설정했다.
      그 파일들 중 하나라도 내용을 바꾸면, 여기와 아래 <script> 태그들의 ?v= 값을 전부 함께 올려야
      기존에 캐싱해 둔 브라우저가 새 파일을 다시 받는다. (index.html 자체는 캐싱하지 않으므로
      이 값이 바뀐 참조는 항상 즉시 반영된다.) -->
-<link rel="stylesheet" href="style.css?v=25">
+<link rel="stylesheet" href="style.css?v=26">
 </head>
 <body>
 
@@ -38,17 +39,25 @@
   </div>
 </div>
 
-<h1>투자 관리</h1>
+<h1>My Stock</h1>
 <p class="sub">증권사/계좌별 목표 비중과 단계별(분할매수) 목표가 대비 현재 평가금액을 비교해 확대/축소 여부를 판단합니다. 주황색 배경 셀은 직접 입력하는 값입니다.</p>
 
 <div class="panel panel-pinned" id="settingsPanel">
-  <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap;">
+  <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:8px; flex-wrap:wrap;">
     <h2 style="margin:0;">⚙️ 설정</h2>
-    <div style="display:flex; gap:8px; flex-wrap:wrap;">
-      <button id="changePasswordBtn" disabled title="로그인 후 사용할 수 있습니다." style="padding:7px 14px;border-radius:6px;border:1px solid var(--border-strong);background:#fff;cursor:pointer;white-space:nowrap;">비밀번호 변경</button>
-      <button id="resetAllBtn" style="padding:7px 14px;border-radius:6px;border:1px solid var(--down);background:#fff;color:var(--down);cursor:pointer;white-space:nowrap;">초기화</button>
-      <button id="deleteAccountBtn" disabled title="로그인 후 사용할 수 있습니다." style="padding:7px 14px;border-radius:6px;border:1px solid var(--down);background:#fff;color:var(--down);cursor:pointer;white-space:nowrap;">계정 삭제</button>
-      <button id="adminPanelBtn" style="display:none;padding:7px 14px;border-radius:6px;border:1px solid #7c3aed;background:#7c3aed;color:#fff;cursor:pointer;white-space:nowrap;">🛠 관리자</button>
+    <div style="display:flex; flex-direction:column; align-items:flex-end; gap:6px;">
+      <div style="display:flex; align-items:center; gap:8px;">
+        <span style="font-size:12px; color:var(--muted); font-weight:600;">계정</span>
+        <span id="currentUserIdLabel" style="font-size:13px; font-weight:600;"></span>
+        <span id="serverLoadingIndicator" style="display:none; font-size:11.5px; color:var(--muted);">⏳ 서버에서 불러오는 중...</span>
+        <button type="button" id="logoutBtn" style="padding:5px 10px;border-radius:6px;border:1px solid var(--border-strong);background:#fff;cursor:pointer;font-size:12px;">로그아웃</button>
+      </div>
+      <div style="display:flex; gap:6px; flex-wrap:wrap; justify-content:flex-end;">
+        <button id="changePasswordBtn" disabled title="로그인 후 사용할 수 있습니다." style="padding:5px 10px;border-radius:6px;border:1px solid var(--accent);background:var(--accent);color:#fff;cursor:pointer;white-space:nowrap;font-size:12px;">비밀번호 변경</button>
+        <button id="resetAllBtn" style="padding:5px 10px;border-radius:6px;border:1px solid var(--down);background:#fff;color:var(--down);cursor:pointer;white-space:nowrap;font-size:12px;">초기화</button>
+        <button id="deleteAccountBtn" disabled title="로그인 후 사용할 수 있습니다." style="padding:5px 10px;border-radius:6px;border:1px solid var(--down);background:#fff;color:var(--down);cursor:pointer;white-space:nowrap;font-size:12px;">계정 삭제</button>
+        <button id="adminPanelBtn" style="display:none;padding:5px 10px;border-radius:6px;border:1px solid #7c3aed;background:#7c3aed;color:#fff;cursor:pointer;white-space:nowrap;font-size:12px;">🛠 관리자</button>
+      </div>
     </div>
   </div>
   <div class="controls">
@@ -62,26 +71,18 @@
         <div id="settingsTotalMChange" style="font-size:12px; margin-top:2px;">&nbsp;</div>
       </div>
     </div>
-    <div class="ctrl" style="flex-direction:row; align-items:center;">
-      <label>계정</label>
-      <div style="display:flex; align-items:center; gap:8px;">
-        <span id="currentUserIdLabel" style="font-size:13px; font-weight:600;"></span>
-        <span id="serverLoadingIndicator" style="display:none; font-size:11.5px; color:var(--muted);">⏳ 서버에서 불러오는 중...</span>
-        <button type="button" id="logoutBtn" style="padding:5px 10px;border-radius:6px;border:1px solid var(--border-strong);background:#fff;cursor:pointer;font-size:12px;">로그아웃</button>
-      </div>
-    </div>
     <div class="ctrl">
       <label>&nbsp;</label>
-      <div style="display:flex; gap:8px; flex-wrap:wrap;">
-        <div style="position:relative; display:inline-block;">
+      <div style="display:flex; gap:8px; flex-wrap:nowrap; overflow-x:auto; padding-bottom:2px;">
+        <div style="position:relative; display:inline-block; flex:0 0 auto;">
           <button id="saveBtn" title="로그인 상태면 서버에, 아니면 이 기기에 저장합니다." style="padding:7px 14px;border-radius:6px;border:1px solid var(--accent);background:var(--accent);color:#fff;cursor:pointer;white-space:nowrap;">저장</button>
           <span id="saveBadge" title="저장된 데이터가 있습니다" style="display:none; position:absolute; top:-4px; right:-4px; width:11px; height:11px; border-radius:50%; background:#16a34a; border:2px solid #fff;"></span>
         </div>
-        <button id="loadBtn" title="로그인 상태면 서버에서, 아니면 이 기기에서 불러옵니다." style="padding:7px 14px;border-radius:6px;border:1px solid var(--border-strong);background:#fff;cursor:pointer;white-space:nowrap;">불러오기</button>
-        <button id="exportBtn" style="padding:7px 14px;border-radius:6px;border:1px solid var(--border-strong);background:#fff;cursor:pointer;white-space:nowrap;">⬇ File Download</button>
-        <button id="importBtn" style="padding:7px 14px;border-radius:6px;border:1px solid var(--border-strong);background:#fff;cursor:pointer;white-space:nowrap;">⬆ File Upload</button>
+        <button id="loadBtn" title="로그인 상태면 서버에서, 아니면 이 기기에서 불러옵니다." style="padding:7px 14px;border-radius:6px;border:1px solid var(--border-strong);background:#fff;cursor:pointer;white-space:nowrap;flex:0 0 auto;">불러오기</button>
+        <button id="exportBtn" style="padding:7px 14px;border-radius:6px;border:1px solid var(--border-strong);background:#fff;cursor:pointer;white-space:nowrap;flex:0 0 auto;">⬇ File Download</button>
+        <button id="importBtn" style="padding:7px 14px;border-radius:6px;border:1px solid var(--border-strong);background:#fff;cursor:pointer;white-space:nowrap;flex:0 0 auto;">⬆ File Upload</button>
         <input type="file" id="importFileInput" accept="application/json,.json" style="display:none;">
-        <button id="refreshPricesBtn" style="padding:7px 14px;border-radius:6px;border:1px solid var(--border-strong);background:#fff;cursor:pointer;white-space:nowrap;">금액 새로고침</button>
+        <button id="refreshPricesBtn" style="padding:7px 14px;border-radius:6px;border:1px solid var(--border-strong);background:#fff;cursor:pointer;white-space:nowrap;flex:0 0 auto;">금액 새로고침</button>
       </div>
       <div style="margin-top:6px; display:flex; align-items:center; gap:8px; font-size:11.5px; color:var(--muted);">
         <button id="chooseWorkDirBtn" style="padding:2px 8px; border-radius:4px; border:1px solid var(--border-strong); background:#fff; cursor:pointer; font-size:11px;">폴더 지정</button>
@@ -99,25 +100,9 @@
       <button type="button" id="kiwoomRefreshBtn" style="padding:5px 10px; border-radius:5px; border:1px solid var(--border-strong); background:#fff; cursor:pointer; font-size:12px;">새로고침</button>
     </div>
   </div>
-  <p class="note" style="margin-top:6px;">키움증권 REST API로 조회한 실제 계좌 잔고입니다(읽기 전용, 로그인 시·새로고침 시에만 갱신). 아래 리밸런싱 표(수동 입력)와는 별개입니다.</p>
+  <p class="note" style="margin-top:6px;">키움증권 REST API로 조회한 실제 계좌 잔고입니다(읽기 전용, 로그인 시·새로고침 시에만 갱신). 증권사·계좌·계좌유형별로 표가 나뉘며, 표 제목을 클릭하면 이름을 바꿀 수 있습니다. 아래 리밸런싱 표(수동 입력)와는 별개입니다.</p>
   <div id="kiwoomSummary" style="display:flex; gap:20px; flex-wrap:wrap; margin:10px 0 12px; font-size:13px;"></div>
-  <div class="table-scroll">
-    <table class="price-table kiwoom-table">
-      <colgroup>
-        <col style="width:80px;">
-        <col style="width:80px;">
-        <col style="width:70px;">
-        <col style="width:auto;">
-        <col style="width:90px;">
-        <col style="width:100px;">
-        <col style="width:120px;">
-        <col style="width:110px;">
-        <col style="width:80px;">
-      </colgroup>
-      <thead><tr><th>증권사</th><th>계좌</th><th>계좌유형</th><th>종목</th><th>보유수량</th><th>현재가</th><th>평가금액</th><th>평가손익</th><th>수익률</th></tr></thead>
-      <tbody id="kiwoomHoldingsBody"></tbody>
-    </table>
-  </div>
+  <div id="kiwoomGroupsContainer"></div>
 </div>
 
 <div class="panel">
@@ -321,16 +306,16 @@
   </div>
 </div>
 
-<script src="js/core.js?v=25"></script>
-<script src="js/numpad.js?v=25"></script>
-<script src="js/auth-box.js?v=25"></script>
-<script src="js/account-box.js?v=25"></script>
-<script src="js/settings-box.js?v=25"></script>
-<script src="js/kiwoom-box.js?v=25"></script>
-<script src="js/stock-summary-box.js?v=25"></script>
-<script src="js/main-table-box.js?v=25"></script>
-<script src="js/price-table-box.js?v=25"></script>
-<script src="js/stage-summary-box.js?v=25"></script>
-<script src="js/app.js?v=25"></script>
+<script src="js/core.js?v=26"></script>
+<script src="js/numpad.js?v=26"></script>
+<script src="js/auth-box.js?v=26"></script>
+<script src="js/account-box.js?v=26"></script>
+<script src="js/settings-box.js?v=26"></script>
+<script src="js/kiwoom-box.js?v=26"></script>
+<script src="js/stock-summary-box.js?v=26"></script>
+<script src="js/main-table-box.js?v=26"></script>
+<script src="js/price-table-box.js?v=26"></script>
+<script src="js/stage-summary-box.js?v=26"></script>
+<script src="js/app.js?v=26"></script>
 </body>
 </html>
