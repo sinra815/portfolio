@@ -21,6 +21,7 @@ function buildStateSnapshot(){
     master: master,
     groups: groups,
     kiwoomGroupNames: kiwoomGroupNames,
+    kiwoomGroupOrder: kiwoomGroupOrder,
     stage: document.getElementById('stagePercentInput') ? document.getElementById('stagePercentInput').value : '100',
     threshold: document.getElementById('overweightThreshold') ? document.getElementById('overweightThreshold').value : '10',
   };
@@ -72,6 +73,8 @@ let groups = (__restore && __restore.groups) ? __restore.groups : JSON.parse(JSO
 // 계좌 잔고(키움) 표는 "증권사+계좌+계좌유형" 조합별로 나뉘는데, 그 표 제목을 사용자가 직접
 // 바꿀 수 있게 한다 — groupKey(예: "키움증권|계좌1|국내") → 사용자가 지정한 이름.
 let kiwoomGroupNames = (__restore && __restore.kiwoomGroupNames) ? __restore.kiwoomGroupNames : {};
+// 위 표들의 사용자 지정 표시 순서(groupKey 배열). 새로 나타난 계좌는 끝에 자동으로 붙는다.
+let kiwoomGroupOrder = (__restore && __restore.kiwoomGroupOrder) ? __restore.kiwoomGroupOrder : [];
 
 function fmt(n, digits){
   if (n === null || n === undefined || isNaN(n)) return "";
