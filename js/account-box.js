@@ -228,7 +228,7 @@ adminUserList.addEventListener('click', async (e) => {
     const label = nextIsAdmin ? '관리자로 지정' : '관리자 권한 해제';
     if (!confirm(`"${id}" 계정을 ${label}할까요?`)) return;
     try {
-      const res = await fetch('/api/admin-set-admin', {
+      const res = await fetch('/api/admin-set-user', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ adminId: currentUserId, adminPassword: adminPasswordCache, targetId: id, isAdmin: nextIsAdmin }),
@@ -247,7 +247,7 @@ adminUserList.addEventListener('click', async (e) => {
     const label = nextSuspended ? '사용중지' : '정지 해제';
     if (!confirm(`"${id}" 계정을 ${label}할까요?`)) return;
     try {
-      const res = await fetch('/api/admin-set-suspended', {
+      const res = await fetch('/api/admin-set-user', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ adminId: currentUserId, adminPassword: adminPasswordCache, targetId: id, suspended: nextSuspended }),
