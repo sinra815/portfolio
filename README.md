@@ -88,8 +88,10 @@ Vercel 마켓플레이스에서 Upstash Redis를 연결하면 `KV_REST_API_*`가
 
 | 환경변수 | 설명 |
 | --- | --- |
-| `KIWOOM_APP_KEY` | 키움 Open API 포털에서 발급받은 앱키 |
-| `KIWOOM_APP_SECRET` | 키움 Open API 포털에서 발급받은 시크릿키 |
+| `KIWOOM_APP_KEY` | 키움 Open API 포털에서 발급받은 앱키 (첫 번째 계좌) |
+| `KIWOOM_APP_SECRET` | 키움 Open API 포털에서 발급받은 시크릿키 (첫 번째 계좌) |
+| `KIWOOM_APP_KEY_2`, `KIWOOM_APP_SECRET_2`, ... | (선택) 추가 계좌. 키움은 앱키 1개 = 계좌 1개라, 계좌를 더 연결하려면 그 계좌용 앱키/시크릿키 쌍을 `_2`, `_3` ... 처럼 번호를 붙여 추가한다 |
+| `KIWOOM_APP_KEY_LABEL`, `KIWOOM_APP_KEY_2_LABEL`, ... | (선택) 각 계좌를 화면에 표시할 이름. 없으면 "계좌1", "계좌2" ... |
 | `KIWOOM_RELAY_URL` | (선택) 고정 IP 중계 서버 URL — 아래 설명 참고 |
 | `KIWOOM_RELAY_SECRET` | (선택) 중계 서버와 공유하는 인증 시크릿 |
 
@@ -98,7 +100,8 @@ Vercel 마켓플레이스에서 Upstash Redis를 연결하면 `KV_REST_API_*`가
 고정 아웃바운드 IP를 제공하는 호스팅(Render 등)에 별도 저장소([sinra815/kiwoom-relay](https://github.com/sinra815/kiwoom-relay))를
 중계 서버로 올려두고, 그 서버의 IP만 키움에 등록합니다. `KIWOOM_RELAY_URL`/`KIWOOM_RELAY_SECRET`을
 설정하면 `lib/kiwoom.js`가 키움을 직접 호출하는 대신 이 중계 서버를 거치고, 설정하지 않으면
-예전처럼 키움을 직접 호출합니다.
+예전처럼 키움을 직접 호출합니다. 계좌가 여러 개여도 중계 서버는 하나만 있으면 되고(앱키/토큰만
+계좌별로 다름), 계좌 하나의 조회가 실패해도 나머지 계좌는 정상 표시됩니다.
 
 환경변수를 설정하지 않거나 GitHub Pages·Netlify 같은 순수 정적 호스팅에 올린 경우에도 화면과 계산은
 정상 동작하며, "저장/불러오기"와 "금액 불러오기"만 실패합니다. 이때는 File Export/Import로 백업하고
