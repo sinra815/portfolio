@@ -176,6 +176,14 @@ const NH_OVERSEAS_MARKETS = [
 // 계속 보여준다 — Promise.all은 하나만 실패해도 전체가 실패해버려서 이 앱키 전체가 통째로
 // 사라지는 문제가 있었다.
 async function getNhAccountBalance(account) {
+  const results = [];
+  const failedSubAccounts = [];
+  // 진단용: 지금 설정된 앱키/시크릿으로 토큰이 실제로 발급되는지 강제로 확인한다(토큰 값
+  // 자체는 노출하지 않음) — "유효하지 않은 token" 오류가 앱키/시크릿 문제인지, 캐시된
+  // 토큰만의 문제인지 구분하기 위함. 실제 조회보다 먼저 실행해서, 성공 시 캐시된 새
+  // 토큰을 아래 조회들이 바로 쓸 수 있게 한다.
+  failedSubAccounts.push(await checkNhToken(redis, account));
+
   const actNos = await getNhLiveAccounts(redis, account);
   const settled = await Promise.allSettled(
     actNos.map((actNo) => getNhSingleAccountBalance(
@@ -184,12 +192,6 @@ async function getNhAccountBalance(account) {
       actNos.length > 1 ? `${account.label} (${actNo.slice(-4)})` : account.label,
     ))
   );
-  const results = [];
-  const failedSubAccounts = [];
-  // 진단용: 지금 설정된 앱키/시크릿으로 토큰이 실제로 발급되는지 강제로 확인한다(토큰 값
-  // 자체는 노출하지 않음) — "유효하지 않은 token" 오류가 앱키/시크릿 문제인지, 캐시된
-  // 토큰만의 문제인지 구분하기 위함.
-  failedSubAccounts.push(await checkNhToken(account));
   settled.forEach((s, i) => {
     if (s.status === 'fulfilled') results.push(s.value);
     else failedSubAccounts.push(`${account.label}(${actNos[i].slice(-4)}): ${(s.reason && s.reason.message) || s.reason}`);
