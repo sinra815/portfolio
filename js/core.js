@@ -20,7 +20,7 @@ function buildStateSnapshot(){
   return {
     master: master,
     groups: groups,
-    kiwoomGroupNames: kiwoomGroupNames,
+    kiwoomGroupOverrides: kiwoomGroupOverrides,
     kiwoomGroupOrder: kiwoomGroupOrder,
     stage: document.getElementById('stagePercentInput') ? document.getElementById('stagePercentInput').value : '100',
     threshold: document.getElementById('overweightThreshold') ? document.getElementById('overweightThreshold').value : '10',
@@ -70,9 +70,21 @@ const __deviceSaved = hasPersistedLogin() ? null : loadDeviceSave();
 const __restore = __deviceSaved || (hasPersistedLogin() ? null : loadLegacyState());
 let master = (__restore && __restore.master) ? __restore.master : JSON.parse(JSON.stringify(INITIAL_MASTER));
 let groups = (__restore && __restore.groups) ? __restore.groups : JSON.parse(JSON.stringify(INITIAL_GROUPS));
-// 계좌 잔고(키움) 표는 "증권사+계좌+계좌유형" 조합별로 나뉘는데, 그 표 제목을 사용자가 직접
-// 바꿀 수 있게 한다 — groupKey(예: "키움증권|계좌1|국내") → 사용자가 지정한 이름.
-let kiwoomGroupNames = (__restore && __restore.kiwoomGroupNames) ? __restore.kiwoomGroupNames : {};
+// 계좌 잔고(키움) 표는 "증권사+계좌+계좌유형" 조합별로 나뉘는데, 그 표의 증권사명/계좌명을
+// 사용자가 각각 직접 바꿀 수 있게 한다 — groupKey(예: "키움증권|계좌1|국내") → { broker?, account? }.
+// (예전 버전은 표 이름 하나를 통으로만 바꿀 수 있었다 — kiwoomGroupNames[key] = "표시할 이름".
+// 그때 저장해둔 값은 계좌명 자리로 옮겨 복원한다.)
+function deriveKiwoomGroupOverrides(saved){
+  if (!saved) return null;
+  if (saved.kiwoomGroupOverrides) return saved.kiwoomGroupOverrides;
+  if (saved.kiwoomGroupNames) {
+    const out = {};
+    for (const key in saved.kiwoomGroupNames) out[key] = { account: saved.kiwoomGroupNames[key] };
+    return out;
+  }
+  return null;
+}
+let kiwoomGroupOverrides = deriveKiwoomGroupOverrides(__restore) || {};
 // 위 표들의 사용자 지정 표시 순서(groupKey 배열). 새로 나타난 계좌는 끝에 자동으로 붙는다.
 let kiwoomGroupOrder = (__restore && __restore.kiwoomGroupOrder) ? __restore.kiwoomGroupOrder : [];
 
@@ -315,12 +327,16 @@ function measureNameWidth(text, fontSource){
 
 // nameEls 는 각 행의 종목명을 담은 엘리먼트들. 셀 전체 폭을 차지해야(flex:1 또는 display:block)
 // "셀 폭 - 이름 엘리먼트 폭" 이 패딩·버튼 같은 고정 여유분으로 일정하게 나온다.
-function fitNameColumn(table, nameEls, minW, maxW){
+// colIndex: 자동폭(이름) 컬럼의 위치 — 대부분 0번째지만(요약 박스 종목 모드 등), 계좌 모드처럼
+// 증권사를 앞에 두고 싶은 표는 1을 넘겨서 다른 인덱스를 자동폭으로 쓸 수 있다.
+function fitNameColumn(table, nameEls, minW, maxW, colIndex){
   if (!table) return;
+  colIndex = colIndex || 0;
   const cols = table.querySelectorAll('colgroup col');
-  if (cols.length === 0) return;
-  // 종목명 컬럼을 제외한 나머지는 colgroup 에 고정 폭으로 적혀 있다.
-  const othersW = Array.from(cols).slice(1)
+  if (cols.length === 0 || !cols[colIndex]) return;
+  // 이름 컬럼을 제외한 나머지는 colgroup 에 고정 폭으로 적혀 있다.
+  const othersW = Array.from(cols)
+    .filter((_, i) => i !== colIndex)
     .reduce((s, c) => s + (parseFloat(c.style.width) || 0), 0);
 
   let nameW = minW;
@@ -333,7 +349,7 @@ function fitNameColumn(table, nameEls, minW, maxW){
     nameW = Math.max(minW, Math.min(maxW, want));
   }
 
-  cols[0].style.width = nameW + 'px';
+  cols[colIndex].style.width = nameW + 'px';
   table.style.minWidth = (nameW + othersW) + 'px';
 }
 
