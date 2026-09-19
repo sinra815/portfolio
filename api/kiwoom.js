@@ -19,6 +19,27 @@ const KIWOOM_OWNER_ID = 'sinra815';
 
 const toNumber = (v) => Number(String(v ?? '0').trim()) || 0;
 
+// 계좌(앱키)들을 전부 한꺼번에 동시에 부르면 증권사 API(또는 IP 중계 서버)가 순간적인
+// 요청 폭주로 오히려 더 느려지거나 실패할 수 있어, 동시에 진행할 계좌 수를 이 값으로 제한한다.
+// Promise.allSettled와 같은 모양({status, value|reason})의 배열을 순서대로 돌려준다.
+const ACCOUNT_CONCURRENCY = 2;
+async function settleWithConcurrency(items, limit, fn) {
+  const results = new Array(items.length);
+  let next = 0;
+  async function worker() {
+    while (next < items.length) {
+      const i = next++;
+      try {
+        results[i] = { status: 'fulfilled', value: await fn(items[i], i) };
+      } catch (reason) {
+        results[i] = { status: 'rejected', reason };
+      }
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker));
+  return results;
+}
+
 async function getDomesticPrice(code) {
   if (!/^\d{6}$/.test(code)) {
     return { status: 400, body: { error: '6자리 국내 종목코드를 입력해주세요.' } };
@@ -310,10 +331,11 @@ async function getBalance(id) {
   if (kiwoomAccounts.length === 0) failed.push('키움증권: 앱키(KIWOOM_APP_KEY)가 설정되지 않았습니다.');
   if (nhAccounts.length === 0) failed.push('NH투자증권: 앱키(NH_APP_KEY)가 설정되지 않았습니다.');
 
-  // 계좌들을 순서대로 하나씩 기다리면 계좌 수만큼 대기시간이 그대로 쌓여서, 앱키(계좌)가
-  // 서로 다른 만큼 독립적인 이 조회들을 동시에 돌린다. NH는 계좌가 몇 개든 lib/nh.js의
-  // throttleNhCall()이 실제 네트워크 호출 간격을 알아서 벌려주므로 유량 제한을 넘지 않는다.
-  const settled = await Promise.allSettled(accounts.map(({ account, fetcher }) => fetcher(account)));
+  // 계좌들을 순서대로 하나씩 기다리면 계좌 수만큼 대기시간이 그대로 쌓이지만, 반대로 전부
+  // 한꺼번에 동시에 부르면 증권사(또는 IP 중계 서버)가 순간적인 요청 폭주를 못 견뎌 오히려
+  // 더 느려지거나 실패하는 경우가 있어, 동시에 ACCOUNT_CONCURRENCY개까지만 진행한다. NH는
+  // 계좌가 몇 개든 lib/nh.js의 throttleNhCall()이 실제 네트워크 호출 간격을 한 번 더 벌려준다.
+  const settled = await settleWithConcurrency(accounts, ACCOUNT_CONCURRENCY, ({ account, fetcher }) => fetcher(account));
   settled.forEach((s, i) => {
     const { account } = accounts[i];
     if (s.status === 'fulfilled') {
