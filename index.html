@@ -2,9 +2,17 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>My Stock</title>
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
+<!-- PWA: 홈화면에 추가하면 주소창 없이 독립 앱처럼 실행된다. -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#2563eb">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="My Stock">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <!-- ASSET_VERSION: js/*.js 와 style.css 는 vercel.json 에서 오래 캐싱하도록(길고 immutable) 설정했다.
      그 파일들 중 하나라도 내용을 바꾸면, 여기와 아래 <script> 태그들의 ?v= 값을 전부 함께 올려야
      기존에 캐싱해 둔 브라우저가 새 파일을 다시 받는다. (index.html 자체는 캐싱하지 않으므로
@@ -281,6 +289,15 @@
 <script src="js/kiwoom-box.js?v=48"></script>
 <script src="js/stock-summary-box.js?v=48"></script>
 <script src="js/main-table-box.js?v=48"></script>
-<script src="js/price-table-box.js?v=48"></script><script src="js/app.js?v=48"></script>
+<script src="js/price-table-box.js?v=48"></script>
+<script src="js/app.js?v=48"></script>
+<script>
+  // PWA 등록. 실패해도(예: 파일 프로토콜, 미지원 브라우저) 앱 동작 자체에는 영향 없다.
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js').catch(() => {});
+    });
+  }
+</script>
 </body>
 </html>
