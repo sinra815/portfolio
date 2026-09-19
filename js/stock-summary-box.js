@@ -4,12 +4,12 @@ let summaryMode = 'stock'; // 'stock' | 'account'
 
 const SUMMARY_VIEWS = {
   stock: {
-    theadHtml: '<tr><th>종목</th><th>보유 계좌 수</th><th>합계 평가금액</th><th>비중(%)</th></tr>',
-    colgroupHtml: '<col style="width:auto;"><col style="width:90px;"><col style="width:140px;"><col style="width:90px;">',
+    theadHtml: '<tr><th>종목</th><th>보유 계좌 수</th><th>합계 평가금액</th><th>비중(%)</th><th>수익률(%)</th></tr>',
+    colgroupHtml: '<col style="width:auto;"><col style="width:90px;"><col style="width:140px;"><col style="width:90px;"><col style="width:90px;">',
     emptyMessage: '계좌별 리밸런싱 현황에 종목을 추가하면 여기에 요약이 표시됩니다.',
-    colspan: 4,
+    colspan: 5,
     nameColIndex: 0,
-    fitColIndexes: [1, 2, 3],
+    fitColIndexes: [1, 2, 3, 4],
   },
   account: {
     // 매입가/손익 개념은 수동 입력 표(계좌별 리밸런싱 현황)에는 없고 My Data(키움 실계좌)에만
@@ -39,12 +39,13 @@ function renderSummaryByStock(view){
   const tbody = document.getElementById('stockSummaryBody');
   tbody.innerHTML = '';
 
-  const byStock = new Map(); // name -> { total, accountSet }
+  const byStock = new Map(); // name -> { total, profit, accountSet }
   let grandTotal = 0;
   groups.forEach(g => {
     g.rows.forEach(r => {
-      const entry = byStock.get(r.stock) || { total: 0, accounts: new Set() };
+      const entry = byStock.get(r.stock) || { total: 0, profit: 0, accounts: new Set() };
       entry.total += r.M;
+      entry.profit += r.evalProfit || 0;
       entry.accounts.add(g.broker + '·' + g.account);
       byStock.set(r.stock, entry);
       grandTotal += r.M;
@@ -57,8 +58,9 @@ function renderSummaryByStock(view){
     const name = h.name || '';
     if (!name) return;
     const evalM = h.evalAmount || 0;
-    const entry = byStock.get(name) || { total: 0, accounts: new Set() };
+    const entry = byStock.get(name) || { total: 0, profit: 0, accounts: new Set() };
     entry.total += evalM;
+    entry.profit += h.evalProfit || 0;
     entry.accounts.add(h.broker + '·' + h.account);
     byStock.set(name, entry);
     grandTotal += evalM;
@@ -76,12 +78,17 @@ function renderSummaryByStock(view){
 
   rows.forEach(([name, entry]) => {
     const pct = grandTotal > 0 ? (entry.total / grandTotal * 100) : 0;
+    // 평가손익 = 평가금액 - 매입금액 관계를 거꾸로 써서 매입금액을 역산 — 계좌별 요약(account
+    // 모드)에서 쓰는 방식과 동일.
+    const purchaseM = entry.total - entry.profit;
+    const rate = purchaseM ? (entry.profit / purchaseM) * 100 : 0;
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td><span class="summary-name">${name}</span></td>
       <td class="num">${entry.accounts.size}</td>
       <td class="num">${fmt(entry.total)}</td>
       <td class="num">${fmtTrim(pct, 1)}</td>
+      <td class="num ${summaryColorClass(rate)}">${fmtTrim(rate, 2)}</td>
     `;
     tbody.appendChild(tr);
   });
