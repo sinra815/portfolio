@@ -55,6 +55,14 @@ h1{font-size:20px; margin:0 0 18px;}
 .tab-btn.active{background:var(--header); color:var(--header-text); border-color:var(--header);}
 [data-tab-panel]{display:none;}
 [data-tab-panel].tab-active{display:block;}
+/* 상단 고정 박스 첫 줄(평가금액 합계 + 계정/버튼들): 넓은 화면에서는 nowrap으로 고정해
+   오른쪽 블록이 항상 "우측 상단" 자리를 지키게 하고, 공간이 부족하면 그 줄만 가로
+   스크롤되게 한다. 갤럭시 S24 울트라 등 좁은 화면(max-width:480px)에서는 반대로 오른쪽
+   블록을 아래 줄로 자연스럽게 줄바꿈시켜, 버튼을 보려고 옆으로 스크롤할 필요가 없게 한다. */
+.topbar-row{flex-wrap:nowrap; overflow-x:auto;}
+@media (max-width:480px){
+  .topbar-row{flex-wrap:wrap; overflow-x:visible;}
+}
 .controls{display:flex; flex-wrap:wrap; gap:20px; align-items:flex-end;}
 /* min-width:0 이 없으면 flex 항목은 내용의 고유 너비보다 못 줄어들어서(기본값 min-width:auto),
    안에 overflow-x:auto 로 가로 스크롤을 만들어둔 버튼 줄이 오히려 패널·화면 밖으로 넘친다. */
@@ -178,6 +186,12 @@ input.cell-input:focus{outline:2px solid var(--accent); outline-offset:0;}
   .kiwoom-table{font-size:11px;}
   .kiwoom-table th, .kiwoom-table td{padding:4px 5px;}
   .kiwoom-table td:first-child{max-width:110px; overflow:hidden; text-overflow:ellipsis;}
+  /* "📋 요약" 표(#stockSummaryTable)도 같은 이유로 글자를 줄인다 — fitSimpleColumnWidth/
+     fitNameColumn(core.js)이 렌더링 시점의 실제 폰트 크기로 각 컬럼의 필요 폭을 측정해
+     table.style.minWidth 를 정하므로, 여기서 폰트를 줄이면 그 측정값 자체가 줄어들어
+     좁은 화면에서 가로 스크롤 없이 들어갈 가능성이 커진다(폭을 직접 지정하는 게 아니다). */
+  #stockSummaryTable{font-size:11px;}
+  #stockSummaryTable th, #stockSummaryTable td{padding:4px 5px;}
 }
 
 .suggest-dropdown{position:fixed; z-index:1000; margin-top:2px; background:#fff; border:1px solid var(--border-strong); border-radius:4px; box-shadow:0 4px 10px rgba(0,0,0,0.12); max-height:220px; overflow-y:auto;}

@@ -3,9 +3,9 @@
 // 구분한 채 같은 모양으로 돌려준다 — 이 파일은 broker 값이 뭐든 그대로 표에 나눠 보여줄
 // 뿐이라 증권사가 늘어나도 손댈 필요가 없다.
 // 이 앱의 앱키/시크릿은 sinra815 개인 계좌들에 연결돼 있어, 서버(api/kiwoom.js)가 그
-// ID로만 조회를 허용한다. 여기서는 그 계정으로 로그인했을 때만 패널을 보여주는 UI
-// 스위치일 뿐이고, 실제 접근 제어는 서버 쪽에서 한다 — 프런트 코드는 누구나 볼 수 있으므로
-// 이 상수만으로는 아무것도 못 한다.
+// ID로만 조회를 허용한다. "My Data" 탭 자체는 누구에게나 보이지만, 이 계정이 아니면
+// 프런트에서부터 조회 API를 호출하지 않고 안내 메시지만 보여준다 — 실제 접근 제어는
+// 어차피 서버 쪽에서 하므로, 이 상수는 불필요한 호출을 줄이기 위한 것일 뿐이다.
 const KIWOOM_OWNER_ID = 'sinra815';
 
 function kiwoomColorClass(n){
@@ -347,14 +347,24 @@ function loadKiwoomBalance(){
   return kiwoomBalanceInFlight;
 }
 
+// 계정 소유자가 아니면 탭은 보이되 조회는 하지 않고, 그 이유를 패널에 안내한다.
+function renderKiwoomUnavailable(){
+  lastKiwoomData = null;
+  document.getElementById('kiwoomSummary').innerHTML = `<div class="note">이 계정에서는 증권사 데이터를 조회할 수 없습니다.</div>`;
+  document.getElementById('kiwoomBody').innerHTML = `<tr><td colspan="13" class="note center">이 계정에서는 증권사 데이터를 조회할 수 없습니다.</td></tr>`;
+  document.getElementById('kiwoomUpdatedAt').textContent = '';
+}
+
 // 로그인 상태가 바뀔 때마다(로그인/게스트/로그아웃) 호출된다 — auth-box.js 의 setAccountUI() 가
 // showAdminButtonIfAdmin() 과 같은 방식으로 훅을 걸어준다. 잔고는 키움 API 호출 비용/속도
 // 때문에 주기적으로 자동 갱신하지 않고, 로그인 직후 한 번과 새로고침 버튼(이 패널의 버튼,
 // 또는 "종목 마스터"의 금액 불러오기 버튼) 클릭 시에만 가져온다.
 function updateKiwoomPanelVisibility(){
-  const shouldShow = currentUserId === KIWOOM_OWNER_ID;
-  setKiwoomTabEligible(shouldShow);
-  if (shouldShow) loadKiwoomBalance();
+  if (currentUserId === KIWOOM_OWNER_ID) {
+    loadKiwoomBalance();
+  } else {
+    renderKiwoomUnavailable();
+  }
 }
 
 // 이 버튼은 "종목 마스터"의 금액 불러오기와 같은 동작(refreshAllPrices)을 한다 — 그 함수

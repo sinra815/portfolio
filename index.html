@@ -12,7 +12,7 @@
      그 파일들 중 하나라도 내용을 바꾸면, 여기와 아래 <script> 태그들의 ?v= 값을 전부 함께 올려야
      기존에 캐싱해 둔 브라우저가 새 파일을 다시 받는다. (index.html 자체는 캐싱하지 않으므로
      이 값이 바뀐 참조는 항상 즉시 반영된다.) -->
-<link rel="stylesheet" href="style.css?v=62">
+<link rel="stylesheet" href="style.css?v=66">
 </head>
 <body>
 
@@ -45,10 +45,11 @@
 <h1>My Stock</h1>
 
 <div class="panel panel-pinned" id="settingsPanel">
-  <!-- 오른쪽(계정/버튼들)이 왼쪽(평가금액 합계)과 나란히 있을 공간이 부족해도 아래로 줄바꿈되지
-       않도록 flex-wrap:nowrap 으로 고정하고, 대신 이 줄 전체가 가로 스크롤되게 한다 — 화면이
-       좁아도 오른쪽 블록이 항상 "우측 상단" 자리를 지킨다. -->
-  <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:8px; flex-wrap:nowrap; overflow-x:auto;">
+  <!-- 넓은 화면에서는 오른쪽(계정/버튼들)이 왼쪽(평가금액 합계)과 한 줄에 nowrap으로 붙어
+       "우측 상단" 자리를 지키고, 공간이 부족하면 그 줄만 가로 스크롤된다. 좁은 화면(갤럭시
+       S24 울트라 등, max-width:480px)에서는 .topbar-row 미디어 쿼리(style.css)가 오른쪽
+       블록을 아래 줄로 줄바꿈시켜 스크롤 없이 다 보이게 한다. -->
+  <div class="topbar-row" style="display:flex; align-items:flex-start; justify-content:space-between; gap:8px;">
     <div style="display:flex; flex-direction:column; gap:6px; flex:0 0 auto; position:sticky; left:0; background:var(--panel); z-index:1;">
       <div class="ctrl">
         <label>평가금액 합계</label>
@@ -92,7 +93,7 @@
 
 <div class="tab-bar" id="tabBar">
   <button type="button" class="tab-btn active" data-tab="summary">📋 요약</button>
-  <button type="button" class="tab-btn" id="kiwoomTabBtn" data-tab="kiwoom" style="display:none;">🏦 My Data</button>
+  <button type="button" class="tab-btn" id="kiwoomTabBtn" data-tab="kiwoom">🏦 My Data</button>
   <button type="button" class="tab-btn" data-tab="master">📌 종목 마스터</button>
 </div>
 
@@ -286,15 +287,15 @@
   </div>
 </div>
 
-<script src="js/core.js?v=62"></script>
-<script src="js/tabs-box.js?v=62"></script>
-<script src="js/numpad.js?v=62"></script>
-<script src="js/auth-box.js?v=62"></script>
-<script src="js/account-box.js?v=62"></script>
-<script src="js/settings-box.js?v=62"></script>
-<script src="js/kiwoom-box.js?v=62"></script>
-<script src="js/stock-summary-box.js?v=62"></script>
-<script src="js/main-table-box.js?v=62"></script>
-<script src="js/price-table-box.js?v=62"></script><script src="js/app.js?v=62"></script>
+<script src="js/core.js?v=66"></script>
+<script src="js/tabs-box.js?v=66"></script>
+<script src="js/numpad.js?v=66"></script>
+<script src="js/auth-box.js?v=66"></script>
+<script src="js/account-box.js?v=66"></script>
+<script src="js/settings-box.js?v=66"></script>
+<script src="js/kiwoom-box.js?v=66"></script>
+<script src="js/stock-summary-box.js?v=66"></script>
+<script src="js/main-table-box.js?v=66"></script>
+<script src="js/price-table-box.js?v=66"></script><script src="js/app.js?v=66"></script>
 </body>
 </html>

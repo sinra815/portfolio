@@ -4,7 +4,11 @@ let summaryMode = 'stock'; // 'stock' | 'account'
 
 const SUMMARY_VIEWS = {
   stock: {
-    theadHtml: '<tr><th>종목</th><th>보유 계좌 수</th><th>합계 평가금액</th><th>비중(%)</th><th>수익률(%)</th></tr>',
+    // 헤더를 <br>로 두 줄에 나눠 쓰면(measureHeaderTextWidth가 줄 단위로 가장 넓은 한 줄만
+    // 기준으로 삼는다) 값 칸이 좁아도 되는 컬럼(보유 계좌 수 등)의 필요 폭이 줄어, 좁은
+    // 화면에서 표 전체 너비가 줄어드는 효과가 있다 — accountsTable의 "차액<br>...%" 헤더와
+    // 같은 방식.
+    theadHtml: '<tr><th>종목</th><th>보유<br>계좌 수</th><th>합계<br>평가금액</th><th>비중<br>(%)</th><th>수익률<br>(%)</th></tr>',
     colgroupHtml: '<col style="width:auto;"><col style="width:90px;"><col style="width:140px;"><col style="width:90px;"><col style="width:90px;">',
     emptyMessage: '계좌별 리밸런싱 현황에 종목을 추가하면 여기에 요약이 표시됩니다.',
     colspan: 5,
@@ -14,12 +18,18 @@ const SUMMARY_VIEWS = {
   account: {
     // 매입가/손익 개념은 수동 입력 표(계좌별 리밸런싱 현황)에는 없고 My Data(키움 실계좌)에만
     // 있어서, 평가금액은 두 데이터를 합치고 평가손익/수익률은 키움 데이터가 있는 계좌만 계산한다.
-    theadHtml: '<tr><th>증권사</th><th>계좌</th><th>평가금액</th><th>평가손익</th><th>수익률(%)</th></tr>',
+    theadHtml: '<tr><th>증권사</th><th>계좌</th><th>평가금액</th><th>평가손익</th><th>수익률<br>(%)</th></tr>',
     colgroupHtml: '<col style="width:90px;"><col style="width:auto;"><col style="width:130px;"><col style="width:130px;"><col style="width:90px;">',
     emptyMessage: '계좌별 리밸런싱 현황 또는 My Data에 데이터가 있으면 여기에 요약이 표시됩니다.',
     colspan: 5,
     nameColIndex: 1,
-    fitColIndexes: [2, 3, 4],
+    // 증권사(0번)도 값에 맞춰 자동폭으로 잡는다 — 예전엔 90px 고정이라 "키움증권"처럼 짧은
+    // 이름에도 늘 여유폭을 남겨 좁은 화면에서 불필요하게 넓었다.
+    fitColIndexes: [0, 2, 3, 4],
+    // 계좌명("일반", "연금저축" 등)은 종목명(NAME_COL_MIN_W=105, 긴 해외 ETF 이름까지
+    // 대비한 값)만큼 폭이 필요 없어, 이 표에서만 더 좁은 하한/상한을 따로 쓴다.
+    nameMinW: 56,
+    nameMaxW: 220,
   },
 };
 
@@ -185,7 +195,7 @@ document.getElementById('summaryModeAccount').addEventListener('change', () => {
 function fitSummaryLayout(view){
   const table = document.getElementById('stockSummaryTable');
   fitNameColumn(table, document.querySelectorAll('#stockSummaryBody .summary-name'),
-                NAME_COL_MIN_W, NAME_COL_MAX_W, view.nameColIndex);
+                view.nameMinW || NAME_COL_MIN_W, view.nameMaxW || NAME_COL_MAX_W, view.nameColIndex);
 
   const headerCells = table.querySelectorAll('thead th');
   const bodyRows = Array.from(document.querySelectorAll('#stockSummaryBody tr'))
