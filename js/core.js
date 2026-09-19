@@ -1,5 +1,4 @@
 // ==== 핵심 상태 · 계산 로직 (모든 박스가 공유) ====
-const STAGES = [0.5, 0.7, 0.8, 0.9, 1];
 // 현금처럼 "수량 1 = 1만원" 으로 쓰고 싶은 종목의 현재가. 평가금액 식이
 // 현재가 × 수량 이므로, 현재가를 10000원으로 두면 수량이 곧 만원 단위 금액이 된다.
 const CASH_UNIT_PRICE = 10000;
@@ -179,10 +178,6 @@ function computeAll(){
     g.rows.forEach(r => {
       r.resolvedWeight = (r.weight === null) ? (100 - fixedSum) : Number(r.weight);
       r.G = g.D * r.resolvedWeight / 100;
-      r.stageTargets = {};
-      STAGES.forEach(s => r.stageTargets[s] = r.G * s);
-      r.diffs = {};
-      STAGES.forEach(s => r.diffs[s] = r.stageTargets[s] - r.M);
     });
   });
 
@@ -416,5 +411,4 @@ function renderAll(){
   renderMainTable();
   renderStockSummary();
   renderPriceTable();
-  renderStageSummary();
 }

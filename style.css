@@ -159,13 +159,6 @@ input.cell-input:focus{outline:2px solid var(--accent); outline-offset:0;}
 .suggest-item{padding:8px 10px; font-size:12.5px; cursor:pointer; white-space:normal; word-break:break-word; line-height:1.4;}
 .suggest-item:hover, .suggest-item.active{background:var(--group-bg);}
 
-.stage-summary{width:100%; min-width:0; border-collapse:collapse; font-size:12.5px; margin-top:6px;}
-.stage-summary th, .stage-summary td{border:1px solid var(--border); padding:6px 8px; text-align:right;}
-.stage-summary th{background:var(--header); color:var(--header-text); font-weight:600; text-align:center;}
-.stage-summary th.active{background:var(--accent);}
-.stage-summary td.label{text-align:left; font-weight:600;}
-.stage-summary td.active{background:#dbe6fd;}
-
 .note{font-size:11.5px; color:var(--muted); margin-top:10px; line-height:1.6;}
 .foot{margin-top:24px; font-size:11.5px; color:var(--muted); text-align:center;}
 
