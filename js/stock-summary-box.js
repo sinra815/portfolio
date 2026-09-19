@@ -52,8 +52,9 @@ function renderSummaryByStock(view){
     });
   });
 
-  // My Data(키움/NH 실계좌) 보유 종목도 같은 종목명 기준으로 합산한다.
-  const kiwoomHoldings = (typeof lastKiwoomData !== 'undefined' && lastKiwoomData && lastKiwoomData.holdings) || [];
+  // My Data(키움/NH 실계좌) 보유 종목도 같은 종목명 기준으로 합산한다. 이름이 지정되지 않은
+  // 계좌는 getVisibleKiwoomHoldings()가 걸러주므로 여기서도 새어 들어가지 않는다.
+  const kiwoomHoldings = (typeof getVisibleKiwoomHoldings === 'function') ? getVisibleKiwoomHoldings() : [];
   kiwoomHoldings.forEach(h => {
     const name = h.name || '';
     if (!name) return;
@@ -112,7 +113,8 @@ function renderSummaryByAccount(view){
     byAccount.set(key, entry);
   });
 
-  const kiwoomHoldings = (typeof lastKiwoomData !== 'undefined' && lastKiwoomData && lastKiwoomData.holdings) || [];
+  // 이름이 지정되지 않은 계좌는 getVisibleKiwoomHoldings()가 걸러주므로 여기서도 새어 들어가지 않는다.
+  const kiwoomHoldings = (typeof getVisibleKiwoomHoldings === 'function') ? getVisibleKiwoomHoldings() : [];
   kiwoomHoldings.forEach(h => {
     // My Data 표에서 사용자가 직접 지정한 증권사명/계좌명(kiwoomGroupOverrides)이 있으면 그걸
     // 쓴다 — 서버가 내려주는 원본 값(환경변수 라벨 등) 대신 사용자가 실제로 부르는 이름을 써야

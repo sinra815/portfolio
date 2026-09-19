@@ -17,6 +17,30 @@ function showAdminButtonIfAdmin(){
 // 한 번 더 currentUserId 기준으로 버튼 표시를 맞춘다.
 showAdminButtonIfAdmin();
 
+// ---- 상단 고정 박스 메뉴(저장/불러오기를 제외한 나머지 버튼들) ----
+const topbarMenuBtn = document.getElementById('topbarMenuBtn');
+const topbarMenuList = document.getElementById('topbarMenuList');
+
+function closeTopbarMenu(){
+  topbarMenuList.classList.remove('open');
+}
+topbarMenuBtn.addEventListener('click', (e) => {
+  e.stopPropagation();
+  topbarMenuList.classList.toggle('open');
+});
+// 메뉴 안 버튼을 눌러 실제 동작(로그아웃 등)이 일어나면 메뉴도 함께 닫는다.
+topbarMenuList.addEventListener('click', (e) => {
+  if (e.target.closest('.topbar-menu-item')) closeTopbarMenu();
+});
+document.addEventListener('click', (e) => {
+  if (!topbarMenuList.classList.contains('open')) return;
+  if (e.target.closest('.topbar-menu-wrap')) return;
+  closeTopbarMenu();
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeTopbarMenu();
+});
+
 // ---- 비밀번호 변경 ----
 const changePasswordOverlay = document.getElementById('changePasswordOverlay');
 const currentPasswordInput = document.getElementById('currentPasswordInput');

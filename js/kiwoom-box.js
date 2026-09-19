@@ -25,21 +25,44 @@ function kiwoomGroupKey(h){
 // 위/아래 이동 버튼을 다시 그리려면 새로 fetch하지 않고 마지막으로 받은 데이터로 재사용한다.
 let lastKiwoomData = null;
 
+// 사용자가 증권사명·계좌명을 직접 지정(클릭 → 수정)한 계좌인지 판단한다. API가 내려주는
+// 원본 라벨(계좌번호 뒷자리가 그대로 보이는 경우 등)을 사용자가 직접 확인하고 이름을
+// 붙이기 전까지는, 그 계좌의 데이터를 표시하지도 합계에 포함하지도 않는다.
+function isKiwoomGroupNamed(key){
+  const o = kiwoomGroupOverrides[key];
+  return !!(o && (o.broker || o.account));
+}
+
+// 이름이 세팅된 계좌의 보유종목만 돌려준다 — 요약/합계 계산(stock-summary-box.js,
+// main-table-box.js)이 전부 여기를 거쳐가게 해서, 이름 없는 계좌 금액이 어디로도 새어
+// 들어가지 않게 한다.
+function getVisibleKiwoomHoldings(){
+  if (!lastKiwoomData || !lastKiwoomData.holdings) return [];
+  return lastKiwoomData.holdings.filter((h) => isKiwoomGroupNamed(kiwoomGroupKey(h)));
+}
+
 function renderKiwoomBalance(data){
   lastKiwoomData = data;
   const failedNote = (data.failedAccounts && data.failedAccounts.length)
     ? `<div style="width:100%; color:var(--down); font-size:12px;">⚠ 일부 계좌 조회 실패: ${kiwoomEscapeHtml(data.failedAccounts.join(', '))}</div>`
     : '';
+  // 요약도 표와 똑같이 이름이 지정된 계좌만 합산한다 — 서버가 내려준 전체 합계
+  // (data.totalEvalAmount 등)를 그대로 쓰면 아직 이름을 안 붙인 계좌 금액까지 섞여버린다.
+  const visibleHoldings = getVisibleKiwoomHoldings();
+  const visibleEval = visibleHoldings.reduce((s, h) => s + (h.evalAmount || 0), 0);
+  const visibleProfit = visibleHoldings.reduce((s, h) => s + (h.evalProfit || 0), 0);
+  const visiblePurchase = visibleHoldings.reduce((s, h) => s + ((h.evalAmount || 0) - (h.evalProfit || 0)), 0);
+  const visibleRate = visiblePurchase ? (visibleProfit / visiblePurchase) * 100 : 0;
   document.getElementById('kiwoomSummary').innerHTML = `
-    <div><span style="color:var(--muted);">총평가금액</span> <strong>${fmt(data.totalEvalAmount)}</strong></div>
-    <div><span style="color:var(--muted);">총평가손익</span> <strong class="${kiwoomColorClass(data.totalEvalProfit)}">${fmt(data.totalEvalProfit)}</strong></div>
-    <div><span style="color:var(--muted);">총수익률</span> <strong class="${kiwoomColorClass(data.totalProfitRate)}">${fmtTrim(data.totalProfitRate, 2)}%</strong></div>
+    <div><span style="color:var(--muted);">총평가금액</span> <strong>${fmt(visibleEval)}</strong></div>
+    <div><span style="color:var(--muted);">총평가손익</span> <strong class="${kiwoomColorClass(visibleProfit)}">${fmt(visibleProfit)}</strong></div>
+    <div><span style="color:var(--muted);">총수익률</span> <strong class="${kiwoomColorClass(visibleRate)}">${fmtTrim(visibleRate, 2)}%</strong></div>
     ${failedNote}
   `;
 
   const kiwoomBody = document.getElementById('kiwoomBody');
   if (!data.holdings || data.holdings.length === 0) {
-    kiwoomBody.innerHTML = `<tr><td colspan="14" class="note center">보유 종목이 없습니다.</td></tr>`;
+    kiwoomBody.innerHTML = `<tr><td colspan="13" class="note center">보유 종목이 없습니다.</td></tr>`;
     if (typeof renderMainTable === 'function') renderMainTable();
     return;
   }
@@ -65,15 +88,15 @@ function renderKiwoomBalance(data){
   kiwoomGroupOrder = order;
 
   if (order.length === 0) {
-    kiwoomBody.innerHTML = `<tr><td colspan="14" class="note center">보유 종목이 없습니다.</td></tr>`;
+    kiwoomBody.innerHTML = `<tr><td colspan="13" class="note center">보유 종목이 없습니다.</td></tr>`;
     if (typeof renderMainTable === 'function') renderMainTable();
     return;
   }
 
-  // "📊 계좌별 리밸런싱 현황"과 같은 방식(비중→목표금액→목표가→차액→비고)으로 계산한다 —
+  // "📊 계좌별 리밸런싱 현황"과 같은 방식(비중→목표금액→차액→비고)으로 계산한다 —
   // 목표비중(%)만 사용자가 직접 입력하고(kiwoomHoldingWeights), 나머지는 그 표와 똑같은
-  // 단계(%) 입력을 그대로 써서 계산한다. 현금성 종목(예수금)은 매뉴얼 표처럼 목표가를
-  // 항상 100% 기준으로 계산한다.
+  // 단계(%) 입력을 그대로 써서 계산한다(목표가는 화면에 안 보이지만 차액 계산에는 그대로
+  // 쓰인다). 현금성 종목(예수금)은 매뉴얼 표처럼 목표가를 항상 100% 기준으로 계산한다.
   const stage = (parseFloat(document.getElementById('stagePercentInput').value) || 0) / 100;
 
   // 계좌(증권사+계좌+계좌유형)별로 나뉘어 있던 여러 개의 표를, "계좌별 리밸런싱 현황"처럼
@@ -90,7 +113,8 @@ function renderKiwoomBalance(data){
     const subProfit = rows.reduce((s, h) => s + (h.evalProfit || 0), 0);
     const subPurchase = rows.reduce((s, h) => s + ((h.evalAmount || 0) - (h.evalProfit || 0)), 0);
     const subRate = subPurchase ? (subProfit / subPurchase) * 100 : 0;
-    return { key, rows, accountType, brokerDisplay, accountDisplay, subEval, subProfit, subRate, rowspan: rows.length + 1 };
+    const named = isKiwoomGroupNamed(key);
+    return { key, rows, accountType, brokerDisplay, accountDisplay, subEval, subProfit, subRate, named, rowspan: named ? rows.length + 1 : 1 };
   });
 
   const brokerRenderAt = groupsData.map((g, i) => i === 0 || groupsData[i - 1].brokerDisplay !== g.brokerDisplay);
@@ -103,7 +127,20 @@ function renderKiwoomBalance(data){
 
   let bodyHtml = '';
   groupsData.forEach((gd, gi) => {
-    const { key, rows, accountType, brokerDisplay, accountDisplay, subEval, subProfit, subRate, rowspan } = gd;
+    const { key, rows, accountType, brokerDisplay, accountDisplay, subEval, subProfit, subRate, rowspan, named } = gd;
+
+    // 아직 증권사명·계좌명을 직접 지정하지 않은 계좌는 원본 값(계좌번호 뒷자리 등)이 그대로
+    // 노출될 수 있어, 보유종목·금액은 숨기고 이름을 지정할 수 있는 셀만 한 줄로 보여준다.
+    if (!named) {
+      let rowCells = '';
+      if (brokerRenderAt[gi]) {
+        rowCells += `<td class="grp-cell grp-cell-broker" rowspan="${brokerSpan[gi]}"><span class="kiwoom-group-name-edit" data-key="${kiwoomEscapeHtml(key)}" data-field="broker" title="클릭하여 증권사명 변경">${kiwoomEscapeHtml(brokerDisplay)}</span></td>`;
+      }
+      rowCells += `<td class="grp-cell grp-cell-account"><span class="kiwoom-group-name-edit" data-key="${kiwoomEscapeHtml(key)}" data-field="account" title="클릭하여 계좌명 변경">${kiwoomEscapeHtml(accountDisplay)}</span> <span style="color:var(--muted); font-size:11px;">(${kiwoomEscapeHtml(accountType)})</span></td>`;
+      rowCells += `<td colspan="11" class="note center">증권사명·계좌명을 클릭해 이름을 지정하면 데이터가 표시됩니다.</td>`;
+      bodyHtml += `<tr class="group-first">${rowCells}</tr>`;
+      return;
+    }
 
     rows.forEach((h, ri) => {
       const holdingKey = `${key}::${h.code || h.name}`;
@@ -139,7 +176,6 @@ function renderKiwoomBalance(data){
         <td class="num">${fmt(h.evalAmount)}</td>
         <td class="num kiwoom-disabled-cell ${kiwoomColorClass(h.evalProfit)}">${fmt(h.evalProfit)}</td>
         <td class="num kiwoom-disabled-cell ${kiwoomColorClass(h.profitRate)}">${fmtTrim(h.profitRate, 2)}%</td>
-        <td class="num">${fmt(targetPrice)}</td>
         <td class="num ${diff < 0 ? 'remark-down' : (diff > 0 ? 'remark-up' : '')}">${fmt(diff)}</td>
         <td class="center ${remark === '확대' ? 'remark-up' : (remark === '축소' ? 'remark-down' : '')}">${remark}</td>
       `;
@@ -167,7 +203,6 @@ function renderKiwoomBalance(data){
         <td class="num">${fmt(subEval)}</td>
         <td class="num ${kiwoomColorClass(subProfit)}">${fmt(subProfit)}</td>
         <td class="num ${kiwoomColorClass(subRate)}">${fmtTrim(subRate, 2)}%</td>
-        <td>-</td>
         <td>-</td>
         <td>-</td>
         <td>-</td>
@@ -244,6 +279,21 @@ document.addEventListener('click', (e) => {
 // 기다리게 해서 막는다.
 let kiwoomBalanceInFlight = null;
 
+// serverLoadPending(서버에 저장된 kiwoomGroupOverrides 등을 복원 중이라는 신호, core.js 선언 —
+// auth-box.js가 로그인 직후 true로 켜고 settings-box.js의 autoLoadServerData가 끝나면 끈다)이
+// 풀릴 때까지 기다린다. 이걸 기다리지 않고 바로 조회 결과를 그리면, 사용자가 이미 "키움증권"을
+// "키움"으로 지정해뒀어도 그 지정이 아직 서버에서 복원되기 전이라 원본 이름이 그대로 노출되는
+// 경합이 생긴다(계좌를 아직 안 정한 것으로 잘못 판단해 표가 깜빡이거나 잘못 표시됨).
+function waitForServerLoad(){
+  return new Promise((resolve) => {
+    const check = () => {
+      if (!serverLoadPending) return resolve();
+      setTimeout(check, 50);
+    };
+    check();
+  });
+}
+
 // 반환값(true/false)으로 호출자가 성공 여부를 알 수 있게 한다 — refreshAllPrices 가 이 결과를
 // 기다리지 않고(await 누락) 곧바로 자기 성공 메시지를 띄우면, 여기서 보여준 실패 메시지가
 // 화면에 뜨자마자 덮어써져 사라지는 버그가 있었다.
@@ -252,8 +302,20 @@ function loadKiwoomBalance(){
   // 성공 여부(true/false)로 resolve되므로, 나중에 합류한 호출자도 같은 결과를 정확히 받는다.
   if (kiwoomBalanceInFlight) return kiwoomBalanceInFlight;
   const btn = document.getElementById('kiwoomRefreshBtn');
+  // 로그인 직후처럼 아직 한 번도 데이터를 못 받아온 상태(lastKiwoomData 없음)라면, 요약/표
+  // 영역이 텅 빈 채로 있어 화면이 멈춘 것처럼 보인다 — 콜드 스타트 등으로 몇 초~십여 초
+  // 걸릴 수 있어 다 불러올 때까지 로딩 중임을 눈에 띄게 표시해둔다.
+  const isFirstLoad = !lastKiwoomData;
+  if (isFirstLoad) {
+    document.getElementById('kiwoomSummary').innerHTML = `<div class="note">⏳ 증권사 데이터를 불러오는 중입니다...</div>`;
+    document.getElementById('kiwoomBody').innerHTML = `<tr><td colspan="13" class="note center">⏳ 증권사 데이터를 불러오는 중입니다...</td></tr>`;
+  }
   const run = (async () => {
     let ok = true;
+    // 서버에서 이름 지정(kiwoomGroupOverrides) 복원이 아직 끝나지 않았다면, 조회 자체를
+    // 그 전까지 미룬다 — 그래야 결과를 그릴 때 이름이 지정된 계좌인지 판단이 항상 최종
+    // 상태 기준으로 이뤄진다.
+    await waitForServerLoad();
     // 여러 계좌를 순서대로 조회하느라 응답이 몇 초 걸릴 수 있어, 끝날 때까지 버튼을 잠그고
     // "불러오는중"으로 바꿔서 지금 진행 중이라는 걸 보여준다.
     await withButtonLoading(btn, '불러오는중', async () => {
@@ -272,6 +334,11 @@ function loadKiwoomBalance(){
       } catch (e) {
         showFieldStatus(btn, e.message, 'error');
         ok = false;
+        // 첫 로딩 자체가 실패하면 위에서 띄워둔 "불러오는 중" 표시가 그대로 남아 계속 로딩
+        // 중인 것처럼 보이므로, 실패했다는 걸 표에도 남겨서 다시 시도해야 함을 알 수 있게 한다.
+        if (isFirstLoad) {
+          document.getElementById('kiwoomBody').innerHTML = `<tr><td colspan="13" class="note center">데이터를 불러오지 못했습니다. '데이터 새로고침'을 눌러 다시 시도해주세요.</td></tr>`;
+        }
       }
     });
     return ok;

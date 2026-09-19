@@ -26,7 +26,7 @@ function renderMainTable(){
     g.rows.forEach((r, idx) => {
       if (idx > 0 && getRowType(r) === 'cash' && getRowType(g.rows[idx - 1]) !== 'cash') {
         const divider = document.createElement('tr');
-        divider.innerHTML = `<td colspan="12" style="padding:0; height:2px; background:var(--border-strong); border:none;"></td>`;
+        divider.innerHTML = `<td colspan="11" style="padding:0; height:2px; background:var(--border-strong); border:none;"></td>`;
         tbody.appendChild(divider);
       }
 
@@ -93,7 +93,6 @@ function renderMainTable(){
       cells += `<td>${fmt(r.M)}</td>`;
       cells += `<td class="${r.evalProfit<0?'remark-down':(r.evalProfit>0?'remark-up':'')}">${fmt(r.evalProfit)}</td>`;
       cells += `<td class="${r.evalProfit<0?'remark-down':(r.evalProfit>0?'remark-up':'')}">${fmtTrim(r.profitRate,2)}%</td>`;
-      cells += `<td>${fmt(r.targetPrice)}</td>`;
 
       cells += `<td class="${r.N<0?'remark-down':(r.N>0?'remark-up':'')} ${r.isMaxDiff?'diff-maxgap':''}">${fmt(r.N)}</td>`;
       cells += `<td class="center ${r.remark==='확대'?'remark-up':(r.remark==='축소'?'remark-down':'')}">${r.remark}</td>`;
@@ -115,7 +114,7 @@ function renderMainTable(){
     }
     addRowTr.innerHTML = `
       ${addRowHead}
-      <td colspan="12" style="text-align:left;">
+      <td colspan="11" style="text-align:left;">
         <div style="display:flex; align-items:center; gap:6px;">
           <span style="color:var(--muted); font-size:12px;">+ 종목 추가:</span>
           <select class="add-row-select" data-g="${g.__idx}" style="padding:4px 6px; border:1px solid var(--border-strong); border-radius:4px; font-size:12.5px; font-family:inherit; background:#fff; max-width:220px;">${addOptions}</select>
@@ -154,7 +153,7 @@ function renderMainTable(){
       <td>-</td>
       <td>-</td>
       <td>-</td>
-      <td>-</td><td>-</td>
+      <td>-</td>
     `;
     tbody.appendChild(subtotalTr);
 
@@ -169,7 +168,11 @@ function renderMainTable(){
   // My Data(키움/NH 실계좌) 평가금액도 합산한다. My Data는 종목별 당일 등락률을 안 내려주므로
   // prevM(전일 추정치)에도 같은 값을 더해 전일대비 변동 계산에는 기여하지 않게 한다 — 그래야
   // My Data를 더했다고 전일대비가 그 금액만큼 갑자기 뛴 것처럼 보이지 않는다.
-  const kiwoomTotalM = (typeof lastKiwoomData !== 'undefined' && lastKiwoomData) ? (lastKiwoomData.totalEvalAmount || 0) : 0;
+  // 이름이 지정되지 않은 계좌는 kiwoom-box.js의 getVisibleKiwoomHoldings()가 걸러주므로 여기서도
+  // 그 함수를 거쳐서만 합산한다 — 그래야 이름 없는 계좌 금액이 전체 합계에 새어 들어가지 않는다.
+  const kiwoomTotalM = (typeof getVisibleKiwoomHoldings === 'function')
+    ? getVisibleKiwoomHoldings().reduce((s, h) => s + (h.evalAmount || 0), 0)
+    : 0;
   grand.M += kiwoomTotalM;
   grand.prevM = (grand.prevM || 0) + kiwoomTotalM;
 
@@ -191,7 +194,7 @@ function renderMainTable(){
 
   const addGroupTr = document.createElement('tr');
   addGroupTr.innerHTML = `
-    <td colspan="14" style="text-align:left; background:#f5f6f8;">
+    <td colspan="13" style="text-align:left; background:#f5f6f8;">
       <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
         <span style="color:var(--muted); font-size:12px;">+ 계좌(그룹) 추가:</span>
         <input type="text" id="newGroupBroker" placeholder="증권사 (예: 키움)" style="width:120px; padding:4px 6px; border:1px solid var(--border-strong); border-radius:4px; font-size:12.5px; font-family:inherit;">
@@ -213,7 +216,6 @@ function renderMainTable(){
       <td>-</td>
       <td>-</td>
       <td>${fmt(grand.M)}</td>
-      <td>-</td>
       <td>-</td>
       <td>-</td>
       <td>-</td>

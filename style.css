@@ -187,6 +187,20 @@ input.cell-input:focus{outline:2px solid var(--accent); outline-offset:0;}
 .note{font-size:11.5px; color:var(--muted); margin-top:10px; line-height:1.6;}
 .foot{margin-top:24px; font-size:11.5px; color:var(--muted); text-align:center;}
 
+/* 상단 고정 박스의 저장/불러오기를 제외한 나머지 버튼(로그아웃/비밀번호 변경/계정 삭제/관리자/
+   파일 다운로드·업로드)을 한데 묶은 메뉴. */
+.topbar-menu-wrap{position:relative; display:inline-block; flex:0 0 auto;}
+.topbar-menu-btn{padding:4px 8px;border-radius:5px;border:1px solid #1f2430;background:#fff;cursor:pointer;white-space:nowrap;font-size:11px;}
+/* display:none 대신 visibility로 여닫는다 — display:none이면 닫히는 순간 메뉴 안 버튼들의
+   getBoundingClientRect()가 0이 돼버려, export/import처럼 닫힌 뒤 비동기로 그 버튼 위치에 뜨는
+   상태 메시지(showFieldStatus)가 화면 왼쪽 위로 잘못 붙는 문제가 있었다. */
+.topbar-menu-list{visibility:hidden; opacity:0; pointer-events:none; position:absolute; top:calc(100% + 4px); right:0; min-width:170px; background:#fff; border:1px solid var(--border-strong); border-radius:8px; box-shadow:0 6px 16px rgba(0,0,0,0.16); padding:4px; z-index:50; display:flex; flex-direction:column; gap:1px;}
+.topbar-menu-list.open{visibility:visible; opacity:1; pointer-events:auto;}
+.topbar-menu-item{display:block; width:100%; text-align:left; padding:8px 10px; border:none; background:none; border-radius:5px; font-size:12.5px; font-family:inherit; cursor:pointer; white-space:nowrap; color:var(--text);}
+.topbar-menu-item:hover:not(:disabled){background:var(--group-bg);}
+.topbar-menu-item.danger{color:var(--down);}
+.topbar-menu-item:disabled{color:var(--muted); cursor:not-allowed;}
+
 .numpad-overlay{
   display:none; position:fixed; inset:0; background:rgba(20,24,32,.45);
   align-items:center; justify-content:center; z-index:1000;
