@@ -1,0 +1,17 @@
+name: Keep My Data API warm
+
+# Vercel 서버리스 함수(api/kiwoom.js)는 한동안 호출이 없으면 컨테이너가 내려가서(콜드 스타트)
+# 다음 요청이 몇 초~십여 초씩 걸린다. Vercel Hobby 플랜은 크론을 하루 한 번만 지원해서
+# 자체 크론으로는 주기적으로 깨워둘 수 없어, 이미 쓰고 있는 GitHub Actions로 5분마다
+# 가벼운 ping(?ping=1, Redis·증권사 API 미호출)을 보내 함수를 계속 따뜻하게 유지한다.
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch: {}
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping /api/kiwoom
+        run: curl -sS -o /dev/null -w "status=%{http_code} time=%{time_total}s\n" --fail "https://portfolio-sinra815.vercel.app/api/kiwoom?ping=1"

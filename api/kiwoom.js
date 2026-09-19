@@ -341,6 +341,12 @@ async function getBalance(id) {
 
 export default async function handler(req, res) {
   try {
+    if (req.method === 'GET' && req.query.ping) {
+      // Vercel 서버리스 함수는 한동안 호출이 없으면 컨테이너가 내려가서(콜드 스타트) 다음
+      // 요청이 몇 초~십여 초씩 걸린다. Redis나 증권사 API를 전혀 건드리지 않는 가벼운
+      // ping으로 이 함수만 주기적으로 "깨워" 두기 위한 엔드포인트다(외부 스케줄러가 호출).
+      return res.status(200).json({ ok: true });
+    }
     if (req.method === 'GET') {
       const code = (req.query.code || '').toString().trim().toUpperCase();
       if (!code) return res.status(400).json({ error: '종목코드를 입력해주세요.' });
