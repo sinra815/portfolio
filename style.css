@@ -3,17 +3,37 @@
   --text:#1f2430; --muted:#6b7280;
   --header:#2b3445; --header-text:#ffffff;
   --input-bg:#fff4de; --input-border:#e8b96a;
-  --accent:#2563eb; --up:#16a34a; --down:#dc2626;
+  --accent:#2563eb;
+  /* --up/--stock-down: 국내 증권 앱 관례대로 상승=빨강/하락=파랑(.remark-up/.remark-down 전용).
+     --down은 에러·삭제 등 "위험" 의미로 이미 여러 곳(auth-error, danger 버튼)에 쓰이고 있어
+     그대로 빨강 유지 — 하락 색만 --stock-down으로 따로 뺐다. */
+  --up:#e5384d; --down:#dc2626; --stock-down:#2f6fed;
   --flag:#dc2626; --flag-bg:#fde2e2;
   --group-bg:#eef1f6; --total-bg:#dfe6f2;
 }
 *{box-sizing:border-box;}
+/* 설치 없이도 네이티브 앱에 가까운 손맛을 내기 위한 설정들:
+   - overscroll-behavior: 당겨서 새로고침(pull-to-refresh)·바운스 스크롤 제거
+   - -webkit-tap-highlight-color: 탭할 때 생기는 회색 반투명 하이라이트 제거
+   - -webkit-touch-callout: 길게 눌렀을 때 뜨는 이미지 저장 등 컨텍스트 메뉴 제거 */
+html{
+  overscroll-behavior-y:none;
+  -webkit-tap-highlight-color:transparent;
+  -webkit-touch-callout:none;
+}
 body{
   margin:0; padding:24px; background:var(--bg); color:var(--text);
-  font-family:"Segoe UI","Malgun Gothic","맑은 고딕",sans-serif; font-size:13px;
+  font-family:"Pretendard","Segoe UI","Malgun Gothic","맑은 고딕",sans-serif; font-size:13px;
   /* 표/버튼 줄은 각자 안에서 스크롤하도록 만들어뒀으니(.table-scroll, overflow-x:auto 버튼 줄),
      화면 자체가 옆으로 늘어나는 일은 없어야 한다 — 혹시 새는 요소가 있어도 여기서 막는다. */
   overflow-x:hidden;
+  overscroll-behavior-y:none;
+  -webkit-tap-highlight-color:transparent;
+}
+/* 버튼·탭 요소는 더블탭 확대 제스처를 끄고 탭 반응 지연(약 300ms)도 없앤다. 입력칸은
+   그대로 둬서(텍스트 선택 등 기본 동작 유지) numpad-trigger 입력 방식과 충돌하지 않게 한다. */
+button, a, .step-btn, .reorder-btn, .group-move-btn, .numpad-grid button{
+  touch-action:manipulation;
 }
 h1{font-size:20px; margin:0 0 4px;}
 .sub{color:var(--muted); font-size:12.5px; margin:0 0 18px;}
@@ -114,7 +134,7 @@ input.cell-input:focus{outline:2px solid var(--accent); outline-offset:0;}
 #saveBtn:disabled, #loadBtn:disabled, #kiwoomRefreshBtn:disabled, #fetchAllPricesBtn:disabled{opacity:.4; cursor:not-allowed;}
 
 .remark-up{color:var(--up); font-weight:700;}
-.remark-down{color:var(--down); font-weight:700;}
+.remark-down{color:var(--stock-down); font-weight:700;}
 .flag-o{color:var(--flag); font-weight:800; background:var(--flag-bg); border-radius:4px; display:inline-block; padding:1px 6px;}
 .diff-maxgap{background:#fff59d !important;}
 .cell-unused{
