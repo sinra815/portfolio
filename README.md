@@ -14,6 +14,7 @@ Vercel 서버리스 함수(`api/`)를 사용합니다.
 - `index.html` — 전체 뼈대(HTML)만 포함
 - `style.css` — 전체 디자인
 - `js/core.js` — 상태 관리 · 계산 로직 · 현재가 조회 공통 함수 (모든 박스가 공유)
+- `js/tabs-box.js` — 상단 탭(📋 요약 / 🏦 My Data / 📌 종목 마스터) 전환 (탭을 바꿔도 다른 탭의 DOM/데이터는 그대로 유지)
 - `js/numpad.js` — 숫자 입력 팝업 (공통 UI)
 - `js/auth-box.js` — 로그인 / ID 생성 게이트 (화면 진입 시 표시되는 오버레이)
 - `js/settings-box.js` — "⚙️ 설정" 박스: 평가금액 합계 / 저장·불러오기 / File 내보내기·가져오기

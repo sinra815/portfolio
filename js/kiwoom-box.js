@@ -34,13 +34,13 @@ function renderKiwoomBalance(data){
     <div><span style="color:var(--muted);">총평가금액</span> <strong>${fmt(data.totalEvalAmount)}</strong></div>
     <div><span style="color:var(--muted);">총평가손익</span> <strong class="${kiwoomColorClass(data.totalEvalProfit)}">${fmt(data.totalEvalProfit)}</strong></div>
     <div><span style="color:var(--muted);">총수익률</span> <strong class="${kiwoomColorClass(data.totalProfitRate)}">${fmtTrim(data.totalProfitRate, 2)}%</strong></div>
-    <div><span style="color:var(--muted);">예수금(국내)</span> <strong>${fmt(data.cashBalance)}</strong></div>
     ${failedNote}
   `;
 
-  const container = document.getElementById('kiwoomGroupsContainer');
+  const kiwoomBody = document.getElementById('kiwoomBody');
   if (!data.holdings || data.holdings.length === 0) {
-    container.innerHTML = `<p class="note">보유 종목이 없습니다.</p>`;
+    kiwoomBody.innerHTML = `<tr><td colspan="14" class="note center">보유 종목이 없습니다.</td></tr>`;
+    if (typeof renderMainTable === 'function') renderMainTable();
     return;
   }
 
@@ -65,17 +65,16 @@ function renderKiwoomBalance(data){
   kiwoomGroupOrder = order;
 
   if (order.length === 0) {
-    container.innerHTML = `<p class="note">보유 종목이 없습니다.</p>`;
+    kiwoomBody.innerHTML = `<tr><td colspan="14" class="note center">보유 종목이 없습니다.</td></tr>`;
+    if (typeof renderMainTable === 'function') renderMainTable();
     return;
   }
 
-  // "📊 계좌별 리밸런싱 현황"과 같은 방식(비중→목표금액→목표가→차액→비고→과비중)으로
-  // 계산한다 — 목표비중(%)만 사용자가 직접 입력하고(kiwoomHoldingWeights), 나머지는 그
-  // 표와 똑같은 단계(%)/과비중 임계값(%) 입력을 그대로 써서 계산한다. 현금성 종목(예수금)은
-  // 매뉴얼 표처럼 목표가를 항상 100% 기준으로 계산한다. My Data는 계좌당 예수금 행이 최대
-  // 1개뿐이라, 매뉴얼 표의 "현금성자산 여러 행 병합" 로직 없이 그 행 자신의 값을 그대로 쓴다.
+  // "📊 계좌별 리밸런싱 현황"과 같은 방식(비중→목표금액→목표가→차액→비고)으로 계산한다 —
+  // 목표비중(%)만 사용자가 직접 입력하고(kiwoomHoldingWeights), 나머지는 그 표와 똑같은
+  // 단계(%) 입력을 그대로 써서 계산한다. 현금성 종목(예수금)은 매뉴얼 표처럼 목표가를
+  // 항상 100% 기준으로 계산한다.
   const stage = (parseFloat(document.getElementById('stagePercentInput').value) || 0) / 100;
-  const threshold = (parseFloat(document.getElementById('overweightThreshold').value) || 0) / 100;
 
   // 계좌(증권사+계좌+계좌유형)별로 나뉘어 있던 여러 개의 표를, "계좌별 리밸런싱 현황"처럼
   // 증권사·계좌 컬럼을 rowspan으로 병합한 하나의 표로 합친다. 계좌 셀은 그 계좌의 보유종목
@@ -113,8 +112,6 @@ function renderKiwoomBalance(data){
       const targetPrice = h.isCash ? target : target * stage; // 목표가(현금성은 항상 100% 기준)
       const diff = targetPrice - (h.evalAmount || 0); // 차액
       const remark = diff < 0 ? '축소' : (diff > 0 ? '확대' : '');
-      const ratio = subEval > 0 ? roundDown(Math.abs(diff) / subEval, 3) : 0;
-      const overweight = ratio >= threshold;
 
       let rowCells = '';
       if (ri === 0) {
@@ -124,8 +121,8 @@ function renderKiwoomBalance(data){
         rowCells += `<td class="grp-cell grp-cell-account" rowspan="${rowspan}"><span class="kiwoom-group-name-edit" data-key="${kiwoomEscapeHtml(key)}" data-field="account" title="클릭하여 계좌명 변경">${kiwoomEscapeHtml(accountDisplay)}</span> <span style="color:var(--muted); font-size:11px;">(${kiwoomEscapeHtml(accountType)})</span></td>`;
       }
 
-      // 보유수량/평가손익/수익률은 참고용이라 흐리게(kiwoom-disabled-cell), 현재가/평가금액은
-      // 실제 리밸런싱 판단에 쓰는 금액이라 또렷하게 남긴다.
+      // 평균매입금액/보유수량/평가손익/수익률은 참고용이라 흐리게(kiwoom-disabled-cell),
+      // 현재가/평가금액은 실제 리밸런싱 판단에 쓰는 금액이라 또렷하게 남긴다.
       rowCells += `
         <td>${kiwoomEscapeHtml(h.name)}</td>
         <td><div class="stepper">
@@ -136,6 +133,7 @@ function renderKiwoomBalance(data){
           </span>
         </div></td>
         <td class="num">${fmt(target)}</td>
+        <td class="num kiwoom-disabled-cell">${h.purchasePrice != null ? fmt(h.purchasePrice) : '-'}</td>
         <td class="num kiwoom-disabled-cell">${h.qty != null ? fmt(h.qty) : '-'}</td>
         <td class="num">${h.currentPrice != null ? fmt(h.currentPrice) : '-'}</td>
         <td class="num">${fmt(h.evalAmount)}</td>
@@ -144,8 +142,6 @@ function renderKiwoomBalance(data){
         <td class="num">${fmt(targetPrice)}</td>
         <td class="num ${diff < 0 ? 'remark-down' : (diff > 0 ? 'remark-up' : '')}">${fmt(diff)}</td>
         <td class="center ${remark === '확대' ? 'remark-up' : (remark === '축소' ? 'remark-down' : '')}">${remark}</td>
-        <td class="num center">${h.isCash ? fmt(diff) : ''}</td>
-        <td class="center">${overweight ? `<span class="flag-o">O</span>` : ''}</td>
       `;
       bodyHtml += `<tr${ri === 0 ? ' class="group-first"' : ''}>${rowCells}</tr>`;
     });
@@ -167,6 +163,7 @@ function renderKiwoomBalance(data){
         <td>-</td>
         <td>-</td>
         <td>-</td>
+        <td>-</td>
         <td class="num">${fmt(subEval)}</td>
         <td class="num ${kiwoomColorClass(subProfit)}">${fmt(subProfit)}</td>
         <td class="num ${kiwoomColorClass(subRate)}">${fmtTrim(subRate, 2)}%</td>
@@ -179,34 +176,7 @@ function renderKiwoomBalance(data){
     `;
   });
 
-  container.innerHTML = `
-    <div class="table-scroll">
-      <table class="price-table kiwoom-table">
-        <colgroup>
-          <col style="width:70px;">
-          <col style="width:90px;">
-          <col style="width:auto;">
-          <col style="width:90px;">
-          <col style="width:100px;">
-          <col style="width:90px;">
-          <col style="width:100px;">
-          <col style="width:110px;">
-          <col style="width:100px;">
-          <col style="width:80px;">
-          <col style="width:100px;">
-          <col style="width:100px;">
-          <col style="width:60px;">
-          <col style="width:100px;">
-          <col style="width:70px;">
-        </colgroup>
-        <thead><tr>
-          <th>증권사</th><th>계좌</th><th>종목</th><th>비중(%)</th><th>목표금액</th><th>보유수량</th><th>현재가</th>
-          <th>평가금액</th><th>평가손익</th><th>수익률</th><th>목표가</th><th>차액</th><th>비고</th><th>현금성자산</th><th>과비중</th>
-        </tr></thead>
-        <tbody>${bodyHtml}</tbody>
-      </table>
-    </div>
-  `;
+  kiwoomBody.innerHTML = bodyHtml;
 
   // "📋 요약" 박스(계좌 모드)와 "⚙️ 설정" 박스의 평가금액 합계가 My Data 최신값을 바로
   // 반영하도록 함께 다시 그린다.
@@ -315,10 +285,8 @@ function loadKiwoomBalance(){
 // 때문에 주기적으로 자동 갱신하지 않고, 로그인 직후 한 번과 새로고침 버튼(이 패널의 버튼,
 // 또는 "종목 마스터"의 금액 불러오기 버튼) 클릭 시에만 가져온다.
 function updateKiwoomPanelVisibility(){
-  const panel = document.getElementById('kiwoomPanel');
-  if (!panel) return;
   const shouldShow = currentUserId === KIWOOM_OWNER_ID;
-  panel.style.display = shouldShow ? '' : 'none';
+  setKiwoomTabEligible(shouldShow);
   if (shouldShow) loadKiwoomBalance();
 }
 

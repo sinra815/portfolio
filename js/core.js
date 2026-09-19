@@ -23,7 +23,6 @@ function buildStateSnapshot(){
     kiwoomGroupOrder: kiwoomGroupOrder,
     kiwoomHoldingWeights: kiwoomHoldingWeights,
     stage: document.getElementById('stagePercentInput') ? document.getElementById('stagePercentInput').value : '100',
-    threshold: document.getElementById('overweightThreshold') ? document.getElementById('overweightThreshold').value : '10',
   };
 }
 
@@ -125,11 +124,6 @@ function setPrice(stockName, val){
   if (m) m.price = val;
 }
 
-function roundDown(value, digits){
-  const f = Math.pow(10, digits);
-  return Math.floor(value * f) / f;
-}
-
 // 예전 데이터 호환: '현금' 이라는 이름의 행만 cash:true 플래그를 달고 수량을 만원 금액으로
 // 그대로 썼다. 이제 모든 행이 같은 식을 쓰므로, 마스터 현재가를 10000원으로 맞춰 두면
 // 수량이 그대로 만원 금액이 되어 이전과 똑같은 평가금액이 나온다.
@@ -153,7 +147,6 @@ function migrateCashRows(){
 
 function computeAll(){
   const stage = (parseFloat(document.getElementById('stagePercentInput').value) || 0) / 100;
-  const threshold = (parseFloat(document.getElementById('overweightThreshold').value) || 0) / 100;
 
   groups.forEach(g => {
     g.rows.forEach(r => {
@@ -186,26 +179,7 @@ function computeAll(){
       r.targetPrice = (getRowType(r) === 'cash') ? r.G : r.G * stage;
       r.N = r.targetPrice - r.M;
       r.remark = r.N < 0 ? '축소' : (r.N > 0 ? '확대' : '');
-      const ratio = g.D > 0 ? roundDown(Math.abs(r.N) / g.D, 3) : 0;
-      r.overweight = ratio >= threshold ? 'O' : '';
     });
-    g.rows.forEach(r => { r.cashLikeTotal = null; r.cashGroupSpan = 1; r.skipCashCell = false; r.overweightMerged = null; r.skipOverweightCell = false; });
-    const cashRows = g.rows.filter(r => getRowType(r) === 'cash');
-    if (cashRows.length > 0) {
-      const cashTotal = cashRows.reduce((s, r) => s + r.N, 0);
-      const mergedRatio = g.D > 0 ? roundDown(Math.abs(cashTotal) / g.D, 3) : 0;
-      const mergedFlag = mergedRatio >= threshold ? 'O' : '';
-      cashRows.forEach((r, i) => {
-        if (i === 0) {
-          r.cashLikeTotal = cashTotal;
-          r.cashGroupSpan = cashRows.length;
-          r.overweightMerged = mergedFlag;
-        } else {
-          r.skipCashCell = true;
-          r.skipOverweightCell = true;
-        }
-      });
-    }
   });
 
   let maxDiffVal = -Infinity;
@@ -220,7 +194,7 @@ function computeAll(){
     });
   });
 
-  return { stage, threshold };
+  return { stage };
 }
 
 function computeDividerCount(g){

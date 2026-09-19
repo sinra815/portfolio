@@ -72,7 +72,6 @@ function applyImportedJson(text, anchor){
   master = data.master;
   groups = data.groups;
   document.getElementById('stagePercentInput').value = data.stage !== undefined ? data.stage : '100';
-  document.getElementById('overweightThreshold').value = data.threshold !== undefined ? data.threshold : '10';
   renderAll();
   showFieldStatus(btn, '가져오기가 완료되었습니다.');
 }
@@ -149,7 +148,6 @@ function applyLoadedData(saved){
   kiwoomGroupOrder = saved.kiwoomGroupOrder || kiwoomGroupOrder;
   kiwoomHoldingWeights = saved.kiwoomHoldingWeights || kiwoomHoldingWeights;
   if (saved.stage !== undefined) document.getElementById('stagePercentInput').value = saved.stage;
-  if (saved.threshold !== undefined) document.getElementById('overweightThreshold').value = saved.threshold;
   renderAll();
   // 불러온 이름을 계좌 잔고(키움) 표 제목에도 바로 반영 — 패널이 보이는 중이면 다시 가져와 그린다.
   if (typeof loadKiwoomBalance === 'function' && typeof KIWOOM_OWNER_ID !== 'undefined' && currentUserId === KIWOOM_OWNER_ID) {

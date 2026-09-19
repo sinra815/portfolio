@@ -26,7 +26,7 @@ function renderMainTable(){
     g.rows.forEach((r, idx) => {
       if (idx > 0 && getRowType(r) === 'cash' && getRowType(g.rows[idx - 1]) !== 'cash') {
         const divider = document.createElement('tr');
-        divider.innerHTML = `<td colspan="13" style="padding:0; height:2px; background:var(--border-strong); border:none;"></td>`;
+        divider.innerHTML = `<td colspan="12" style="padding:0; height:2px; background:var(--border-strong); border:none;"></td>`;
         tbody.appendChild(divider);
       }
 
@@ -42,7 +42,7 @@ function renderMainTable(){
         groupHeaderInserted = true;
       }
       // 모든 행을 똑같이 다룬다. 이동은 핸들러가 같은 유형끼리만 교환하도록 막아주므로,
-      // 현금성 행들이 아래쪽에 뭉쳐 있어야 하는 "현금성자산" 병합 셀은 그대로 유지된다.
+      // 현금성 행들은 (+ 종목 추가 시 항상 아래쪽에 붙는 규칙과 함께) 계속 아래쪽에 뭉쳐 있는다.
       const canMoveUp = idx > 0 && getRowType(g.rows[idx - 1]) === getRowType(r);
       const canMoveDown = idx < g.rows.length - 1 && getRowType(g.rows[idx + 1]) === getRowType(r);
       const stockExists = master.some(m => m.name === r.stock);
@@ -89,6 +89,7 @@ function renderMainTable(){
         </span>
       </div></td>`;
 
+      cells += `<td>${fmt(getPrice(r.stock))}</td>`;
       cells += `<td>${fmt(r.M)}</td>`;
       cells += `<td class="${r.evalProfit<0?'remark-down':(r.evalProfit>0?'remark-up':'')}">${fmt(r.evalProfit)}</td>`;
       cells += `<td class="${r.evalProfit<0?'remark-down':(r.evalProfit>0?'remark-up':'')}">${fmtTrim(r.profitRate,2)}%</td>`;
@@ -96,16 +97,6 @@ function renderMainTable(){
 
       cells += `<td class="${r.N<0?'remark-down':(r.N>0?'remark-up':'')} ${r.isMaxDiff?'diff-maxgap':''}">${fmt(r.N)}</td>`;
       cells += `<td class="center ${r.remark==='확대'?'remark-up':(r.remark==='축소'?'remark-down':'')}">${r.remark}</td>`;
-      if (r.cashLikeTotal !== null) {
-        cells += `<td rowspan="${r.cashGroupSpan}" class="center">${fmt(r.cashLikeTotal)}</td>`;
-      } else if (!r.skipCashCell) {
-        cells += `<td class="cell-unused" title="주식 종목은 현금성자산 집계 대상이 아닙니다"></td>`;
-      }
-      if (r.overweightMerged !== null) {
-        cells += `<td rowspan="${r.cashGroupSpan}" class="center">${r.overweightMerged ? `<span class="flag-o">O</span>` : ''}</td>`;
-      } else if (!r.skipOverweightCell) {
-        cells += `<td class="center">${r.overweight ? `<span class="flag-o">O</span>` : ''}</td>`;
-      }
 
       tr.innerHTML = cells;
       tbody.appendChild(tr);
@@ -124,7 +115,7 @@ function renderMainTable(){
     }
     addRowTr.innerHTML = `
       ${addRowHead}
-      <td colspan="13" style="text-align:left;">
+      <td colspan="12" style="text-align:left;">
         <div style="display:flex; align-items:center; gap:6px;">
           <span style="color:var(--muted); font-size:12px;">+ 종목 추가:</span>
           <select class="add-row-select" data-g="${g.__idx}" style="padding:4px 6px; border:1px solid var(--border-strong); border-radius:4px; font-size:12.5px; font-family:inherit; background:#fff; max-width:220px;">${addOptions}</select>
@@ -153,6 +144,7 @@ function renderMainTable(){
           <button type="button" class="remove-group-btn" data-g="${g.__idx}" title="이 계좌(그룹) 삭제" style="padding:1px 6px; border-radius:4px; border:1px solid var(--border-strong); background:#fff; color:var(--down); cursor:pointer; font-size:11px; line-height:1.4;">그룹삭제</button>
         </div>
       </td>
+      <td>-</td>
       <td>-</td>
       <td>-</td>
       <td>-</td>
@@ -199,7 +191,7 @@ function renderMainTable(){
 
   const addGroupTr = document.createElement('tr');
   addGroupTr.innerHTML = `
-    <td colspan="15" style="text-align:left; background:#f5f6f8;">
+    <td colspan="14" style="text-align:left; background:#f5f6f8;">
       <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
         <span style="color:var(--muted); font-size:12px;">+ 계좌(그룹) 추가:</span>
         <input type="text" id="newGroupBroker" placeholder="증권사 (예: 키움)" style="width:120px; padding:4px 6px; border:1px solid var(--border-strong); border-radius:4px; font-size:12.5px; font-family:inherit;">
@@ -219,12 +211,13 @@ function renderMainTable(){
       <td>-</td>
       <td>-</td>
       <td>-</td>
+      <td>-</td>
       <td>${fmt(grand.M)}</td>
       <td>-</td>
       <td>-</td>
       <td>-</td>
       <td>-</td>
-      <td>-</td><td>-</td><td>-</td>
+      <td>-</td>
     </tr>`;
 }
 
@@ -362,7 +355,6 @@ document.addEventListener('click', (e) => {
 });
 
 document.getElementById('stagePercentInput').addEventListener('input', renderAll);
-document.getElementById('overweightThreshold').addEventListener('input', renderAll);
 
 // 이 박스(증권사·계좌·종목)만 초기화 — "종목 마스터"(master)는 건드리지 않는다.
 document.getElementById('resetGroupsBtn').addEventListener('click', () => {

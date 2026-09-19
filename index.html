@@ -12,7 +12,7 @@
      그 파일들 중 하나라도 내용을 바꾸면, 여기와 아래 <script> 태그들의 ?v= 값을 전부 함께 올려야
      기존에 캐싱해 둔 브라우저가 새 파일을 다시 받는다. (index.html 자체는 캐싱하지 않으므로
      이 값이 바뀐 참조는 항상 즉시 반영된다.) -->
-<link rel="stylesheet" href="style.css?v=50">
+<link rel="stylesheet" href="style.css?v=55">
 </head>
 <body>
 
@@ -89,7 +89,13 @@
   </div>
 </div>
 
-<div class="panel" id="summaryPanel">
+<div class="tab-bar" id="tabBar">
+  <button type="button" class="tab-btn active" data-tab="summary">📋 요약</button>
+  <button type="button" class="tab-btn" id="kiwoomTabBtn" data-tab="kiwoom" style="display:none;">🏦 My Data</button>
+  <button type="button" class="tab-btn" data-tab="master">📌 종목 마스터</button>
+</div>
+
+<div class="panel tab-active" id="summaryPanel" data-tab-panel="summary">
   <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap;">
     <h2 style="margin:0;">📋 요약</h2>
     <div style="display:flex; gap:12px; align-items:center; font-size:12.5px;">
@@ -113,7 +119,7 @@
   </div>
 </div>
 
-<div class="panel" id="kiwoomPanel" style="display:none;">
+<div class="panel" id="kiwoomPanel" data-tab-panel="kiwoom">
   <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap;">
     <h2 style="margin:0;">🏦 My Data</h2>
     <div style="display:flex; align-items:center; gap:8px; font-size:11.5px; color:var(--muted);">
@@ -122,16 +128,31 @@
     </div>
   </div>
   <div id="kiwoomSummary" style="display:flex; gap:20px; flex-wrap:wrap; margin:10px 0 12px; font-size:13px;"></div>
-  <div id="kiwoomGroupsContainer"></div>
-</div>
 
-<div class="panel">
-  <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap;">
-    <h2 style="margin:0;">📊 계좌별 리밸런싱 현황</h2>
+  <div style="display:flex; justify-content:flex-end; margin:16px 0 8px;">
     <button type="button" id="resetGroupsBtn" style="padding:5px 10px;border-radius:5px;border:1px solid var(--down);background:#fff;color:var(--down);cursor:pointer;white-space:nowrap;font-size:12px;">초기화</button>
   </div>
+  <!-- 증권사에서 가져온 실계좌(My Data)와 수작업으로 입력한 계좌를 한 표로 합쳤다. 레이아웃(컬럼
+       구성·순서)은 실계좌 표 기준이고, 두 데이터는 각자 다른 tbody(#kiwoomBody/#mainBody)에
+       그려져 표 하나를 위아래로 나눠 쓴다 — 실계좌는 읽기 전용, 수작업 쪽만 계속 편집 가능하다. -->
   <div class="table-scroll">
-    <table id="mainTable">
+    <table id="accountsTable" class="price-table kiwoom-table">
+      <colgroup>
+        <col style="width:70px;">
+        <col style="width:90px;">
+        <col style="width:auto;">
+        <col style="width:90px;">
+        <col style="width:100px;">
+        <col style="width:100px;">
+        <col style="width:90px;">
+        <col style="width:100px;">
+        <col style="width:110px;">
+        <col style="width:100px;">
+        <col style="width:80px;">
+        <col style="width:100px;">
+        <col style="width:100px;">
+        <col style="width:60px;">
+      </colgroup>
       <thead>
         <tr>
           <th>증권사</th>
@@ -140,31 +161,27 @@
           <th>비중(%)</th>
           <th>목표금액</th>
           <th>평균매입금액</th>
-          <th>보유수량<br>(주식수/현금)</th>
+          <th>보유수량</th>
+          <th>현재가</th>
           <th>평가금액</th>
           <th>평가손익</th>
           <th>수익률</th>
           <th>
-            목표금액<br>
+            목표가<br>
             <input type="text" id="stagePercentInput" class="numpad-trigger" data-label="목표금액 계산 비율(%)" value="100" readonly
               style="margin-top:4px; width:44px; padding:2px 4px; border-radius:5px; border:1px solid var(--border-strong); font-size:11.5px; text-align:right; background:var(--input-bg);"> %
           </th>
-          <th>차액<br>(목표금액-평가금액)</th>
+          <th>차액</th>
           <th>비고</th>
-          <th>현금성자산</th>
-          <th>
-            과비중 차액<br>
-            <input type="text" id="overweightThreshold" class="numpad-trigger" data-label="과비중 판정 임계값(%)" value="10" readonly
-              style="margin-top:4px; width:44px; padding:2px 4px; border-radius:5px; border:1px solid var(--border-strong); font-size:11.5px; text-align:right; background:var(--input-bg);"> %
-          </th>
         </tr>
       </thead>
+      <tbody id="kiwoomBody"></tbody>
       <tbody id="mainBody"></tbody>
       <tfoot id="mainFoot"></tfoot>
     </table>
   </div>
 </div>
-<div class="panel">
+<div class="panel" id="masterPanel" data-tab-panel="master">
   <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap;">
     <h2 style="margin:0;">📌 종목 마스터</h2>
     <div style="display:flex; gap:6px; flex-wrap:wrap;">
@@ -276,14 +293,15 @@
   </div>
 </div>
 
-<script src="js/core.js?v=50"></script>
-<script src="js/numpad.js?v=50"></script>
-<script src="js/auth-box.js?v=50"></script>
-<script src="js/account-box.js?v=50"></script>
-<script src="js/settings-box.js?v=50"></script>
-<script src="js/kiwoom-box.js?v=50"></script>
-<script src="js/stock-summary-box.js?v=50"></script>
-<script src="js/main-table-box.js?v=50"></script>
-<script src="js/price-table-box.js?v=50"></script><script src="js/app.js?v=50"></script>
+<script src="js/core.js?v=55"></script>
+<script src="js/tabs-box.js?v=55"></script>
+<script src="js/numpad.js?v=55"></script>
+<script src="js/auth-box.js?v=55"></script>
+<script src="js/account-box.js?v=55"></script>
+<script src="js/settings-box.js?v=55"></script>
+<script src="js/kiwoom-box.js?v=55"></script>
+<script src="js/stock-summary-box.js?v=55"></script>
+<script src="js/main-table-box.js?v=55"></script>
+<script src="js/price-table-box.js?v=55"></script><script src="js/app.js?v=55"></script>
 </body>
 </html>

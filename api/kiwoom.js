@@ -61,34 +61,23 @@ async function getOverseasPrice(code) {
 }
 
 // 계좌 하나(앱키 하나)의 국내/해외 잔고 + 예수금을 모두 조회해서 한 묶음으로 돌려준다.
+// 세 TR(kt00018/ust21070/kt00001)은 서로 독립적이라 동시에 호출한다 — 순서대로 부르면
+// 계좌 하나 조회에만 TR 3개만큼의 왕복 시간이 그대로 쌓였다.
 async function getAccountBalance(account) {
-  const data = await callKiwoom(redis, account, 'kt00018', '/api/dostk/acnt', {
-    qry_tp: '1',
-    dmst_stex_tp: 'KRX',
-  });
-
-  // 해외주식(미국) 잔고는 별도 TR. 해외 거래 계좌가 없거나 조회에 실패해도 국내 잔고는
-  // 정상 표시해야 하므로, 이 호출만 실패를 삼키고 국내 결과만으로 계속 진행한다.
-  let overseas = null;
-  try {
-    overseas = await callKiwoom(redis, account, 'ust21070', '/api/us/acnt', { stex_tp: '', stk_cd: '' });
-  } catch (e) {
-    overseas = null;
-  }
-
-  // 예수금(국내 원화 현금)은 kt00018/보유종목과 별도 TR. 여기서도 실패해도 나머지 잔고는
-  // 정상 표시되도록 실패를 삼킨다. (해외 계좌의 외화 예수금은 통화별 환산이 더 필요해 범위 밖.)
-  // 다만 실패 자체는 cashError로 남겨서, 계좌에 실제 예수금이 있는데도 0으로 보이는 원인을
-  // 화면(일부 계좌 조회 실패 안내)에서 바로 알 수 있게 한다.
-  let cashBalance = 0;
-  let cashNote = null; // 화면(일부 계좌 조회 실패 안내)에 그대로 노출할 완성된 문구
-  try {
-    const cash = await callKiwoom(redis, account, 'kt00001', '/api/dostk/acnt', { qry_tp: '2' });
-    cashBalance = toNumber(cash.entr);
-  } catch (e) {
-    cashBalance = 0;
-    cashNote = `[${account.label}] 예수금 조회 실패: ${e.message}`;
-  }
+  const [data, overseas, cashResult] = await Promise.all([
+    callKiwoom(redis, account, 'kt00018', '/api/dostk/acnt', { qry_tp: '1', dmst_stex_tp: 'KRX' }),
+    // 해외주식(미국) 잔고는 별도 TR. 해외 거래 계좌가 없거나 조회에 실패해도 국내 잔고는
+    // 정상 표시해야 하므로, 이 호출만 실패를 삼키고 국내 결과만으로 계속 진행한다.
+    callKiwoom(redis, account, 'ust21070', '/api/us/acnt', { stex_tp: '', stk_cd: '' }).catch(() => null),
+    // 예수금(국내 원화 현금)은 kt00018/보유종목과 별도 TR. 여기서도 실패해도 나머지 잔고는
+    // 정상 표시되도록 실패를 삼킨다. (해외 계좌의 외화 예수금은 통화별 환산이 더 필요해 범위 밖.)
+    // 다만 실패 자체는 cashError로 남겨서, 계좌에 실제 예수금이 있는데도 0으로 보이는 원인을
+    // 화면(일부 계좌 조회 실패 안내)에서 바로 알 수 있게 한다.
+    callKiwoom(redis, account, 'kt00001', '/api/dostk/acnt', { qry_tp: '2' })
+      .then((cash) => ({ cashBalance: toNumber(cash.entr), cashNote: null }))
+      .catch((e) => ({ cashBalance: 0, cashNote: `[${account.label}] 예수금 조회 실패: ${e.message}` })),
+  ]);
+  let { cashBalance, cashNote } = cashResult;
 
   // IRP(개인형퇴직연금) 등 결제 체계가 다른 계좌는 kt00001의 즉시결제 예수금(entr)이 항상
   // 0으로 나온다 — 실제 잔고는 D+2 결제 기준인 계좌평가현황요청(kt00004)의 d2_entra(D+2
@@ -204,8 +193,10 @@ async function getNhAccountBalance(account) {
 }
 
 // 계좌번호(actNo) 하나의 국내/해외 잔고 + 예수금 조회. label은 화면에 표시할 계좌명.
+// 국내 조회와 해외 시장별 조회는 서로 독립적이라 동시에 호출한다 — 실제 네트워크 호출
+// 간격은 lib/nh.js의 throttleNhCall()이 유량 제한(초당 4회 수준)에 맞춰 순서대로 벌려준다.
 async function getNhSingleAccountBalance(account, actNo, label) {
-  const domestic = await callNh(redis, account, '/krstock/inquiry/v1/balance', {
+  const domesticPromise = callNh(redis, account, '/krstock/inquiry/v1/balance', {
     Input_0: {
       act_no: actNo,
       bnc_bse_cd: '5', // 주식잔고평가(현재가기준)
@@ -215,6 +206,17 @@ async function getNhSingleAccountBalance(account, actNo, label) {
       aly_qut_cd: '1', // 정규장
     },
   });
+  const overseasPromises = NH_OVERSEAS_MARKETS.map((market) =>
+    callNh(redis, account, '/gbstock/inquiry/v1/balance', {
+      Input_0: {
+        act_no: actNo,
+        qut_iqr_dit_cd: '1', // 정규장
+        fc_sec_trd_nat_cd: market.code,
+        cur_cd: market.currency,
+      },
+    }).catch(() => null) // 이 시장 조회 하나가 막혀도(예: 그 국가 미보유) 나머지 시장은 계속 조회한다.
+  );
+  const [domestic, ...overseasResults] = await Promise.all([domesticPromise, ...overseasPromises]);
   const d0 = domestic.Output_0 || {};
   const cashBalance = toNumber(d0.dca);
 
@@ -249,39 +251,28 @@ async function getNhSingleAccountBalance(account, actNo, label) {
 
   let overseasEvalAmount = 0, overseasEvalProfit = 0;
   const overseasHoldings = [];
-  for (const market of NH_OVERSEAS_MARKETS) {
-    try {
-      const gb = await callNh(redis, account, '/gbstock/inquiry/v1/balance', {
-        Input_0: {
-          act_no: actNo,
-          qut_iqr_dit_cd: '1', // 정규장
-          fc_sec_trd_nat_cd: market.code,
-          cur_cd: market.currency,
-        },
-      });
-      const g0 = gb.Output_0;
-      if (g0) {
-        overseasEvalAmount += toNumber(g0.eal_amt_sum);
-        overseasEvalProfit += toNumber(g0.eal_pls_sum_amt);
-      }
-      (gb.Output_1 || []).forEach((row) => {
-        overseasHoldings.push({
-          broker: 'NH투자증권',
-          account: label,
-          accountType: '해외',
-          code: row.iem_cd || '',
-          name: row.iem_nm || row.oss_iem_eng_nm || '',
-          qty: toNumber(row.cns_bse_bnc_qty),
-          currentPrice: toNumber(row.end_pr),
-          purchasePrice: toNumber(row.phs_uit_pr),
-          evalAmount: toNumber(row.krw_eal_amt),
-          evalProfit: toNumber(row.krw_eal_pls_amt),
-          profitRate: toNumber(row.eal_pft_rt),
-        });
-      });
-    } catch (e) {
-      // 이 시장 조회 하나가 막혀도(예: 그 국가 미보유) 나머지 시장은 계속 조회한다.
+  for (const gb of overseasResults) {
+    if (!gb) continue; // 이 시장 조회가 실패했거나(위에서 catch로 null 처리) 그 국가 미보유
+    const g0 = gb.Output_0;
+    if (g0) {
+      overseasEvalAmount += toNumber(g0.eal_amt_sum);
+      overseasEvalProfit += toNumber(g0.eal_pls_sum_amt);
     }
+    (gb.Output_1 || []).forEach((row) => {
+      overseasHoldings.push({
+        broker: 'NH투자증권',
+        account: label,
+        accountType: '해외',
+        code: row.iem_cd || '',
+        name: row.iem_nm || row.oss_iem_eng_nm || '',
+        qty: toNumber(row.cns_bse_bnc_qty),
+        currentPrice: toNumber(row.end_pr),
+        purchasePrice: toNumber(row.phs_uit_pr),
+        evalAmount: toNumber(row.krw_eal_amt),
+        evalProfit: toNumber(row.krw_eal_pls_amt),
+        profitRate: toNumber(row.eal_pft_rt),
+      });
+    });
   }
 
   const evalAmount = toNumber(d0.tot_eal_amt) + overseasEvalAmount;
@@ -319,9 +310,14 @@ async function getBalance(id) {
   if (kiwoomAccounts.length === 0) failed.push('키움증권: 앱키(KIWOOM_APP_KEY)가 설정되지 않았습니다.');
   if (nhAccounts.length === 0) failed.push('NH투자증권: 앱키(NH_APP_KEY)가 설정되지 않았습니다.');
 
-  for (const { account, fetcher } of accounts) {
-    try {
-      const result = await fetcher(account);
+  // 계좌들을 순서대로 하나씩 기다리면 계좌 수만큼 대기시간이 그대로 쌓여서, 앱키(계좌)가
+  // 서로 다른 만큼 독립적인 이 조회들을 동시에 돌린다. NH는 계좌가 몇 개든 lib/nh.js의
+  // throttleNhCall()이 실제 네트워크 호출 간격을 알아서 벌려주므로 유량 제한을 넘지 않는다.
+  const settled = await Promise.allSettled(accounts.map(({ account, fetcher }) => fetcher(account)));
+  settled.forEach((s, i) => {
+    const { account } = accounts[i];
+    if (s.status === 'fulfilled') {
+      const result = s.value;
       totalPurchaseAmount += result.purchaseAmount;
       totalEvalAmount += result.evalAmount;
       totalEvalProfit += result.evalProfit;
@@ -329,11 +325,11 @@ async function getBalance(id) {
       holdings.push(...result.holdings);
       if (result.failedSubAccounts && result.failedSubAccounts.length) failed.push(...result.failedSubAccounts);
       if (result.cashError) failed.push(result.cashError);
-    } catch (e) {
+    } else {
       // 계좌 하나가 막혀도(예: IP 미등록, 토큰 문제) 나머지 계좌는 계속 보여준다.
-      failed.push(`${account.label}: ${e.message}`);
+      failed.push(`${account.label}: ${(s.reason && s.reason.message) || s.reason}`);
     }
-  }
+  });
 
   if (holdings.length === 0 && failed.length === accounts.length) {
     return { status: 500, body: { error: '계좌 잔고를 조회하는 중 오류가 발생했습니다.', detail: failed.join(' / ') } };
