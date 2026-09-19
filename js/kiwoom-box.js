@@ -124,7 +124,7 @@ function renderKiwoomBalance(data){
       // 평균매입금액/보유수량/평가손익/수익률은 참고용이라 흐리게(kiwoom-disabled-cell),
       // 현재가/평가금액은 실제 리밸런싱 판단에 쓰는 금액이라 또렷하게 남긴다.
       rowCells += `
-        <td>${kiwoomEscapeHtml(h.name)}</td>
+        <td class="label">${kiwoomEscapeHtml(h.name)}</td>
         <td><div class="stepper">
           <input type="text" class="cell-input kiwoom-weight-input numpad-trigger" data-label="${kiwoomEscapeHtml(h.name)} 목표비중(%)" data-key="${kiwoomEscapeHtml(holdingKey)}" value="${weight}" readonly>
           <span class="spin-btns">

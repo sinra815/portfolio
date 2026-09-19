@@ -19,28 +19,6 @@ const KIWOOM_OWNER_ID = 'sinra815';
 
 const toNumber = (v) => Number(String(v ?? '0').trim()) || 0;
 
-// 한 증권사 안의 계좌(앱키)들을 전부 한꺼번에 동시에 부르면 그 증권사 API(또는 IP 중계
-// 서버)가 순간적인 요청 폭주로 오히려 더 느려지거나 실패할 수 있어, 증권사별로 동시에 진행할
-// 계좌 수를 이 값으로 제한한다(키움 따로, NH 따로 — getBalance()에서 각각 적용).
-// Promise.allSettled와 같은 모양({status, value|reason})의 배열을 순서대로 돌려준다.
-const ACCOUNT_CONCURRENCY = 3;
-async function settleWithConcurrency(items, limit, fn) {
-  const results = new Array(items.length);
-  let next = 0;
-  async function worker() {
-    while (next < items.length) {
-      const i = next++;
-      try {
-        results[i] = { status: 'fulfilled', value: await fn(items[i], i) };
-      } catch (reason) {
-        results[i] = { status: 'rejected', reason };
-      }
-    }
-  }
-  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker));
-  return results;
-}
-
 async function getDomesticPrice(code) {
   if (!/^\d{6}$/.test(code)) {
     return { status: 400, body: { error: '6자리 국내 종목코드를 입력해주세요.' } };
@@ -83,7 +61,7 @@ async function getOverseasPrice(code) {
 }
 
 // 계좌 하나(앱키 하나)의 국내/해외 잔고 + 예수금을 모두 조회해서 한 묶음으로 돌려준다.
-// 세 TR(kt00018/ust21070/kt00001)은 서로 독립적이라 동시에 호출한다 — 순서대로 부르면
+// 세 TR(kt00018/ust21070/kt00004)은 서로 독립적이라 동시에 호출한다 — 순서대로 부르면
 // 계좌 하나 조회에만 TR 3개만큼의 왕복 시간이 그대로 쌓였다.
 async function getAccountBalance(account) {
   const [data, overseas, cashResult] = await Promise.all([
@@ -91,27 +69,16 @@ async function getAccountBalance(account) {
     // 해외주식(미국) 잔고는 별도 TR. 해외 거래 계좌가 없거나 조회에 실패해도 국내 잔고는
     // 정상 표시해야 하므로, 이 호출만 실패를 삼키고 국내 결과만으로 계속 진행한다.
     callKiwoom(redis, account, 'ust21070', '/api/us/acnt', { stex_tp: '', stk_cd: '' }).catch(() => null),
-    // 예수금(국내 원화 현금)은 kt00018/보유종목과 별도 TR. 여기서도 실패해도 나머지 잔고는
-    // 정상 표시되도록 실패를 삼킨다. (해외 계좌의 외화 예수금은 통화별 환산이 더 필요해 범위 밖.)
-    // 다만 실패 자체는 cashError로 남겨서, 계좌에 실제 예수금이 있는데도 0으로 보이는 원인을
-    // 화면(일부 계좌 조회 실패 안내)에서 바로 알 수 있게 한다.
-    callKiwoom(redis, account, 'kt00001', '/api/dostk/acnt', { qry_tp: '2' })
-      .then((cash) => ({ cashBalance: toNumber(cash.entr), cashNote: null }))
+    // 예수금은 D+2 결제 기준(계좌평가현황요청 kt00004)의 d2_entra(D+2 추정예수금)를 처음부터
+    // 그대로 쓴다 — 즉시결제 기준(kt00001)은 IRP(개인형퇴직연금) 등 결제 체계가 다른 계좌에서
+    // 항상 0으로 나오는 문제가 있어, 아예 D+2 값 하나로 통일했다. 이 호출이 실패해도 나머지
+    // 잔고는 정상 표시되도록 실패를 삼키되, cashError로 남겨서 화면(일부 계좌 조회 실패 안내)에서
+    // 바로 원인을 알 수 있게 한다.
+    callKiwoom(redis, account, 'kt00004', '/api/dostk/acnt', { qry_tp: '0', dmst_stex_tp: 'KRX' })
+      .then((eval4) => ({ cashBalance: toNumber(eval4.entr) || toNumber(eval4.d2_entra), cashNote: null }))
       .catch((e) => ({ cashBalance: 0, cashNote: `[${account.label}] 예수금 조회 실패: ${e.message}` })),
   ]);
-  let { cashBalance, cashNote } = cashResult;
-
-  // IRP(개인형퇴직연금) 등 결제 체계가 다른 계좌는 kt00001의 즉시결제 예수금(entr)이 항상
-  // 0으로 나온다 — 실제 잔고는 D+2 결제 기준인 계좌평가현황요청(kt00004)의 d2_entra(D+2
-  // 추정예수금)에 찍힌다. kt00001이 0일 때만 이 TR을 한 번 더 불러 그 값을 예수금으로 쓴다.
-  if (cashBalance === 0) {
-    try {
-      const eval4 = await callKiwoom(redis, account, 'kt00004', '/api/dostk/acnt', { qry_tp: '0', dmst_stex_tp: 'KRX' });
-      cashBalance = toNumber(eval4.entr) || toNumber(eval4.d2_entra);
-    } catch (e) {
-      // 이 보조 조회가 실패해도 kt00001 결과(0)를 그대로 쓴다.
-    }
-  }
+  const { cashBalance, cashNote } = cashResult;
 
   const holdings = (data.acnt_evlt_remn_indv_tot || []).map((row) => ({
     broker: '키움증권',
@@ -315,7 +282,10 @@ async function getBalance(id) {
 
   const kiwoomAccounts = getKiwoomAccounts();
   const nhAccounts = getNhAccounts();
-  const accounts = [...kiwoomAccounts, ...nhAccounts];
+  const accounts = [
+    ...kiwoomAccounts.map((account) => ({ account, fetcher: getAccountBalance })),
+    ...nhAccounts.map((account) => ({ account, fetcher: getNhAccountBalance })),
+  ];
   if (accounts.length === 0) {
     return { status: 500, body: { error: '증권사 앱키가 설정되지 않았습니다.' } };
   }
@@ -329,19 +299,12 @@ async function getBalance(id) {
   if (kiwoomAccounts.length === 0) failed.push('키움증권: 앱키(KIWOOM_APP_KEY)가 설정되지 않았습니다.');
   if (nhAccounts.length === 0) failed.push('NH투자증권: 앱키(NH_APP_KEY)가 설정되지 않았습니다.');
 
-  // 계좌들을 순서대로 하나씩 기다리면 계좌 수만큼 대기시간이 그대로 쌓이지만, 반대로 증권사
-  // 하나에 전부 한꺼번에 동시에 부르면 그 증권사(또는 IP 중계 서버)가 요청 폭주를 못 견뎌 오히려
-  // 더 느려지거나 실패하는 경우가 있어, 증권사별로 동시에 ACCOUNT_CONCURRENCY개까지만 진행한다
-  // — 키움과 NH는 서로 다른 서버라 따로 계산하므로, 예를 들어 키움 3개 + NH 3개가 동시에
-  // 진행될 수 있다. NH는 계좌가 몇 개든 lib/nh.js의 throttleNhCall()이 실제 네트워크 호출
-  // 간격을 한 번 더 벌려준다.
-  const [kiwoomSettled, nhSettled] = await Promise.all([
-    settleWithConcurrency(kiwoomAccounts, ACCOUNT_CONCURRENCY, getAccountBalance),
-    settleWithConcurrency(nhAccounts, ACCOUNT_CONCURRENCY, getNhAccountBalance),
-  ]);
-  const settled = [...kiwoomSettled, ...nhSettled];
+  // 계좌들을 순서대로 하나씩 기다리면 계좌 수만큼 대기시간이 그대로 쌓여서, 증권사(키움/NH)와
+  // 앱키가 서로 다른 만큼 독립적인 이 조회들을 전부 한꺼번에 동시에 돌린다. NH는 계좌가 몇
+  // 개든 lib/nh.js의 throttleNhCall()이 실제 네트워크 호출 간격을 알아서 벌려준다.
+  const settled = await Promise.allSettled(accounts.map(({ account, fetcher }) => fetcher(account)));
   settled.forEach((s, i) => {
-    const account = accounts[i];
+    const { account } = accounts[i];
     if (s.status === 'fulfilled') {
       const result = s.value;
       totalPurchaseAmount += result.purchaseAmount;
