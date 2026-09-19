@@ -19,10 +19,11 @@ const KIWOOM_OWNER_ID = 'sinra815';
 
 const toNumber = (v) => Number(String(v ?? '0').trim()) || 0;
 
-// 계좌(앱키)들을 전부 한꺼번에 동시에 부르면 증권사 API(또는 IP 중계 서버)가 순간적인
-// 요청 폭주로 오히려 더 느려지거나 실패할 수 있어, 동시에 진행할 계좌 수를 이 값으로 제한한다.
+// 한 증권사 안의 계좌(앱키)들을 전부 한꺼번에 동시에 부르면 그 증권사 API(또는 IP 중계
+// 서버)가 순간적인 요청 폭주로 오히려 더 느려지거나 실패할 수 있어, 증권사별로 동시에 진행할
+// 계좌 수를 이 값으로 제한한다(키움 따로, NH 따로 — getBalance()에서 각각 적용).
 // Promise.allSettled와 같은 모양({status, value|reason})의 배열을 순서대로 돌려준다.
-const ACCOUNT_CONCURRENCY = 2;
+const ACCOUNT_CONCURRENCY = 3;
 async function settleWithConcurrency(items, limit, fn) {
   const results = new Array(items.length);
   let next = 0;
@@ -314,10 +315,7 @@ async function getBalance(id) {
 
   const kiwoomAccounts = getKiwoomAccounts();
   const nhAccounts = getNhAccounts();
-  const accounts = [
-    ...kiwoomAccounts.map((account) => ({ account, fetcher: getAccountBalance })),
-    ...nhAccounts.map((account) => ({ account, fetcher: getNhAccountBalance })),
-  ];
+  const accounts = [...kiwoomAccounts, ...nhAccounts];
   if (accounts.length === 0) {
     return { status: 500, body: { error: '증권사 앱키가 설정되지 않았습니다.' } };
   }
@@ -331,13 +329,19 @@ async function getBalance(id) {
   if (kiwoomAccounts.length === 0) failed.push('키움증권: 앱키(KIWOOM_APP_KEY)가 설정되지 않았습니다.');
   if (nhAccounts.length === 0) failed.push('NH투자증권: 앱키(NH_APP_KEY)가 설정되지 않았습니다.');
 
-  // 계좌들을 순서대로 하나씩 기다리면 계좌 수만큼 대기시간이 그대로 쌓이지만, 반대로 전부
-  // 한꺼번에 동시에 부르면 증권사(또는 IP 중계 서버)가 순간적인 요청 폭주를 못 견뎌 오히려
-  // 더 느려지거나 실패하는 경우가 있어, 동시에 ACCOUNT_CONCURRENCY개까지만 진행한다. NH는
-  // 계좌가 몇 개든 lib/nh.js의 throttleNhCall()이 실제 네트워크 호출 간격을 한 번 더 벌려준다.
-  const settled = await settleWithConcurrency(accounts, ACCOUNT_CONCURRENCY, ({ account, fetcher }) => fetcher(account));
+  // 계좌들을 순서대로 하나씩 기다리면 계좌 수만큼 대기시간이 그대로 쌓이지만, 반대로 증권사
+  // 하나에 전부 한꺼번에 동시에 부르면 그 증권사(또는 IP 중계 서버)가 요청 폭주를 못 견뎌 오히려
+  // 더 느려지거나 실패하는 경우가 있어, 증권사별로 동시에 ACCOUNT_CONCURRENCY개까지만 진행한다
+  // — 키움과 NH는 서로 다른 서버라 따로 계산하므로, 예를 들어 키움 3개 + NH 3개가 동시에
+  // 진행될 수 있다. NH는 계좌가 몇 개든 lib/nh.js의 throttleNhCall()이 실제 네트워크 호출
+  // 간격을 한 번 더 벌려준다.
+  const [kiwoomSettled, nhSettled] = await Promise.all([
+    settleWithConcurrency(kiwoomAccounts, ACCOUNT_CONCURRENCY, getAccountBalance),
+    settleWithConcurrency(nhAccounts, ACCOUNT_CONCURRENCY, getNhAccountBalance),
+  ]);
+  const settled = [...kiwoomSettled, ...nhSettled];
   settled.forEach((s, i) => {
-    const { account } = accounts[i];
+    const account = accounts[i];
     if (s.status === 'fulfilled') {
       const result = s.value;
       totalPurchaseAmount += result.purchaseAmount;
